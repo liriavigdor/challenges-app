@@ -2,29 +2,28 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// הזן כאן את הגדרות פרויקט ה-Firebase שלך מה-Firebase Console
+// הגדרות פרויקט ה-Firebase של challenges-app
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCPqztRzP5ICsCW7UV3KePdKM5-AyyKJjc",
+  authDomain: "challenges-app-cbed3.firebaseapp.com",
+  projectId: "challenges-app-cbed3",
+  storageBucket: "challenges-app-cbed3.firebasestorage.app",
+  messagingSenderId: "808601459739",
+  appId: "1:808601459739:web:05c41cec9ff505068cecbe",
+  measurementId: "G-VRV3S1L6QG"
 };
 
-// אתחול Firebase (נא להחליף בערכים האמיתיים כשתרצה להפעיל את בסיס הנתונים בענן)
+// אתחול Firebase
 let app;
 let db;
 let auth;
 
 try {
-  if (firebaseConfig.apiKey !== "YOUR_API_KEY_HERE") {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
-  }
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
 } catch (e) {
-  console.warn("Firebase failed to initialize. Using mock data mode.", e);
+  console.warn("Firebase failed to initialize.", e);
 }
 
 export const isFirebaseActive = typeof db !== 'undefined' && db !== null;
