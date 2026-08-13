@@ -10,7 +10,8 @@ export const initialUsers = [
     activeChallenges: ["run_10k", "pushups_100"],
     reportsCount: 0,
     isBlocked: false,
-    hardChallengesCompleted: 3
+    hardChallengesCompleted: 3,
+    streak: 7
   },
   {
     id: "user_2",
@@ -23,7 +24,8 @@ export const initialUsers = [
     activeChallenges: ["plank_30d"],
     reportsCount: 0,
     isBlocked: false,
-    hardChallengesCompleted: 2
+    hardChallengesCompleted: 2,
+    streak: 5
   },
   {
     id: "user_3",
@@ -36,7 +38,8 @@ export const initialUsers = [
     activeChallenges: ["run_10k", "plank_30d"],
     reportsCount: 0,
     isBlocked: false,
-    hardChallengesCompleted: 1
+    hardChallengesCompleted: 1,
+    streak: 3
   },
   {
     id: "user_4",
@@ -49,7 +52,8 @@ export const initialUsers = [
     activeChallenges: ["pushups_100"],
     reportsCount: 0,
     isBlocked: false,
-    hardChallengesCompleted: 0
+    hardChallengesCompleted: 0,
+    streak: 12
   }
 ];
 
@@ -84,7 +88,7 @@ export const initialChallenges = [
   },
   {
     id: "plank_30d",
-    title: "30 ימי פלאנק (אמקור)",
+    title: "30 ימי פלאנק",
     description: "אתגר יומיומי: מתחילים מדקה ביום הראשון ומגיעים ל-5 דקות פלאנק ביום ה-30.",
     category: "ליבה",
     difficulty: "קל",
@@ -135,13 +139,14 @@ export const initialFeed = [
     userName: "רועי כהן",
     userAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
     challengeTitle: "אתגר ריצת 10 קילומטר",
-    achievementDetail: "השלמתי את ה-10 קילומטרים בזמן שיא של 44:21 דקות! 🔥🏃‍♂️ ההרגשה מטורפת.",
+    achievementDetail: "השלמתי את ה-10 קילומטרים בזמן שיא של 44:21 דקות! 🔥🏃‍♂️ ההרגשה מטורפת. מי מנסה לעקוף אותי?",
     proofImage: "https://images.unsplash.com/photo-1502224562085-639556652f33?w=600&auto=format&fit=crop&q=80",
     likes: 24,
     claps: 12,
     hasLiked: false,
     hasClapped: false,
     timestamp: "לפני שעתיים",
+    streak: 7,
     comments: [
       {
         id: "c_1",
@@ -161,18 +166,121 @@ export const initialFeed = [
     userName: "יובל לוי",
     userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
     challengeTitle: "100 שכיבות סמיכה ברצף",
-    achievementDetail: "סוף סוף הצלחתי! 100 שכיבות סמיכה נקיות. הידיים רועדות אבל זה שווה את זה.",
+    achievementDetail: "סוף סוף הצלחתי! 100 שכיבות סמיכה נקיות. הידיים רועדות אבל זה שווה את זה. 💪🏅",
     proofImage: "https://images.unsplash.com/photo-1598971861713-54ad16a7e72e?w=600&auto=format&fit=crop&q=80",
     likes: 18,
     claps: 22,
     hasLiked: false,
     hasClapped: false,
     timestamp: "לפני 4 שעות",
+    streak: 5,
     comments: [
       {
         id: "c_3",
         userName: "דניאל מזרחי",
         text: "סט אחד בלי הפסקה בכלל? וואו."
+      }
+    ]
+  },
+  {
+    id: "feed_3",
+    userId: "user_3",
+    userName: "דניאל מזרחי",
+    userAvatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80",
+    challengeTitle: "טיפוס לפסגת החרמון",
+    achievementDetail: "כבשתי את החרמון! הנוף משוגע, האוויר קפוא והחוויה בלתי נשכחת. 🏔️👣",
+    proofImage: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=80",
+    likes: 31,
+    claps: 40,
+    hasLiked: false,
+    hasClapped: false,
+    timestamp: "לפני יום",
+    streak: 3,
+    comments: []
+  },
+  {
+    id: "feed_4",
+    userId: "user_4",
+    userName: "שירה אלוני",
+    userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80",
+    challengeTitle: "30 ימי פלאנק",
+    achievementDetail: "יום 15 של הפלאנק! הגעתי כבר ל-3 וחצי דקות פלאנק רצוף! אל תוותרו לעצמכם! ✨🧘‍♀️",
+    proofImage: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
+    likes: 15,
+    claps: 10,
+    hasLiked: false,
+    hasClapped: false,
+    timestamp: "לפני יומיים",
+    streak: 12,
+    comments: []
+  }
+];
+
+export const initialStories = [
+  {
+    id: "story_1",
+    userId: "user_1",
+    userName: "רועי כהן",
+    userAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+    slides: [
+      {
+        id: "slide_1_1",
+        title: "ריצת 10 קילומטר",
+        text: "מתחילים את הבוקר בריצה חזקה בפארק! 🏃‍♂️💪",
+        image: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80",
+        timestamp: "לפני שעה"
+      },
+      {
+        id: "slide_1_2",
+        title: "הוכחה והישגים",
+        text: "44:21 דקות. ה-XP שלי עולה! הצטרפו לאתגר שלי!",
+        image: "https://images.unsplash.com/photo-1502224562085-639556652f33?w=600&auto=format&fit=crop&q=80",
+        timestamp: "לפני שעה"
+      }
+    ]
+  },
+  {
+    id: "story_2",
+    userId: "user_2",
+    userName: "יובל לוי",
+    userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+    slides: [
+      {
+        id: "slide_2_1",
+        title: "100 שכיבות סמיכה ברצף",
+        text: "מתכונן לסט המושלם... הצלחתי! 💯",
+        image: "https://images.unsplash.com/photo-1598971861713-54ad16a7e72e?w=600&auto=format&fit=crop&q=80",
+        timestamp: "לפני 4 שעות"
+      }
+    ]
+  },
+  {
+    id: "story_3",
+    userId: "user_3",
+    userName: "דניאל מזרחי",
+    userAvatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80",
+    slides: [
+      {
+        id: "slide_3_1",
+        title: "טיפוס לחרמון",
+        text: "הנוף פשוט משוגע מכאן למעלה 🏔️🦅",
+        image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=80",
+        timestamp: "לפני 5 שעות"
+      }
+    ]
+  },
+  {
+    id: "story_4",
+    userId: "user_4",
+    userName: "שירה אלוני",
+    userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80",
+    slides: [
+      {
+        id: "slide_4_1",
+        title: "30 ימי פלאנק",
+        text: "יום 15 - כבר מרגישה את החוזק בליבה! 🧘‍♀️✨",
+        image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
+        timestamp: "לפני 8 שעות"
       }
     ]
   }

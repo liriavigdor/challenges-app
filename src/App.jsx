@@ -13,9 +13,13 @@ import {
   SearchIcon, 
   SunIcon, 
   MoonIcon,
-  CameraIcon
+  CameraIcon,
+  CloseIcon,
+  ShareIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from './icons';
-import { initialUsers, initialChallenges, initialFeed } from './mockData';
+import { initialUsers, initialChallenges, initialFeed, initialStories } from './mockData';
 import { 
   getUsers, 
   updateUser, 
@@ -32,6 +36,33 @@ export default function App() {
   const [users, setUsers] = useState(initialUsers);
   const [challenges, setChallenges] = useState(initialChallenges);
   const [feed, setFeed] = useState(initialFeed);
+  const [stories, setStories] = useState(() => {
+    const saved = localStorage.getItem('challenges_stories');
+    return saved ? JSON.parse(saved) : initialStories;
+  });
+  
+  // Camera Story states
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [cameraFilter, setCameraFilter] = useState('normal'); // 'normal', 'warm', 'cool', 'neon', 'retro'
+  const [storyCaption, setStoryCaption] = useState('');
+  const [storyTaggedChallenge, setStoryTaggedChallenge] = useState('');
+  const [cameraFacingMode, setCameraFacingMode] = useState('user');
+  const [isCameraFlashing, setIsCameraFlashing] = useState(false);
+
+  // Stories active view states
+  const [activeStoryIndex, setActiveStoryIndex] = useState(null);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [storyProgress, setStoryProgress] = useState(0);
+
+  useEffect(() => {
+    localStorage.setItem('challenges_stories', JSON.stringify(stories));
+  }, [stories]);
+
+  // Reels interactive animation states
+  const [doubleTapPostId, setDoubleTapPostId] = useState(null);
+  const [commentSheetPostId, setCommentSheetPostId] = useState(null);
   
   // Current user simulator (רועי כהן)
   const [currentUser, setCurrentUser] = useState(initialUsers[0]);
@@ -51,6 +82,195 @@ export default function App() {
     }
     loadData();
   }, []);
+
+  // Camera WebRTC activation and controller
+  useEffect(() => {
+    if (isCameraOpen) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [isCameraOpen, cameraFacingMode]);
+
+  const startCamera = async () => {
+    try {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: cameraFacingMode },
+        audio: false
+      });
+      setCameraStream(stream);
+    } catch (err) {
+      console.warn("Could not access camera, using fallback/simulator:", err);
+      setCameraStream(null);
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+  };
+
+  const capturePhoto = () => {
+    setIsCameraFlashing(true);
+    setTimeout(() => setIsCameraFlashing(false), 200);
+
+    if (cameraStream) {
+      const video = document.getElementById('camera-video-feed');
+      if (video) {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 1136;
+        const ctx = canvas.getContext('2d');
+        
+        // Mirror front camera
+        if (cameraFacingMode === 'user') {
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+        }
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Reset transformation
+        if (cameraFacingMode === 'user') {
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        setCapturedImage(dataUrl);
+        return;
+      }
+    }
+    
+    // Premium Mockup Capture backgrounds
+    const fallbacks = [
+      "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&auto=format&fit=crop&q=80"
+    ];
+    const randomImg = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    setCapturedImage(randomImg);
+  };
+
+  const handlePublishStory = () => {
+    if (!capturedImage) return;
+
+    const newSlide = {
+      id: `slide_${Date.now()}`,
+      title: storyTaggedChallenge || "אתגר כללי",
+      text: storyCaption || "בדרך למטרה! 💪",
+      image: capturedImage,
+      timestamp: "כרגע"
+    };
+
+    setStories(prev => {
+      const userStoryIdx = prev.findIndex(s => s.userId === currentUser.id);
+      let updatedStories = [...prev];
+      if (userStoryIdx !== -1) {
+        updatedStories[userStoryIdx] = {
+          ...updatedStories[userStoryIdx],
+          slides: [newSlide, ...updatedStories[userStoryIdx].slides]
+        };
+      } else {
+        updatedStories = [{
+          id: `story_${Date.now()}`,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          userAvatar: currentUser.avatar,
+          slides: [newSlide]
+        }, ...updatedStories];
+      }
+      return updatedStories;
+    });
+
+    setIsCameraOpen(false);
+    setCapturedImage(null);
+    setStoryCaption('');
+    setStoryTaggedChallenge('');
+    setCameraFilter('normal');
+    alert("הסטורי פורסם בהצלחה! 🎉");
+  };
+
+  // Story auto-progress timer
+  useEffect(() => {
+    let timer;
+    if (activeStoryIndex !== null) {
+      timer = setInterval(() => {
+        setStoryProgress(prev => {
+          if (prev >= 100) {
+            handleNextSlide();
+            return 0;
+          }
+          return prev + 2; // Auto advance in 5 seconds (100ms * 50 steps = 5000ms)
+        });
+      }, 100);
+    }
+    return () => clearInterval(timer);
+  }, [activeStoryIndex, activeSlideIndex]);
+
+  const handleNextSlide = () => {
+    if (activeStoryIndex === null) return;
+    const currentStory = stories[activeStoryIndex];
+    if (!currentStory) return;
+
+    if (activeSlideIndex < currentStory.slides.length - 1) {
+      setActiveSlideIndex(prev => prev + 1);
+      setStoryProgress(0);
+    } else {
+      // Move to next user's story
+      if (activeStoryIndex < stories.length - 1) {
+        setActiveStoryIndex(prev => prev + 1);
+        setActiveSlideIndex(0);
+        setStoryProgress(0);
+      } else {
+        // Last user, last slide -> Close viewer
+        setActiveStoryIndex(null);
+        setActiveSlideIndex(0);
+        setStoryProgress(0);
+      }
+    }
+  };
+
+  const handlePrevSlide = () => {
+    if (activeStoryIndex === null) return;
+    if (activeSlideIndex > 0) {
+      setActiveSlideIndex(prev => prev - 1);
+      setStoryProgress(0);
+    } else {
+      // Go to previous user's story
+      if (activeStoryIndex > 0) {
+        const prevStory = stories[activeStoryIndex - 1];
+        setActiveStoryIndex(prev => prev - 1);
+        setActiveSlideIndex(prevStory.slides.length - 1);
+        setStoryProgress(0);
+      } else {
+        // First slide of first user -> Close
+        setActiveStoryIndex(null);
+        setActiveSlideIndex(0);
+        setStoryProgress(0);
+      }
+    }
+  };
+
+  const handleStoryJoinChallenge = (challengeTitle) => {
+    const chal = challenges.find(c => c.title === challengeTitle || c.title.includes(challengeTitle));
+    if (chal) {
+      toggleJoinChallenge(chal.id);
+      alert(`הצטרפת לאתגר: ${chal.title}! בהצלחה 💪`);
+      setActiveStoryIndex(null);
+      setActiveTab('challenges');
+    } else {
+      alert(`האתגר "${challengeTitle}" אינו זמין כעת להצטרפות.`);
+    }
+  };
 
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('הכל');
@@ -115,6 +335,27 @@ export default function App() {
           ...post,
           likes: post.hasLiked ? post.likes - 1 : post.likes + 1,
           hasLiked: !post.hasLiked
+        };
+      }
+      return post;
+    }));
+  };
+
+  // Double tap to like with animation trigger
+  const handleDoubleTapPost = (postId) => {
+    if (currentUser.isBlocked) return;
+    
+    // Trigger pop animation
+    setDoubleTapPostId(postId);
+    setTimeout(() => setDoubleTapPostId(null), 800);
+
+    // Perform like if not already liked
+    setFeed(prev => prev.map(post => {
+      if (post.id === postId && !post.hasLiked) {
+        return {
+          ...post,
+          likes: post.likes + 1,
+          hasLiked: true
         };
       }
       return post;
@@ -430,7 +671,10 @@ export default function App() {
           <div className="user-info" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('profile')}>
             <img src={currentUser.avatar} alt={currentUser.name} className="user-avatar" style={{ width: 34, height: 34 }} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{currentUser.name}</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {currentUser.name}
+                <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>🔥 {currentUser.streak || 7}</span>
+              </span>
               <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>XP {currentUser.xp}</span>
             </div>
           </div>
@@ -438,10 +682,10 @@ export default function App() {
       </header>
 
       {/* CONTENT AREA */}
-      <main style={{ flex: 1, padding: '1rem 1.5rem', overflowY: 'auto' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: activeTab === 'feed' ? 'hidden' : 'auto', padding: activeTab === 'feed' ? '0' : '1rem 1.5rem' }}>
         
         {currentUser.isBlocked && (
-          <div className="glass-card" style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '1rem', marginBottom: '1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ff4d4d' }}>
+          <div className="glass-card" style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '1rem', margin: '1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ff4d4d' }}>
             <span>⛔</span>
             <span style={{ fontWeight: 'bold' }}>החשבון שלך חסום לצמיתות עקב דיווחים מהקהילה על דיווח שקרי. חלק מהפעולות מוגבלות.</span>
           </div>
@@ -449,91 +693,143 @@ export default function App() {
         
         {/* TAB 1: FEED */}
         {activeTab === 'feed' && (
-          <div>
-            <h2 style={{ marginBottom: '1rem', fontWeight: 800 }}>פיד הישגים חברתי</h2>
-            {feed.map(post => {
-              const postAuthor = users.find(u => u.id === post.userId);
-              const isAuthorBlocked = postAuthor ? postAuthor.isBlocked : false;
-              return (
-                <div key={post.id} className="glass-card feed-post">
-                  <div className="post-header">
-                    <div className="user-info">
-                      <img src={post.userAvatar} alt={post.userName} className="user-avatar" />
-                      <div className="post-meta">
-                        <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          {post.userName}
-                          {isAuthorBlocked && (
-                            <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
-                          )}
-                        </h4>
-                        <span>{post.timestamp}</span>
-                      </div>
-                    </div>
-                    <span className="challenge-badge-pill">{post.challengeTitle}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Instagram-style Stories Slider */}
+            <div className="stories-wrapper">
+              <div className="stories-container">
+                {/* User's own active challenge indicator / Create shortcut */}
+                <div className="story-circle" onClick={() => {
+                  if (currentUser.isBlocked) {
+                    alert("חשבונך חסום. אינך יכול להעלות סטורי.");
+                    return;
+                  }
+                  setIsCameraOpen(true);
+                }}>
+                  <div className="story-avatar-wrapper user-has-none">
+                    <img src={currentUser.avatar} alt="You" className="story-avatar-img" />
+                    <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold', border: '2px solid var(--bg-secondary)' }}>+</div>
                   </div>
-                  
-                  <p className="post-content">{post.achievementDetail}</p>
-                  
-                  {post.proofImage && (
-                    <img src={post.proofImage} alt="הוכחת הישג" className="post-image" />
-                  )}
-                  
-                  <div className="post-actions">
-                    <button 
-                      onClick={() => handleLikePost(post.id)} 
-                      className={`action-btn ${post.hasLiked ? 'active like' : ''}`}
-                    >
-                      <HeartIcon size={18} fill={post.hasLiked ? "currentColor" : "none"} />
-                      <span>{post.likes}</span>
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClapPost(post.id)} 
-                      className={`action-btn ${post.hasClapped ? 'active clap' : ''}`}
-                    >
-                      <FireIcon size={18} fill={post.hasClapped ? "currentColor" : "none"} />
-                      <span>{post.claps} מחיאות כפיים</span>
-                    </button>
-
-                    <button 
-                      onClick={() => handleReportPost(post.id)} 
-                      className="action-btn report-btn"
-                      style={{ marginRight: 'auto', color: '#ff4d4d', display: 'flex', alignItems: 'center', gap: '0.25rem', border: '1px solid rgba(255, 77, 77, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem', background: 'transparent', cursor: 'pointer' }}
-                    >
-                      <span>🚩 דווח כשקר ({post.reports ? post.reports.length : 0})</span>
-                    </button>
-                  </div>
-
-                  {/* Comments */}
-                  <div className="comments-section">
-                    {post.comments && post.comments.map(c => (
-                      <div key={c.id} className="comment-item">
-                        <span className="comment-user">{c.userName}:</span>
-                        <span>{c.text}</span>
-                      </div>
-                    ))}
-                    
-                    <div className="comment-input-container">
-                      <input 
-                        type="text" 
-                        className="comment-input" 
-                        placeholder="כתבו תגובה עשירה..."
-                        value={commentInputs[post.id] || ''}
-                        onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                      />
-                      <button 
-                        onClick={() => handleAddComment(post.id)}
-                        className="btn btn-primary" 
-                        style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
-                      >
-                        שלח
-                      </button>
-                    </div>
-                  </div>
+                  <span className="story-username">הסטורי שלי</span>
                 </div>
-              );
-            })}
+
+                {/* Other users' stories */}
+                {stories.map((story, index) => (
+                  <div key={story.id} className="story-circle" onClick={() => {
+                    setActiveStoryIndex(index);
+                    setActiveSlideIndex(0);
+                    setStoryProgress(0);
+                  }}>
+                    <div className="story-avatar-wrapper">
+                      <img src={story.userAvatar} alt={story.userName} className="story-avatar-img" />
+                    </div>
+                    <span className="story-username">{story.userName}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Reels-style swiping container */}
+            <div className="reels-feed-container">
+              {feed.map(post => {
+                const postAuthor = users.find(u => u.id === post.userId);
+                const isAuthorBlocked = postAuthor ? postAuthor.isBlocked : false;
+                const associatedChallenge = challenges.find(c => c.title === post.challengeTitle);
+                const isJoinedChallenge = currentUser.activeChallenges.includes(associatedChallenge?.id);
+
+                return (
+                  <div 
+                    key={post.id} 
+                    className="reel-card"
+                    onDoubleClick={() => handleDoubleTapPost(post.id)}
+                  >
+                    {/* Background visual */}
+                    {post.proofImage && (
+                      <img src={post.proofImage} alt="הישג" className="reel-bg-image" />
+                    )}
+
+                    {/* Gradient Overlay for text contrast */}
+                    <div className="reel-overlay-gradient"></div>
+
+                    {/* Double-tap Floating Heart pop animation */}
+                    {doubleTapPostId === post.id && (
+                      <div className="double-tap-heart-anim">
+                        <HeartIcon size={80} fill="currentColor" />
+                      </div>
+                    )}
+
+                    {/* Left vertical actions column (Instagram Reels layout) */}
+                    <div className="reel-actions-column">
+                      {/* Likes */}
+                      <div className="reel-action-btn-wrapper" onClick={() => handleLikePost(post.id)}>
+                        <div className={`reel-action-circle ${post.hasLiked ? 'active-heart' : ''}`}>
+                          <HeartIcon size={24} fill={post.hasLiked ? "currentColor" : "none"} />
+                        </div>
+                        <span className="reel-action-text">{post.likes}</span>
+                      </div>
+
+                      {/* Claps */}
+                      <div className="reel-action-btn-wrapper" onClick={() => handleClapPost(post.id)}>
+                        <div className={`reel-action-circle ${post.hasClapped ? 'active-clap' : ''}`}>
+                          <FireIcon size={24} fill={post.hasClapped ? "currentColor" : "none"} />
+                        </div>
+                        <span className="reel-action-text">{post.claps}</span>
+                      </div>
+
+                      {/* Comments Sheet Trigger */}
+                      <div className="reel-action-btn-wrapper" onClick={() => setCommentSheetPostId(post.id)}>
+                        <div className="reel-action-circle">
+                          <CommentIcon size={24} />
+                        </div>
+                        <span className="reel-action-text">{post.comments ? post.comments.length : 0}</span>
+                      </div>
+
+                      {/* Addictive Call to Action: "Join/Challenge myself too!" */}
+                      {associatedChallenge && (
+                        <div className="reel-action-btn-wrapper" onClick={() => {
+                          toggleJoinChallenge(associatedChallenge.id);
+                          if (!isJoinedChallenge) {
+                            alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור נקודות XP עכשיו!`);
+                          }
+                        }}>
+                          <div className="reel-action-circle" style={{ background: isJoinedChallenge ? 'var(--success)' : 'var(--accent)', color: '#000' }}>
+                            <DumbbellIcon size={22} />
+                          </div>
+                          <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>{isJoinedChallenge ? 'משתתף' : 'אתגר אותי'}</span>
+                        </div>
+                      )}
+
+                      {/* Report button */}
+                      <div className="reel-action-btn-wrapper" onClick={() => handleReportPost(post.id)} style={{ marginTop: '0.5rem' }}>
+                        <span style={{ fontSize: '1.25rem' }}>🚩</span>
+                        <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>דווח</span>
+                      </div>
+                    </div>
+
+                    {/* Reel text information overlay */}
+                    <div className="reel-info-container">
+                      <div className="reel-author-row">
+                        <img src={post.userAvatar} alt={post.userName} className="reel-author-avatar" />
+                        <span className="reel-author-name">{post.userName}</span>
+                        {isAuthorBlocked && (
+                          <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
+                        )}
+                        <span className="reel-streak-tag">
+                          🔥 רצף {post.streak || 5} ימים
+                        </span>
+                      </div>
+
+                      <div className="reel-challenge-tag">
+                        🏆 {post.challengeTitle}
+                      </div>
+
+                      <div className="reel-desc">
+                        {post.achievementDetail}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -635,112 +931,232 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: CREATE CHALLENGE */}
+        {/* TAB 3: CREATE CHALLENGE (INSTAGRAM / TIKTOK POST STYLE WIZARD) */}
         {activeTab === 'create' && (
-          <div className="glass-card">
-            <h2 style={{ marginBottom: '1.25rem', fontWeight: 800 }}>יצירת אתגר חברתי חדש</h2>
+          <div className="creator-container">
+            <div className="creator-header-row">
+              <h2 className="creator-main-title" style={{ fontWeight: 800 }}>פרסום יוזמה חברתית חדשה</h2>
+              <span className="creator-subtitle">צרו אתגר והוכיחו ביצוע בסגנון Instagram / TikTok</span>
+            </div>
+
             {currentUser.isBlocked ? (
-              <p style={{ color: '#ff4d4d', fontWeight: 'bold' }}>חשבונך חסום. אינך יכול לשתף אתגרים חדשים.</p>
+              <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
+                <p style={{ color: '#ff4d4d', fontWeight: 'bold', fontSize: '1.1rem' }}>חשבונך חסום. אינך יכול לפרסם אתגרים חדשים.</p>
+              </div>
             ) : (
-              <form onSubmit={handleCreateChallenge}>
-                <div className="form-group">
-                  <label className="form-label">שם האתגר</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="לדוגמה: ריצת 5 קילומטר זריחה" 
-                    value={newChallengeTitle}
-                    onChange={(e) => setNewChallengeTitle(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">תיאור האתגר ומטרות</label>
-                  <textarea 
-                    className="form-control" 
-                    rows="3"
-                    placeholder="הסבירו מה צריך לעשות ואיך לתעד..." 
-                    value={newChallengeDesc}
-                    onChange={(e) => setNewChallengeDesc(e.target.value)}
-                    required
-                  ></textarea>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">קטגוריה</label>
-                    <select 
-                      className="form-control"
-                      value={newChallengeCategory}
-                      onChange={(e) => setNewChallengeCategory(e.target.value)}
-                    >
-                      <option value="כוח">כוח</option>
-                      <option value="אירובי">אירובי</option>
-                      <option value="ליבה">ליבה</option>
-                      <option value="שטח">שטח</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">רמת קושי</label>
-                    <select 
-                      className="form-control"
-                      value={newChallengeDifficulty}
-                      onChange={(e) => setNewChallengeDifficulty(e.target.value)}
-                    >
-                      <option value="קל">קל</option>
-                      <option value="בינוני">בינוני</option>
-                      <option value="קשה">קשה</option>
-                      <option value="קשה מאוד">קשה מאוד</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">נקודות XP כפרס</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    value={newChallengeXp}
-                    onChange={(e) => setNewChallengeXp(e.target.value)}
-                    min="50"
-                    max="1000"
-                  />
-                </div>
-
-                {/* Proof of Completion constraint for Sharing */}
-                <div style={{ border: '1px dashed var(--accent)', padding: '1rem', borderRadius: '8px', margin: '1rem 0', background: 'rgba(255,255,255,0.05)' }}>
-                  <h4 style={{ color: 'var(--accent)', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem' }}>🏆 הוכחת ביצוע ראשונית (חובה לפרסום)</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>כדי לשתף אתגר עם הקהילה, עליך לבצע אותו בעצמך תחילה. הפרסום יתועד בפיד ויעניק לך את ה-XP!</p>
+              <form onSubmit={handleCreateChallenge} className="creator-split-grid">
+                
+                {/* LEFT COLUMN: TikTok / Instagram Style Live Preview & Media Selector */}
+                <div className="creator-preview-pane">
+                  <div className="creator-card-label">תצוגה מקדימה של הפוסט</div>
                   
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>איך ביצעת את האתגר? (תיעוד)</label>
-                    <textarea 
-                      className="form-control" 
-                      rows="2"
-                      placeholder="שתף את הזמן, המרחק או החוויה שלך..." 
-                      value={newChallengeProofText}
-                      onChange={(e) => setNewChallengeProofText(e.target.value)}
-                      required
-                    ></textarea>
+                  {/* Mock Phone Viewport */}
+                  <div className="mock-post-card">
+                    {/* Image Preview */}
+                    <div className="mock-post-media">
+                      <img 
+                        src={newChallengeProofImage || "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"} 
+                        alt="Preview" 
+                        className="mock-media-img"
+                      />
+                      <div className="mock-post-gradient-overlay"></div>
+                      
+                      {/* Floating TikTok Style Badges */}
+                      <div className="mock-post-badges">
+                        <span className={`mock-badge diff-${newChallengeDifficulty}`}>
+                          ⚡ {newChallengeDifficulty}
+                        </span>
+                        <span className="mock-badge category">
+                          🏷️ {newChallengeCategory}
+                        </span>
+                      </div>
+
+                      {/* Bottom Info Overlay inside Media */}
+                      <div className="mock-post-bottom-info">
+                        <div className="mock-user-row">
+                          <img src={currentUser.avatar} alt="" className="mock-user-avatar" />
+                          <span className="mock-user-name">{currentUser.name}</span>
+                        </div>
+                        <h4 className="mock-challenge-title">{newChallengeTitle || "שם האתגר שלכם..."}</h4>
+                        <p className="mock-challenge-desc">{newChallengeProofText || "הוכחת הביצוע שלכם תופיע כאן..."}</p>
+                        
+                        {/* Dynamic XP counter */}
+                        <div className="mock-xp-row">
+                          <span>XP מוענק:</span>
+                          <span className="mock-xp-glow">
+                            +{Math.round(Number(newChallengeXp) * (newChallengeDifficulty === 'בינוני' ? 1.2 : newChallengeDifficulty === 'קשה' ? 1.5 : newChallengeDifficulty === 'קשה מאוד' ? 2.0 : 1.0))} XP
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>קישור לתמונת הוכחה (אופציונלי)</label>
-                    <input 
-                      type="url" 
-                      className="form-control" 
-                      placeholder="הדבק קישור לתמונה" 
-                      value={newChallengeProofImage}
-                      onChange={(e) => setNewChallengeProofImage(e.target.value)}
-                    />
+
+                  {/* Preset Sporty Media Options */}
+                  <div className="media-preset-section">
+                    <span className="section-label">בחרו תמונת אווירה ספורטיבית:</span>
+                    <div className="media-presets-grid">
+                      {[
+                        { name: "ריצה", url: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&auto=format&fit=crop&q=80" },
+                        { name: "כוח/משקולות", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80" },
+                        { name: "אימון ביתי", url: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=300&auto=format&fit=crop&q=80" },
+                        { name: "ריצה/אירובי", url: "https://images.unsplash.com/photo-1502224562085-639556652f33?w=300&auto=format&fit=crop&q=80" },
+                        { name: "שטח/טיפוס", url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&auto=format&fit=crop&q=80" }
+                      ].map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className={`preset-thumb-btn ${newChallengeProofImage === preset.url ? 'active' : ''}`}
+                          onClick={() => setNewChallengeProofImage(preset.url)}
+                        >
+                          <img src={preset.url} alt={preset.name} />
+                          <span>{preset.name}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <input 
+                        type="url" 
+                        className="form-control" 
+                        placeholder="או הדביקו כתובת תמונה מותאמת אישית..."
+                        value={newChallengeProofImage}
+                        onChange={(e) => setNewChallengeProofImage(e.target.value)}
+                        style={{ fontSize: '0.8rem' }}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
-                  אשר ביצוע ופרסם אתגר לכולם 🚀
-                </button>
+                {/* RIGHT COLUMN: Details & Settings Panel */}
+                <div className="creator-details-pane">
+                  {/* Step 1: Core Details */}
+                  <div className="glass-card creator-section-card">
+                    <h3 className="section-title" style={{ fontWeight: 700 }}>✍️ פרטי האתגר</h3>
+                    
+                    <div className="form-group">
+                      <label className="form-label">שם האתגר</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        placeholder="לדוגמה: 100 שכיבות סמיכה ברצף" 
+                        value={newChallengeTitle}
+                        onChange={(e) => setNewChallengeTitle(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">תיאור האתגר ומטרות</label>
+                      <textarea 
+                        className="form-control" 
+                        rows="2"
+                        placeholder="הסבירו מה צריך לעשות..." 
+                        value={newChallengeDesc}
+                        onChange={(e) => setNewChallengeDesc(e.target.value)}
+                        required
+                      ></textarea>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="form-group">
+                        <label className="form-label">קטגוריה</label>
+                        <select 
+                          className="form-control"
+                          value={newChallengeCategory}
+                          onChange={(e) => setNewChallengeCategory(e.target.value)}
+                        >
+                          <option value="כוח">כוח 💪</option>
+                          <option value="אירובי">אירובי 🏃‍♂️</option>
+                          <option value="ליבה">ליבה 🧘</option>
+                          <option value="שטח">שטח ⛰️</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">רמת קושי</label>
+                        <select 
+                          className="form-control"
+                          value={newChallengeDifficulty}
+                          onChange={(e) => setNewChallengeDifficulty(e.target.value)}
+                        >
+                          <option value="קל">קל</option>
+                          <option value="בינוני">בינוני</option>
+                          <option value="קשה">קשה</option>
+                          <option value="קשה מאוד">קשה מאוד</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 2: Proof & Captions */}
+                  <div className="glass-card creator-section-card">
+                    <h3 className="section-title" style={{ fontWeight: 700 }}>🏆 הוכחת ביצוע וטקסט פוסט (Caption)</h3>
+                    
+                    <div className="form-group">
+                      <label className="form-label">איך ביצעתם את האתגר בעצמכם? (חובה לפרסום)</label>
+                      <textarea 
+                        className="form-control" 
+                        rows="3"
+                        placeholder="שתפו את הזמן, המרחק או החוויה שלכם. הפוסט יתפרסם בפיד הראשי!" 
+                        value={newChallengeProofText}
+                        onChange={(e) => setNewChallengeProofText(e.target.value)}
+                        required
+                      ></textarea>
+
+                      {/* Hashtag helpers */}
+                      <div className="hashtag-helpers" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                        {["#Fitness", "#Pulse", "#NoExcuses", "#WorkoutDone", "#ChallengeAccepted"].map(tag => (
+                          <button
+                            type="button"
+                            key={tag}
+                            className="hashtag-btn"
+                            onClick={() => {
+                              if (!newChallengeProofText.includes(tag)) {
+                                setNewChallengeProofText(prev => prev + " " + tag);
+                              }
+                            }}
+                            style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">תג מיקום (Location Tag)</label>
+                      <select className="form-control">
+                        <option value="">בחר מיקום (אופציונלי)...</option>
+                        <option value="פארק הירקון">🌳 פארק הירקון, תל אביב</option>
+                        <option value="הולמס פלייס">🏋️‍♂️ מועדון הולמס פלייס</option>
+                        <option value="חוף הים">🏖️ טיילת חוף הים</option>
+                        <option value="החרמון">🏔️ הר החרמון</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Rewards & Publish */}
+                  <div className="glass-card creator-section-card" style={{ border: '1px solid var(--accent)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ fontWeight: 'bold' }}>בסיס XP לפרס:</span>
+                      <input 
+                        type="number" 
+                        value={newChallengeXp}
+                        onChange={(e) => setNewChallengeXp(Number(e.target.value))}
+                        className="form-control"
+                        style={{ width: '80px', padding: '0.25rem 0.5rem', textAlign: 'center' }}
+                        min="50"
+                        max="1000"
+                      />
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>הניקוד הסופי מחושב אוטומטית לפי רמת הקושי שבחרתם.</p>
+                    
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--accent)', color: '#000', fontWeight: 'bold', fontSize: '1.05rem', boxShadow: '0 4px 15px var(--accent-glow)' }}>
+                      אשר ביצוע ושתף לפוסט 🚀
+                    </button>
+                  </div>
+                </div>
+
               </form>
             )}
           </div>
@@ -953,6 +1369,311 @@ export default function App() {
           <span>פרופיל</span>
         </button>
       </nav>
+
+      {/* STORY VIEWER MODAL */}
+      {activeStoryIndex !== null && (
+        <div className="story-viewer-backdrop">
+          <div className="story-viewer-content">
+            {/* Progress Bars */}
+            <div className="story-progress-container">
+              {stories[activeStoryIndex].slides.map((slide, idx) => (
+                <div key={slide.id} className="story-progress-track">
+                  <div 
+                    className="story-progress-fill" 
+                    style={{ 
+                      width: idx < activeSlideIndex 
+                        ? '100%' 
+                        : idx === activeSlideIndex 
+                          ? `${storyProgress}%` 
+                          : '0%' 
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Header Info */}
+            <div className="story-viewer-header">
+              <div className="story-viewer-user">
+                <img src={stories[activeStoryIndex].userAvatar} alt="" className="story-viewer-avatar" />
+                <span className="story-viewer-name">{stories[activeStoryIndex].userName}</span>
+                <span className="story-viewer-time">{stories[activeStoryIndex].slides[activeSlideIndex].timestamp}</span>
+              </div>
+              <button className="story-close-btn" onClick={() => { setActiveStoryIndex(null); setActiveSlideIndex(0); setStoryProgress(0); }}>
+                <CloseIcon size={24} />
+              </button>
+            </div>
+
+            {/* Media Content */}
+            <div className="story-media-container">
+              <button className="story-nav-btn story-nav-prev" onClick={handlePrevSlide}>
+                <ChevronLeftIcon size={24} />
+              </button>
+
+              <img src={stories[activeStoryIndex].slides[activeSlideIndex].image} alt="" className="story-image" />
+
+              <button className="story-nav-btn story-nav-next" onClick={handleNextSlide}>
+                <ChevronRightIcon size={24} />
+              </button>
+            </div>
+
+            {/* Bottom details overlay */}
+            <div className="story-overlay-details">
+              <span className="story-overlay-title">🏆 {stories[activeStoryIndex].slides[activeSlideIndex].title}</span>
+              <p className="story-overlay-text">{stories[activeStoryIndex].slides[activeSlideIndex].text}</p>
+              
+              <button 
+                onClick={() => handleStoryJoinChallenge(stories[activeStoryIndex].slides[activeSlideIndex].title)}
+                className="btn btn-primary" 
+                style={{ width: '100%', marginTop: '0.5rem', background: 'var(--accent)', color: '#000', fontWeight: 'bold' }}
+              >
+                🔥 גם אני רוצה לעשות את זה!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* COMMENTS SHEET MODAL */}
+      {commentSheetPostId !== null && (() => {
+        const post = feed.find(p => p.id === commentSheetPostId);
+        if (!post) return null;
+        return (
+          <div className="comments-sheet-backdrop" onClick={() => setCommentSheetPostId(null)}>
+            <div className="comments-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="comments-sheet-header">
+                <span className="comments-sheet-title">תגובות ({post.comments ? post.comments.length : 0})</span>
+                <button className="story-close-btn" style={{ color: 'var(--text-primary)' }} onClick={() => setCommentSheetPostId(null)}>
+                  <CloseIcon size={22} />
+                </button>
+              </div>
+
+              {/* Comments list */}
+              <div className="comments-list">
+                {post.comments && post.comments.length > 0 ? (
+                  post.comments.map(c => (
+                    <div key={c.id} className="comment-row">
+                      <div className="comment-content">
+                        <div className="comment-author">{c.userName}</div>
+                        <div>{c.text}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '2rem' }}>אין תגובות עדיין. היו הראשונים להגיב!</p>
+                )}
+              </div>
+
+              {/* Input container */}
+              <div className="comment-input-container" style={{ padding: '1rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.5rem' }}>
+                <input 
+                  type="text" 
+                  className="comment-control" 
+                  placeholder="הוסיפו תגובה מעודדת..."
+                  value={commentInputs[post.id] || ''}
+                  onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                  style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '24px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                />
+                <button 
+                  onClick={() => handleAddComment(post.id)}
+                  className="btn btn-primary" 
+                  style={{ borderRadius: '24px', padding: '0.6rem 1.2rem' }}
+                >
+                  שלח
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* INSTAGRAM-STYLE CAMERA MODAL */}
+      {isCameraOpen && (
+        <div className="camera-modal-backdrop">
+          <div className="camera-modal-container">
+            {/* Camera Viewport */}
+            <div className={`camera-viewport ${isCameraFlashing ? 'flash-active' : ''}`}>
+              {cameraStream ? (
+                <video 
+                  id="camera-video-feed"
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  ref={el => {
+                    if (el && cameraStream && el.srcObject !== cameraStream) {
+                      el.srcObject = cameraStream;
+                    }
+                  }}
+                  className={`camera-video filter-${cameraFilter} facing-${cameraFacingMode}`}
+                />
+              ) : (
+                /* High-fidelity Mock camera view if WebRTC is unavailable */
+                <div className={`camera-simulator-bg filter-${cameraFilter}`}>
+                  <div className="simulator-overlay-mesh"></div>
+                  <div className="simulator-message">
+                    <span>📷 מדמה מצלמה פעילה</span>
+                    <p>השתמשו בכפתור הצילום למטה כדי ליצור סטורי</p>
+                  </div>
+                  {/* Floating elements to feel dynamic */}
+                  <div className="pulsing-record-indicator">
+                    <span className="dot"></span> LIVE
+                  </div>
+                </div>
+              )}
+
+              {/* Viewfinder Grid overlay */}
+              <div className="camera-grid-overlay">
+                <div className="grid-line"></div>
+                <div className="grid-line"></div>
+                <div className="grid-line"></div>
+                <div className="grid-line"></div>
+              </div>
+
+              {/* Captured Image Preview Overlay (if taken but not yet published) */}
+              {capturedImage && (
+                <div className="camera-preview-overlay">
+                  <img src={capturedImage} alt="Preview" className={`camera-preview-img filter-${cameraFilter}`} />
+                  
+                  {/* Floating text preview on the photo */}
+                  {storyCaption && (
+                    <div className="story-floating-text-preview">
+                      {storyCaption}
+                    </div>
+                  )}
+
+                  {/* Floating Tag Preview */}
+                  {storyTaggedChallenge && (
+                    <div className="story-floating-tag-preview">
+                      🏆 {storyTaggedChallenge}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Top controls (Flash / Switch Camera / Close) */}
+              <div className="camera-top-controls">
+                <button 
+                  className="camera-circle-btn" 
+                  onClick={() => {
+                    setIsCameraOpen(false);
+                    setCapturedImage(null);
+                  }}
+                >
+                  <CloseIcon size={22} />
+                </button>
+
+                {!capturedImage && (
+                  <>
+                    <button 
+                      className="camera-circle-btn" 
+                      onClick={() => setCameraFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
+                    >
+                      🔄
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Bottom Customization Panel & Actions */}
+              <div className="camera-bottom-panel">
+                {!capturedImage ? (
+                  /* Capture Mode controls */
+                  <>
+                    {/* Select Challenge to Tag */}
+                    <div className="camera-tag-section">
+                      <label style={{ fontSize: '0.8rem', color: '#fff', fontWeight: 'bold' }}>תייגו אתגר בסטורי:</label>
+                      <select 
+                        value={storyTaggedChallenge} 
+                        onChange={(e) => setStoryTaggedChallenge(e.target.value)}
+                        className="camera-select"
+                      >
+                        <option value="">בחר אתגר לתיוג (אופציונלי)...</option>
+                        {challenges.map(c => (
+                          <option key={c.id} value={c.title}>{c.title}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Filter Selector carousel */}
+                    <div className="camera-filters-carousel">
+                      {[
+                        { id: 'normal', name: 'רגיל' },
+                        { id: 'warm', name: 'זהב' },
+                        { id: 'cool', name: 'אקווה' },
+                        { id: 'neon', name: 'ניאון' },
+                        { id: 'retro', name: 'וינטג\'' }
+                      ].map(f => (
+                        <button 
+                          key={f.id} 
+                          onClick={() => setCameraFilter(f.id)}
+                          className={`filter-selector-btn ${cameraFilter === f.id ? 'active' : ''}`}
+                        >
+                          <div className={`filter-preview-circle filter-${f.id}`}></div>
+                          <span>{f.name}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Capturing buttons */}
+                    <div className="camera-shutter-row">
+                      {/* File upload fallback */}
+                      <label className="camera-upload-btn" title="העלאת תמונה">
+                        🖼️
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setCapturedImage(reader.result);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          style={{ display: 'none' }} 
+                        />
+                      </label>
+
+                      {/* Shutter Circle */}
+                      <button className="camera-shutter-btn" onClick={capturePhoto}>
+                        <div className="inner-shutter"></div>
+                      </button>
+
+                      <div style={{ width: 44 }}></div>
+                    </div>
+                  </>
+                ) : (
+                  /* Edit / Share Mode controls */
+                  <div className="camera-preview-actions">
+                    <div className="form-group" style={{ width: '100%', marginBottom: '1rem' }}>
+                      <input 
+                        type="text" 
+                        placeholder="כתבו משהו על הסטורי..." 
+                        value={storyCaption}
+                        onChange={(e) => setStoryCaption(e.target.value)}
+                        className="form-control"
+                        style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '20px', textAlign: 'center' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                      <button className="btn btn-secondary" style={{ flex: 1, background: 'rgba(255,255,255,0.2)', color: '#fff' }} onClick={() => setCapturedImage(null)}>
+                        🔄 צלם מחדש
+                      </button>
+                      <button className="btn btn-primary" style={{ flex: 1, background: 'var(--success)', color: '#000' }} onClick={handlePublishStory}>
+                        🚀 שתף לסטורי
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
