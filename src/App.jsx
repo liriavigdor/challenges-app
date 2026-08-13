@@ -62,11 +62,14 @@ export default function App() {
   const [newChallengeCategory, setNewChallengeCategory] = useState('כוח');
   const [newChallengeDifficulty, setNewChallengeDifficulty] = useState('קל');
   const [newChallengeXp, setNewChallengeXp] = useState(200);
+  const [newChallengeProofText, setNewChallengeProofText] = useState('');
+  const [newChallengeProofImage, setNewChallengeProofImage] = useState('');
 
   // Form states for completing a challenge (Proof upload simulation)
   const [proofChallengeId, setProofChallengeId] = useState('');
   const [proofText, setProofText] = useState('');
   const [proofImage, setProofImage] = useState('');
+  const [proofDifficultyGrade, setProofDifficultyGrade] = useState(3);
 
   // Comment input state
   const [commentInputs, setCommentInputs] = useState({});
@@ -80,7 +83,11 @@ export default function App() {
   };
 
   // Join or Leave a challenge
-    const toggleJoinChallenge = async (challengeId) => {
+  const toggleJoinChallenge = async (challengeId) => {
+    if (currentUser.isBlocked) {
+      alert("חשבונך חסום. אינך יכול להצטרף לאתגרים.");
+      return;
+    }
     let updatedActiveChallenges;
     if (currentUser.activeChallenges.includes(challengeId)) {
       updatedActiveChallenges = currentUser.activeChallenges.filter(id => id !== challengeId);
@@ -98,6 +105,10 @@ export default function App() {
 
   // Like a post on the feed
   const handleLikePost = (postId) => {
+    if (currentUser.isBlocked) {
+      alert("חשבונך חסום. אינך יכול לבצע פעולות.");
+      return;
+    }
     setFeed(prev => prev.map(post => {
       if (post.id === postId) {
         return {
@@ -112,6 +123,10 @@ export default function App() {
 
   // Clap/Fire a post
   const handleClapPost = (postId) => {
+    if (currentUser.isBlocked) {
+      alert("חשבונך חסום. אינך יכול לבצע פעולות.");
+      return;
+    }
     setFeed(prev => prev.map(post => {
       if (post.id === postId) {
         return {
@@ -125,7 +140,11 @@ export default function App() {
   };
 
   // Post a comment
-    const handleAddComment = async (postId) => {
+  const handleAddComment = async (postId) => {
+    if (currentUser.isBlocked) {
+      alert("חשבונך חסום. אינך יכול להגיב.");
+      return;
+    }
     const text = commentInputs[postId];
     if (!text || !text.trim()) return;
 
@@ -154,13 +173,81 @@ export default function App() {
     }
   };
 
-  // Create a new Challenge
-    const handleCreateChallenge = async (e) => {
-    e.preventDefault();
-    if (!newChallengeTitle.trim()) return;
+  // Report a false completion post
+  const handleReportPost = async (postId) => {
+    if (currentUser.isBlocked) {
+      alert("חשבונך חסום. אינך יכול לדווח.");
+      return;
+    }
 
+    let authorId;
+    let alreadyReported = false;
+
+    setFeed(prev => prev.map(post => {
+      if (post.id === postId) {
+        authorId = post.userId;
+        const reports = post.reports || [];
+        if (reports.includes(currentUser.id)) {
+          alreadyReported = true;
+          return post;
+        }
+        return {
+          ...post,
+          reports: [...reports, currentUser.id]
+        };
+      }
+      return post;
+    }));
+
+    if (alreadyReported) {
+      alert("כבר דיווחת על פוסט זה בעבר.");
+      return;
+    }
+
+    if (authorId) {
+      const author = users.find(u => u.id === authorId);
+      if (author) {
+        const newReportsCount = (author.reportsCount || 0) + 1;
+        const shouldBlock = newReportsCount >= 3;
+        const updatedAuthor = {
+          ...author,
+          reportsCount: newReportsCount,
+          isBlocked: shouldBlock || author.isBlocked
+        };
+
+        // Update in users list
+        setUsers(prev => prev.map(u => u.id === authorId ? updatedAuthor : u));
+        await updateUser(updatedAuthor);
+
+        // If reporting oneself or simulated active user
+        if (authorId === currentUser.id) {
+          setCurrentUser(updatedAuthor);
+        }
+
+        if (shouldBlock) {
+          alert(`דיווחת בהצלחה. המשתמש ${author.name} נחסם כעת עקב דיווחים מרובים על שקרים!`);
+        } else {
+          alert("הדיווח התקבל בהצלחה. תודה על השמירה על אמינות הקהילה!");
+        }
+      }
+    }
+  };
+
+  // Create a new Challenge
+  const handleCreateChallenge = async (e) => {
+    e.preventDefault();
+    if (currentUser.isBlocked) {
+      alert("חשבונך חסום. אינך יכול ליצור אתגרים חדשים.");
+      return;
+    }
+    if (!newChallengeTitle.trim() || !newChallengeProofText.trim()) {
+      alert("יש למלא את פרטי האתגר ואת הוכחת הביצוע שלך.");
+      return;
+    }
+
+    const challengeId = `challenge_${Date.now()}`;
     const newChallenge = {
-      id: `challenge_${Date.now()}`,
+      id: challengeId,
       title: newChallengeTitle,
       description: newChallengeDesc,
       category: newChallengeCategory,
@@ -169,36 +256,91 @@ export default function App() {
       participantsCount: 1,
       duration: "חד פעמי",
       creator: currentUser.name,
-      image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"
+      image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
+      difficultyGrades: [newChallengeDifficulty === 'קל' ? 1 : newChallengeDifficulty === 'בינוני' ? 3 : newChallengeDifficulty === 'קשה' ? 4 : 5],
+      isIconic: false
+    };
+
+    // Auto-completion feed post (since they must complete it to share it)
+    const newFeedItem = {
+      id: `feed_${Date.now()}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userAvatar: currentUser.avatar,
+      challengeTitle: newChallengeTitle,
+      achievementDetail: newChallengeProofText,
+      proofImage: newChallengeProofImage || "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=80",
+      likes: 0,
+      claps: 0,
+      hasLiked: false,
+      hasClapped: false,
+      timestamp: "כרגע",
+      comments: [],
+      reports: []
+    };
+
+    // Calculate dynamic XP reward with multiplier
+    const diff = newChallengeDifficulty;
+    const multiplier = diff === 'בינוני' ? 1.2 : diff === 'קשה' ? 1.5 : diff === 'קשה מאוד' ? 2.0 : 1.0;
+    const finalXpReward = Math.round(Number(newChallengeXp) * multiplier);
+
+    const isHard = ['קשה', 'קשה מאוד'].includes(newChallengeDifficulty);
+
+    const updatedXp = currentUser.xp + finalXpReward;
+    const updatedCompletedCount = currentUser.completedChallengesCount + 1;
+    const updatedHardCount = isHard ? (currentUser.hardChallengesCompleted || 0) + 1 : (currentUser.hardChallengesCompleted || 0);
+
+    const updatedUser = {
+      ...currentUser,
+      xp: updatedXp,
+      completedChallengesCount: updatedCompletedCount,
+      hardChallengesCompleted: updatedHardCount
     };
 
     setChallenges(prev => [newChallenge, ...prev]);
     await saveChallenge(newChallenge);
-    
-    // Automatically join the newly created challenge
-    const updatedUser = {
-      ...currentUser,
-      activeChallenges: [...currentUser.activeChallenges, newChallenge.id]
-    };
+
+    setFeed(prev => [newFeedItem, ...prev]);
+    await addFeedPost(newFeedItem);
+
     setCurrentUser(updatedUser);
-    setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    setUsers(prev => {
+      const unsorted = prev.map(u => u.id === currentUser.id ? updatedUser : u);
+      return unsorted.sort((a, b) => b.xp - a.xp).map((u, index) => ({ ...u, rank: index + 1 }));
+    });
     await updateUser(updatedUser);
 
     // Reset inputs & Go to Challenges Tab
     setNewChallengeTitle('');
     setNewChallengeDesc('');
+    setNewChallengeProofText('');
+    setNewChallengeProofImage('');
     setActiveTab('challenges');
   };
 
   // Submit proof and complete a challenge
-    const handleCompleteChallenge = async (e) => {
+  const handleCompleteChallenge = async (e) => {
     e.preventDefault();
+    if (currentUser.isBlocked) {
+      alert("חשבונך חסום. אינך יכול לבצע אתגרים.");
+      return;
+    }
     if (!proofChallengeId) return;
 
     const challenge = challenges.find(c => c.id === proofChallengeId);
     if (!challenge) return;
 
-    // Create a new Feed post
+    // 1. Update difficulty grades of the challenge
+    const updatedGrades = [...(challenge.difficultyGrades || []), Number(proofDifficultyGrade)];
+    const updatedChallenge = {
+      ...challenge,
+      difficultyGrades: updatedGrades
+    };
+    
+    setChallenges(prev => prev.map(c => c.id === challenge.id ? updatedChallenge : c));
+    await saveChallenge(updatedChallenge);
+
+    // 2. Create a new Feed post
     const newFeedItem = {
       id: `feed_${Date.now()}`,
       userId: currentUser.id,
@@ -207,27 +349,43 @@ export default function App() {
       challengeTitle: challenge.title,
       achievementDetail: proofText || `השלמתי את האתגר "${challenge.title}" בהצלחה! 💪`,
       proofImage: proofImage || "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=80",
-      likes: 1,
-      claps: 1,
-      hasLiked: true,
-      hasClapped: true,
+      likes: 0,
+      claps: 0,
+      hasLiked: false,
+      hasClapped: false,
       timestamp: "כרגע",
-      comments: []
+      comments: [],
+      reports: []
     };
 
     setFeed(prev => [newFeedItem, ...prev]);
     await addFeedPost(newFeedItem);
 
-    // Reward XP and update user state
-    const updatedXp = currentUser.xp + challenge.xpReward;
+    // 3. Reward XP with multiplier based on difficulty
+    const diff = challenge.difficulty;
+    const multiplier = diff === 'בינוני' ? 1.2 : diff === 'קשה' ? 1.5 : diff === 'קשה מאוד' ? 2.0 : 1.0;
+    const finalXpReward = Math.round(challenge.xpReward * multiplier);
+
+    // 4. Iconic badge check
+    let updatedBadges = [...(currentUser.badges || [])];
+    if (challenge.isIconic && challenge.badgeReward && !updatedBadges.includes(challenge.badgeReward)) {
+      updatedBadges.push(challenge.badgeReward);
+      alert(`מזל טוב! קיבלת תג מיוחד: ${challenge.badgeReward}`);
+    }
+
+    const isHard = ['קשה', 'קשה מאוד'].includes(challenge.difficulty);
+    const updatedXp = currentUser.xp + finalXpReward;
     const updatedCompletedCount = currentUser.completedChallengesCount + 1;
     const updatedActiveChallenges = currentUser.activeChallenges.filter(id => id !== challenge.id);
-    
+    const updatedHardCount = isHard ? (currentUser.hardChallengesCompleted || 0) + 1 : (currentUser.hardChallengesCompleted || 0);
+
     const updatedUser = {
       ...currentUser,
       xp: updatedXp,
       completedChallengesCount: updatedCompletedCount,
-      activeChallenges: updatedActiveChallenges
+      activeChallenges: updatedActiveChallenges,
+      badges: updatedBadges,
+      hardChallengesCompleted: updatedHardCount
     };
 
     setCurrentUser(updatedUser);
@@ -243,6 +401,7 @@ export default function App() {
     setProofChallengeId('');
     setProofText('');
     setProofImage('');
+    setProofDifficultyGrade(3);
     setActiveTab('feed');
   };
 
@@ -281,76 +440,100 @@ export default function App() {
       {/* CONTENT AREA */}
       <main style={{ flex: 1, padding: '1rem 1.5rem', overflowY: 'auto' }}>
         
+        {currentUser.isBlocked && (
+          <div className="glass-card" style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '1rem', marginBottom: '1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ff4d4d' }}>
+            <span>⛔</span>
+            <span style={{ fontWeight: 'bold' }}>החשבון שלך חסום לצמיתות עקב דיווחים מהקהילה על דיווח שקרי. חלק מהפעולות מוגבלות.</span>
+          </div>
+        )}
+        
         {/* TAB 1: FEED */}
         {activeTab === 'feed' && (
           <div>
             <h2 style={{ marginBottom: '1rem', fontWeight: 800 }}>פיד הישגים חברתי</h2>
-            {feed.map(post => (
-              <div key={post.id} className="glass-card feed-post">
-                <div className="post-header">
-                  <div className="user-info">
-                    <img src={post.userAvatar} alt={post.userName} className="user-avatar" />
-                    <div className="post-meta">
-                      <h4>{post.userName}</h4>
-                      <span>{post.timestamp}</span>
+            {feed.map(post => {
+              const postAuthor = users.find(u => u.id === post.userId);
+              const isAuthorBlocked = postAuthor ? postAuthor.isBlocked : false;
+              return (
+                <div key={post.id} className="glass-card feed-post">
+                  <div className="post-header">
+                    <div className="user-info">
+                      <img src={post.userAvatar} alt={post.userName} className="user-avatar" />
+                      <div className="post-meta">
+                        <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          {post.userName}
+                          {isAuthorBlocked && (
+                            <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
+                          )}
+                        </h4>
+                        <span>{post.timestamp}</span>
+                      </div>
                     </div>
+                    <span className="challenge-badge-pill">{post.challengeTitle}</span>
                   </div>
-                  <span className="challenge-badge-pill">{post.challengeTitle}</span>
-                </div>
-                
-                <p className="post-content">{post.achievementDetail}</p>
-                
-                {post.proofImage && (
-                  <img src={post.proofImage} alt="הוכחת הישג" className="post-image" />
-                )}
-                
-                <div className="post-actions">
-                  <button 
-                    onClick={() => handleLikePost(post.id)} 
-                    className={`action-btn ${post.hasLiked ? 'active like' : ''}`}
-                  >
-                    <HeartIcon size={18} fill={post.hasLiked ? "currentColor" : "none"} />
-                    <span>{post.likes}</span>
-                  </button>
                   
-                  <button 
-                    onClick={() => handleClapPost(post.id)} 
-                    className={`action-btn ${post.hasClapped ? 'active clap' : ''}`}
-                  >
-                    <FireIcon size={18} fill={post.hasClapped ? "currentColor" : "none"} />
-                    <span>{post.claps} מחיאות כפיים</span>
-                  </button>
-                </div>
-
-                {/* Comments */}
-                <div className="comments-section">
-                  {post.comments.map(c => (
-                    <div key={c.id} className="comment-item">
-                      <span className="comment-user">{c.userName}:</span>
-                      <span>{c.text}</span>
-                    </div>
-                  ))}
+                  <p className="post-content">{post.achievementDetail}</p>
                   
-                  <div className="comment-input-container">
-                    <input 
-                      type="text" 
-                      className="comment-input" 
-                      placeholder="כתבו תגובה עשירה..."
-                      value={commentInputs[post.id] || ''}
-                      onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                    />
+                  {post.proofImage && (
+                    <img src={post.proofImage} alt="הוכחת הישג" className="post-image" />
+                  )}
+                  
+                  <div className="post-actions">
                     <button 
-                      onClick={() => handleAddComment(post.id)}
-                      className="btn btn-primary" 
-                      style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+                      onClick={() => handleLikePost(post.id)} 
+                      className={`action-btn ${post.hasLiked ? 'active like' : ''}`}
                     >
-                      שלח
+                      <HeartIcon size={18} fill={post.hasLiked ? "currentColor" : "none"} />
+                      <span>{post.likes}</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleClapPost(post.id)} 
+                      className={`action-btn ${post.hasClapped ? 'active clap' : ''}`}
+                    >
+                      <FireIcon size={18} fill={post.hasClapped ? "currentColor" : "none"} />
+                      <span>{post.claps} מחיאות כפיים</span>
+                    </button>
+
+                    <button 
+                      onClick={() => handleReportPost(post.id)} 
+                      className="action-btn report-btn"
+                      style={{ marginRight: 'auto', color: '#ff4d4d', display: 'flex', alignItems: 'center', gap: '0.25rem', border: '1px solid rgba(255, 77, 77, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem', background: 'transparent', cursor: 'pointer' }}
+                    >
+                      <span>🚩 דווח כשקר ({post.reports ? post.reports.length : 0})</span>
                     </button>
                   </div>
+
+                  {/* Comments */}
+                  <div className="comments-section">
+                    {post.comments && post.comments.map(c => (
+                      <div key={c.id} className="comment-item">
+                        <span className="comment-user">{c.userName}:</span>
+                        <span>{c.text}</span>
+                      </div>
+                    ))}
+                    
+                    <div className="comment-input-container">
+                      <input 
+                        type="text" 
+                        className="comment-input" 
+                        placeholder="כתבו תגובה עשירה..."
+                        value={commentInputs[post.id] || ''}
+                        onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                      />
+                      <button 
+                        onClick={() => handleAddComment(post.id)}
+                        className="btn btn-primary" 
+                        style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+                      >
+                        שלח
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -392,15 +575,35 @@ export default function App() {
               {filteredChallenges.map(c => {
                 const isJoined = currentUser.activeChallenges.includes(c.id);
                 return (
-                  <div key={c.id} className="glass-card challenge-card">
+                  <div key={c.id} className="glass-card challenge-card" style={{ position: 'relative' }}>
+                    {c.isIconic && (
+                      <div className="iconic-ribbon" style={{ position: 'absolute', top: '10px', right: '10px', background: 'linear-gradient(135deg, #ffd700, #ffa500)', color: '#000', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', zIndex: 2 }}>
+                        ⭐ אתגר אייקוני
+                      </div>
+                    )}
                     {c.image && <img src={c.image} alt={c.title} className="challenge-img" />}
                     <div className="challenge-info-row">
                       <span className={`difficulty-tag difficulty-${c.difficulty}`}>{c.difficulty}</span>
                       <span>⚡ {c.xpReward} XP</span>
                       <span>👥 {c.participantsCount} משתתפים</span>
                     </div>
-                    
-                    <h3 style={{ marginBottom: '0.5rem', fontWeight: 700 }}>{c.title}</h3>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      <span>📊 קושי קהילה:</span>
+                      <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>
+                        {c.difficultyGrades && c.difficultyGrades.length > 0
+                          ? `⭐ ${(c.difficultyGrades.reduce((sum, val) => sum + val, 0) / c.difficultyGrades.length).toFixed(1)} / 5`
+                          : 'אין דירוג עדיין'}
+                      </span>
+                    </div>
+
+                    <h3 style={{ marginTop: '0.5rem', marginBottom: '0.5rem', fontWeight: 700 }}>{c.title}</h3>
+                    {c.isIconic && c.badgeReward && (
+                      <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px dashed #ffd700', padding: '0.3rem 0.5rem', borderRadius: '8px', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#ffd700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>🏆 מעניק תג:</span>
+                        <strong>{c.badgeReward}</strong>
+                      </div>
+                    )}
                     <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>{c.description}</p>
                     
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -436,77 +639,110 @@ export default function App() {
         {activeTab === 'create' && (
           <div className="glass-card">
             <h2 style={{ marginBottom: '1.25rem', fontWeight: 800 }}>יצירת אתגר חברתי חדש</h2>
-            <form onSubmit={handleCreateChallenge}>
-              <div className="form-group">
-                <label className="form-label">שם האתגר</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="לדוגמה: ריצת 5 קילומטר זריחה" 
-                  value={newChallengeTitle}
-                  onChange={(e) => setNewChallengeTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">תיאור האתגר ומטרות</label>
-                <textarea 
-                  className="form-control" 
-                  rows="3"
-                  placeholder="הסבירו מה צריך לעשות ואיך לתעד..." 
-                  value={newChallengeDesc}
-                  onChange={(e) => setNewChallengeDesc(e.target.value)}
-                  required
-                ></textarea>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            {currentUser.isBlocked ? (
+              <p style={{ color: '#ff4d4d', fontWeight: 'bold' }}>חשבונך חסום. אינך יכול לשתף אתגרים חדשים.</p>
+            ) : (
+              <form onSubmit={handleCreateChallenge}>
                 <div className="form-group">
-                  <label className="form-label">קטגוריה</label>
-                  <select 
-                    className="form-control"
-                    value={newChallengeCategory}
-                    onChange={(e) => setNewChallengeCategory(e.target.value)}
-                  >
-                    <option value="כוח">כוח</option>
-                    <option value="אירובי">אירובי</option>
-                    <option value="ליבה">ליבה</option>
-                    <option value="שטח">שטח</option>
-                  </select>
+                  <label className="form-label">שם האתגר</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="לדוגמה: ריצת 5 קילומטר זריחה" 
+                    value={newChallengeTitle}
+                    onChange={(e) => setNewChallengeTitle(e.target.value)}
+                    required
+                  />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">רמת קושי</label>
-                  <select 
-                    className="form-control"
-                    value={newChallengeDifficulty}
-                    onChange={(e) => setNewChallengeDifficulty(e.target.value)}
-                  >
-                    <option value="קל">קל</option>
-                    <option value="בינוני">בינוני</option>
-                    <option value="קשה">קשה</option>
-                    <option value="קשה מאוד">קשה מאוד</option>
-                  </select>
+                  <label className="form-label">תיאור האתגר ומטרות</label>
+                  <textarea 
+                    className="form-control" 
+                    rows="3"
+                    placeholder="הסבירו מה צריך לעשות ואיך לתעד..." 
+                    value={newChallengeDesc}
+                    onChange={(e) => setNewChallengeDesc(e.target.value)}
+                    required
+                  ></textarea>
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">נקודות XP כפרס</label>
-                <input 
-                  type="number" 
-                  className="form-control" 
-                  value={newChallengeXp}
-                  onChange={(e) => setNewChallengeXp(e.target.value)}
-                  min="50"
-                  max="1000"
-                />
-              </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">קטגוריה</label>
+                    <select 
+                      className="form-control"
+                      value={newChallengeCategory}
+                      onChange={(e) => setNewChallengeCategory(e.target.value)}
+                    >
+                      <option value="כוח">כוח</option>
+                      <option value="אירובי">אירובי</option>
+                      <option value="ליבה">ליבה</option>
+                      <option value="שטח">שטח</option>
+                    </select>
+                  </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
-                פרסם אתגר לכולם 🚀
-              </button>
-            </form>
+                  <div className="form-group">
+                    <label className="form-label">רמת קושי</label>
+                    <select 
+                      className="form-control"
+                      value={newChallengeDifficulty}
+                      onChange={(e) => setNewChallengeDifficulty(e.target.value)}
+                    >
+                      <option value="קל">קל</option>
+                      <option value="בינוני">בינוני</option>
+                      <option value="קשה">קשה</option>
+                      <option value="קשה מאוד">קשה מאוד</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">נקודות XP כפרס</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    value={newChallengeXp}
+                    onChange={(e) => setNewChallengeXp(e.target.value)}
+                    min="50"
+                    max="1000"
+                  />
+                </div>
+
+                {/* Proof of Completion constraint for Sharing */}
+                <div style={{ border: '1px dashed var(--accent)', padding: '1rem', borderRadius: '8px', margin: '1rem 0', background: 'rgba(255,255,255,0.05)' }}>
+                  <h4 style={{ color: 'var(--accent)', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem' }}>🏆 הוכחת ביצוע ראשונית (חובה לפרסום)</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>כדי לשתף אתגר עם הקהילה, עליך לבצע אותו בעצמך תחילה. הפרסום יתועד בפיד ויעניק לך את ה-XP!</p>
+                  
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>איך ביצעת את האתגר? (תיעוד)</label>
+                    <textarea 
+                      className="form-control" 
+                      rows="2"
+                      placeholder="שתף את הזמן, המרחק או החוויה שלך..." 
+                      value={newChallengeProofText}
+                      onChange={(e) => setNewChallengeProofText(e.target.value)}
+                      required
+                    ></textarea>
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>קישור לתמונת הוכחה (אופציונלי)</label>
+                    <input 
+                      type="url" 
+                      className="form-control" 
+                      placeholder="הדבק קישור לתמונה" 
+                      value={newChallengeProofImage}
+                      onChange={(e) => setNewChallengeProofImage(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
+                  אשר ביצוע ופרסם אתגר לכולם 🚀
+                </button>
+              </form>
+            )}
           </div>
         )}
 
@@ -559,6 +795,22 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="form-group">
+                <label className="form-label">דרג את רמת הקושי בפועל (1 עד 5 כוכבים)</label>
+                <select
+                  className="form-control"
+                  value={proofDifficultyGrade}
+                  onChange={(e) => setProofDifficultyGrade(Number(e.target.value))}
+                  required
+                >
+                  <option value={1}>⭐ 1 - קל מאוד</option>
+                  <option value={2}>⭐⭐ 2 - קל</option>
+                  <option value={3}>⭐⭐⭐ 3 - בינוני</option>
+                  <option value={4}>⭐⭐⭐⭐ 4 - קשה</option>
+                  <option value={5}>⭐⭐⭐⭐⭐ 5 - קשה מאוד</option>
+                </select>
+              </div>
+
               <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem', background: 'var(--success)' }}>
                 אשר ופרסם בפיד 🏆
               </button>
@@ -582,8 +834,18 @@ export default function App() {
                     <span className={`rank-badge rank-${index + 1}`}>{index + 1}</span>
                     <img src={user.avatar} alt={user.name} className="user-avatar" style={{ border: 'none' }} />
                     <div>
-                      <h4 style={{ fontWeight: 700 }}>{user.name}</h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.completedChallengesCount} אתגרים שהושלמו</p>
+                      <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        {user.name}
+                        {user.isBlocked && (
+                          <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
+                        )}
+                      </h4>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem' }}>
+                        <span>{user.completedChallengesCount} אתגרים</span>
+                        {user.hardChallengesCompleted > 0 && (
+                          <span style={{ color: '#ffa500' }}>🔥 {user.hardChallengesCompleted} קשים</span>
+                        )}
+                      </p>
                     </div>
                   </div>
                   
@@ -599,7 +861,12 @@ export default function App() {
           <div>
             <div className="profile-hero">
               <img src={currentUser.avatar} alt={currentUser.name} className="profile-avatar" />
-              <h2 style={{ fontWeight: 800 }}>{currentUser.name}</h2>
+              <h2 style={{ fontWeight: 800 }}>
+                {currentUser.name}
+                {currentUser.isBlocked && (
+                  <span style={{ marginRight: '0.5rem', background: '#ff4d4d', color: '#fff', fontSize: '0.85rem', padding: '0.2rem 0.6rem', borderRadius: '4px', verticalAlign: 'middle' }}>חסום ⛔</span>
+                )}
+              </h2>
               <span style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 'bold' }}>דרגה: אלטילט על 🏅</span>
               
               <div className="profile-stats">
@@ -612,8 +879,8 @@ export default function App() {
                   <span className="stat-lbl">אתגרים שהושלמו</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-val">{currentUser.activeChallenges.length}</span>
-                  <span className="stat-lbl">אתגרים פעילים</span>
+                  <span className="stat-val">{currentUser.hardChallengesCompleted || 0}</span>
+                  <span className="stat-lbl">אתגרים קשים 🔥</span>
                 </div>
               </div>
             </div>

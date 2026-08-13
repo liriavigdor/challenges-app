@@ -7,7 +7,10 @@ export const initialUsers = [
     rank: 1,
     completedChallengesCount: 18,
     badges: ["🔥 רצף של 7 ימים", "🏃 מרתוניסט", "⛰️ כובש פסגות"],
-    activeChallenges: ["run_10k", "pushups_100"]
+    activeChallenges: ["run_10k", "pushups_100"],
+    reportsCount: 0,
+    isBlocked: false,
+    hardChallengesCompleted: 3
   },
   {
     id: "user_2",
@@ -17,7 +20,10 @@ export const initialUsers = [
     rank: 2,
     completedChallengesCount: 14,
     badges: ["💪 איש הברזל", "⚡ זריז במיוחד"],
-    activeChallenges: ["plank_30d"]
+    activeChallenges: ["plank_30d"],
+    reportsCount: 0,
+    isBlocked: false,
+    hardChallengesCompleted: 2
   },
   {
     id: "user_3",
@@ -27,7 +33,10 @@ export const initialUsers = [
     rank: 3,
     completedChallengesCount: 11,
     badges: ["🚲 מדווש על", "🏔️ חובב גבהים"],
-    activeChallenges: ["run_10k", "plank_30d"]
+    activeChallenges: ["run_10k", "plank_30d"],
+    reportsCount: 0,
+    isBlocked: false,
+    hardChallengesCompleted: 1
   },
   {
     id: "user_4",
@@ -37,7 +46,10 @@ export const initialUsers = [
     rank: 4,
     completedChallengesCount: 9,
     badges: ["🧘 יוגה מאסטר"],
-    activeChallenges: ["pushups_100"]
+    activeChallenges: ["pushups_100"],
+    reportsCount: 0,
+    isBlocked: false,
+    hardChallengesCompleted: 0
   }
 ];
 
@@ -52,7 +64,9 @@ export const initialChallenges = [
     participantsCount: 47,
     duration: "חד פעמי",
     creator: "Pulse Team",
-    image: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80"
+    image: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80",
+    difficultyGrades: [3, 4, 3, 2, 4],
+    isIconic: false
   },
   {
     id: "pushups_100",
@@ -64,19 +78,23 @@ export const initialChallenges = [
     participantsCount: 32,
     duration: "חד פעמי",
     creator: "רועי כהן",
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&auto=format&fit=crop&q=80"
+    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&auto=format&fit=crop&q=80",
+    difficultyGrades: [4, 5, 4, 5, 4],
+    isIconic: false
   },
   {
     id: "plank_30d",
     title: "30 ימי פלאנק (אמקור)",
     description: "אתגר יומיומי: מתחילים מדקה ביום הראשון ומגיעים ל-5 דקות פלאנק ביום ה-30.",
     category: "ליבה",
-    difficulty: "קל-בינוני",
+    difficulty: "קל",
     xpReward: 400,
     participantsCount: 118,
     duration: "30 ימים",
     creator: "שירה אלוני",
-    image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"
+    image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
+    difficultyGrades: [2, 2, 3, 1, 2],
+    isIconic: false
   },
   {
     id: "climb_mount",
@@ -88,7 +106,25 @@ export const initialChallenges = [
     participantsCount: 14,
     duration: "חד פעמי",
     creator: "דניאל מזרחי",
-    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=80"
+    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=80",
+    difficultyGrades: [5, 5, 4, 5],
+    isIconic: true,
+    badgeReward: "🧗 כובש החרמון"
+  },
+  {
+    id: "marathon_run",
+    title: "ריצת מרתון שלם (42.2 ק\"מ)",
+    description: "האתגר האולטימטיבי של הריצה. לרוץ 42.195 קילומטרים ולסיים בגאווה.",
+    category: "אירובי",
+    difficulty: "קשה מאוד",
+    xpReward: 1000,
+    participantsCount: 5,
+    duration: "חד פעמי",
+    creator: "Pulse Team",
+    image: "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?w=600&auto=format&fit=crop&q=80",
+    difficultyGrades: [5, 5, 5],
+    isIconic: true,
+    badgeReward: "🏅 מרתוניסט"
   }
 ];
 
