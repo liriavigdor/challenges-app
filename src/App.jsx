@@ -16,6 +16,15 @@ import {
   CameraIcon
 } from './icons';
 import { initialUsers, initialChallenges, initialFeed } from './mockData';
+import { 
+  getUsers, 
+  updateUser, 
+  getChallenges, 
+  saveChallenge, 
+  getFeed, 
+  addFeedPost, 
+  updateFeedPost 
+} from './dbService';
 
 export default function App() {
   const [theme, setTheme] = useState('dark');
@@ -26,6 +35,22 @@ export default function App() {
   
   // Current user simulator (רועי כהן)
   const [currentUser, setCurrentUser] = useState(initialUsers[0]);
+
+  useEffect(() => {
+    async function loadData() {
+      const dbUsers = await getUsers();
+      const dbChallenges = await getChallenges();
+      const dbFeed = await getFeed();
+      
+      setUsers(dbUsers);
+      setChallenges(dbChallenges);
+      setFeed(dbFeed);
+      
+      const foundUser = dbUsers.find(u => u.id === 'user_1') || dbUsers[0];
+      setCurrentUser(foundUser);
+    }
+    loadData();
+  }, []);
 
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('הכל');
@@ -55,7 +80,7 @@ export default function App() {
   };
 
   // Join or Leave a challenge
-  const toggleJoinChallenge = (challengeId) => {
+    const toggleJoinChallenge = async (challengeId) => {
     let updatedActiveChallenges;
     if (currentUser.activeChallenges.includes(challengeId)) {
       updatedActiveChallenges = currentUser.activeChallenges.filter(id => id !== challengeId);
@@ -68,6 +93,7 @@ export default function App() {
     
     // Update in users list
     setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    await updateUser(updatedUser);
   };
 
   // Like a post on the feed
@@ -99,13 +125,14 @@ export default function App() {
   };
 
   // Post a comment
-  const handleAddComment = (postId) => {
+    const handleAddComment = async (postId) => {
     const text = commentInputs[postId];
     if (!text || !text.trim()) return;
 
+    let updatedPost;
     setFeed(prev => prev.map(post => {
       if (post.id === postId) {
-        return {
+        updatedPost = {
           ...post,
           comments: [
             ...post.comments,
@@ -116,15 +143,19 @@ export default function App() {
             }
           ]
         };
+        return updatedPost;
       }
       return post;
     }));
 
     setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+    if (updatedPost) {
+      await updateFeedPost(updatedPost);
+    }
   };
 
   // Create a new Challenge
-  const handleCreateChallenge = (e) => {
+    const handleCreateChallenge = async (e) => {
     e.preventDefault();
     if (!newChallengeTitle.trim()) return;
 
@@ -142,6 +173,7 @@ export default function App() {
     };
 
     setChallenges(prev => [newChallenge, ...prev]);
+    await saveChallenge(newChallenge);
     
     // Automatically join the newly created challenge
     const updatedUser = {
@@ -150,6 +182,7 @@ export default function App() {
     };
     setCurrentUser(updatedUser);
     setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    await updateUser(updatedUser);
 
     // Reset inputs & Go to Challenges Tab
     setNewChallengeTitle('');
@@ -158,7 +191,7 @@ export default function App() {
   };
 
   // Submit proof and complete a challenge
-  const handleCompleteChallenge = (e) => {
+    const handleCompleteChallenge = async (e) => {
     e.preventDefault();
     if (!proofChallengeId) return;
 
@@ -183,6 +216,7 @@ export default function App() {
     };
 
     setFeed(prev => [newFeedItem, ...prev]);
+    await addFeedPost(newFeedItem);
 
     // Reward XP and update user state
     const updatedXp = currentUser.xp + challenge.xpReward;
@@ -197,6 +231,7 @@ export default function App() {
     };
 
     setCurrentUser(updatedUser);
+    await updateUser(updatedUser);
     
     // Update users list and sort by rank
     setUsers(prev => {
