@@ -1,44 +1,44 @@
 :root {
   /* Light Theme Variables */
-  --bg-primary: #f8fafc;
+  --bg-primary: #f3f4f6;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --accent: #ff0055;
-  --accent-glow: rgba(255, 0, 85, 0.15);
+  --bg-tertiary: #f9fafb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --accent: #6366f1; /* Premium Indigo */
+  --accent-glow: rgba(99, 102, 241, 0.15);
   --success: #10b981;
   --warning: #f59e0b;
-  --border: #e2e8f0;
+  --border: #e5e7eb;
   
-  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(255, 255, 255, 0.5);
-  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
-  --shadow-lg: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
+  --shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 30px 0 rgba(0, 0, 0, 0.08);
   --font-sans: 'Rubik', 'Inter', -apple-system, sans-serif;
-  --border-radius: 16px;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --border-radius: 20px;
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
   /* Dark Theme Variables */
-  --bg-primary: #090d16;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1f2937;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent: #39ff14; /* Neon Green/Yellow active style */
-  --accent-glow: rgba(57, 255, 20, 0.15);
+  --bg-primary: #0b0f19;
+  --bg-secondary: #131a2c;
+  --bg-tertiary: #1b253c;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent: #818cf8; /* Light Indigo / Neon violet */
+  --accent-glow: rgba(129, 140, 248, 0.25);
   --success: #34d399;
   --warning: #fbbf24;
-  --border: #1f2937;
+  --border: #22304d;
   
-  --glass-bg: rgba(17, 24, 39, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.05);
-  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --shadow-lg: 0 16px 48px 0 rgba(0, 0, 0, 0.5);
+  --glass-bg: rgba(19, 26, 44, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 4px 25px 0 rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -959,15 +959,15 @@ body {
 }
 
 .reel-action-circle.active-heart {
-  color: #ff0055;
-  background: rgba(255, 0, 85, 0.2);
-  border-color: rgba(255, 0, 85, 0.4);
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.2);
+  border-color: rgba(255, 59, 48, 0.4);
 }
 
 .reel-action-circle.active-clap {
-  color: #ffa500;
-  background: rgba(255, 165, 0, 0.2);
-  border-color: rgba(255, 165, 0, 0.4);
+  color: #ff9500;
+  background: rgba(255, 149, 0, 0.2);
+  border-color: rgba(255, 149, 0, 0.4);
 }
 
 .reel-action-text {
@@ -1718,5 +1718,37 @@ body {
   color: var(--accent);
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.5rem;
+}
+
+/* Micro-interaction Additive Animations */
+@keyframes streak-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.4); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(255, 69, 0, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 0, 0); }
+}
+
+.reel-streak-tag {
+  animation: streak-pulse 2s infinite;
+}
+
+/* Accordion Collapsible Layout */
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
+}
+
+.accordion-content.expanded {
+  max-height: 2000px;
+  transition: max-height 0.3s cubic-bezier(1, 0, 1, 0);
+  margin-top: 1rem;
 }
 

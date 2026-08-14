@@ -275,6 +275,7 @@ export default function App() {
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('הכל');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedChallengeId, setExpandedChallengeId] = useState(null);
 
   // Form states for creating a new challenge
   const [newChallengeTitle, setNewChallengeTitle] = useState('');
@@ -870,59 +871,75 @@ export default function App() {
             <div className="challenges-grid">
               {filteredChallenges.map(c => {
                 const isJoined = currentUser.activeChallenges.includes(c.id);
+                const isExpanded = expandedChallengeId === c.id;
                 return (
-                  <div key={c.id} className="glass-card challenge-card" style={{ position: 'relative' }}>
+                  <div key={c.id} className="glass-card challenge-card" style={{ position: 'relative', padding: '1rem' }}>
                     {c.isIconic && (
                       <div className="iconic-ribbon" style={{ position: 'absolute', top: '10px', right: '10px', background: 'linear-gradient(135deg, #ffd700, #ffa500)', color: '#000', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', zIndex: 2 }}>
                         ⭐ אתגר אייקוני
                       </div>
                     )}
-                    {c.image && <img src={c.image} alt={c.title} className="challenge-img" />}
-                    <div className="challenge-info-row">
-                      <span className={`difficulty-tag difficulty-${c.difficulty}`}>{c.difficulty}</span>
-                      <span>⚡ {c.xpReward} XP</span>
-                      <span>👥 {c.participantsCount} משתתפים</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      <span>📊 קושי קהילה:</span>
-                      <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>
-                        {c.difficultyGrades && c.difficultyGrades.length > 0
-                          ? `⭐ ${(c.difficultyGrades.reduce((sum, val) => sum + val, 0) / c.difficultyGrades.length).toFixed(1)} / 5`
-                          : 'אין דירוג עדיין'}
+                    
+                    <div 
+                      className="accordion-header" 
+                      onClick={() => setExpandedChallengeId(isExpanded ? null : c.id)}
+                    >
+                      <div>
+                        <h3 style={{ fontWeight: 700, fontSize: '1.1rem' }}>{c.title}</h3>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <span className={`difficulty-tag difficulty-${c.difficulty}`}>{c.difficulty}</span>
+                          <span>⚡ {c.xpReward} XP</span>
+                          <span>👥 {c.participantsCount} משתתפים</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '1.2rem', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}>
+                        ▼
                       </span>
                     </div>
 
-                    <h3 style={{ marginTop: '0.5rem', marginBottom: '0.5rem', fontWeight: 700 }}>{c.title}</h3>
-                    {c.isIconic && c.badgeReward && (
-                      <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px dashed #ffd700', padding: '0.3rem 0.5rem', borderRadius: '8px', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#ffd700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <span>🏆 מעניק תג:</span>
-                        <strong>{c.badgeReward}</strong>
-                      </div>
-                    )}
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>{c.description}</p>
-                    
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button 
-                        onClick={() => toggleJoinChallenge(c.id)} 
-                        className={`btn ${isJoined ? 'btn-secondary' : 'btn-primary'}`} 
-                        style={{ flex: 1 }}
-                      >
-                        {isJoined ? 'עזוב אתגר' : 'הצטרף לאתגר'}
-                      </button>
+                    <div className={`accordion-content ${isExpanded ? 'expanded' : ''}`}>
+                      {c.image && <img src={c.image} alt={c.title} className="challenge-img" style={{ maxHeight: '140px', marginTop: '0.5rem' }} />}
                       
-                      {isJoined && (
-                        <button 
-                          onClick={() => {
-                            setProofChallengeId(c.id);
-                            setActiveTab('complete-challenge');
-                          }} 
-                          className="btn btn-primary" 
-                          style={{ background: 'var(--success)' }}
-                        >
-                          העלה הוכחה 📷
-                        </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <span>📊 קושי קהילה:</span>
+                        <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>
+                          {c.difficultyGrades && c.difficultyGrades.length > 0
+                            ? `⭐ ${(c.difficultyGrades.reduce((sum, val) => sum + val, 0) / c.difficultyGrades.length).toFixed(1)} / 5`
+                            : 'אין דירוג עדיין'}
+                        </span>
+                      </div>
+
+                      {c.isIconic && c.badgeReward && (
+                        <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px dashed #ffd700', padding: '0.3rem 0.5rem', borderRadius: '8px', margin: '0.5rem 0', fontSize: '0.8rem', color: '#ffd700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <span>🏆 מעניק תג:</span>
+                          <strong>{c.badgeReward}</strong>
+                        </div>
                       )}
+                      
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0.75rem 0' }}>{c.description}</p>
+                      
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => toggleJoinChallenge(c.id)} 
+                          className={`btn ${isJoined ? 'btn-secondary' : 'btn-primary'}`} 
+                          style={{ flex: 1 }}
+                        >
+                          {isJoined ? 'עזוב אתגר' : 'הצטרף לאתגר'}
+                        </button>
+                        
+                        {isJoined && (
+                          <button 
+                            onClick={() => {
+                              setProofChallengeId(c.id);
+                              setActiveTab('complete-challenge');
+                            }} 
+                            className="btn btn-primary" 
+                            style={{ background: 'var(--success)' }}
+                          >
+                            העלה הוכחה 📷
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
