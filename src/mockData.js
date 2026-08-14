@@ -11,7 +11,10 @@ export const initialUsers = [
     reportsCount: 0,
     isBlocked: false,
     hardChallengesCompleted: 3,
-    streak: 7
+    streak: 7,
+    followers: ["user_2", "user_3"],
+    following: ["user_2", "user_4"],
+    stats: { strength: 78, stamina: 85, agility: 62, zen: 45 }
   },
   {
     id: "user_2",
@@ -25,7 +28,10 @@ export const initialUsers = [
     reportsCount: 0,
     isBlocked: false,
     hardChallengesCompleted: 2,
-    streak: 5
+    streak: 5,
+    followers: ["user_1", "user_4"],
+    following: ["user_1", "user_3"],
+    stats: { strength: 90, stamina: 70, agility: 80, zen: 30 }
   },
   {
     id: "user_3",
@@ -39,7 +45,10 @@ export const initialUsers = [
     reportsCount: 0,
     isBlocked: false,
     hardChallengesCompleted: 1,
-    streak: 3
+    streak: 3,
+    followers: ["user_2"],
+    following: ["user_1"],
+    stats: { strength: 65, stamina: 88, agility: 70, zen: 50 }
   },
   {
     id: "user_4",
@@ -53,7 +62,35 @@ export const initialUsers = [
     reportsCount: 0,
     isBlocked: false,
     hardChallengesCompleted: 0,
-    streak: 12
+    streak: 12,
+    followers: ["user_1"],
+    following: ["user_2"],
+    stats: { strength: 50, stamina: 60, agility: 55, zen: 95 }
+  }
+];
+
+export const initialNotifications = [
+  {
+    id: "notif_1",
+    type: "follow",
+    senderId: "user_4",
+    senderName: "שירה אלוני",
+    senderAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80",
+    text: "התחילה לעקוב אחריך",
+    timestamp: "לפני 10 דקות",
+    read: false
+  },
+  {
+    id: "notif_2",
+    type: "joint_challenge",
+    senderId: "user_2",
+    senderName: "יובל לוי",
+    senderAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+    text: "הזמין אותך לאתגר משותף: 100 שכיבות סמיכה ברצף",
+    challengeId: "pushups_100",
+    timestamp: "לפני שעה",
+    read: false,
+    status: "pending" // pending, accepted, declined
   }
 ];
 

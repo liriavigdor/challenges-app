@@ -17,9 +17,10 @@ import {
   CloseIcon,
   ShareIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  BellIcon
 } from './icons';
-import { initialUsers, initialChallenges, initialFeed, initialStories } from './mockData';
+import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications } from './mockData';
 import { 
   getUsers, 
   updateUser, 
@@ -30,7 +31,23 @@ import {
   updateFeedPost 
 } from './dbService';
 
+const getPostVideo = (post) => {
+  if (post.proofVideo) return post.proofVideo;
+  const title = (post.challengeTitle || '').toLowerCase();
+  if (title.includes('ריצ') || title.includes('מרתון') || title.includes('run')) {
+    return 'https://assets.mixkit.co/videos/preview/mixkit-girl-doing-running-exercise-on-a-treadmill-40283-large.mp4';
+  }
+  if (title.includes('סמיכה') || title.includes('כוח') || title.includes('pushups')) {
+    return 'https://assets.mixkit.co/videos/preview/mixkit-man-doing-push-ups-in-a-park-41618-large.mp4';
+  }
+  if (title.includes('פלאנק') || title.includes('ליבה') || title.includes('plank')) {
+    return 'https://assets.mixkit.co/videos/preview/mixkit-young-athletic-woman-doing-plank-exercise-43160-large.mp4';
+  }
+  return 'https://assets.mixkit.co/videos/preview/mixkit-hiking-in-the-snow-in-winter-41865-large.mp4';
+};
+
 export default function App() {
+
   const [theme, setTheme] = useState('dark');
   const [activeTab, setActiveTab] = useState('feed');
   const [users, setUsers] = useState(initialUsers);
@@ -66,6 +83,26 @@ export default function App() {
   
   // Current user simulator (רועי כהן)
   const [currentUser, setCurrentUser] = useState(initialUsers[0]);
+
+  // Social & Notifications states
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('challenges_notifications');
+    return saved ? JSON.parse(saved) : initialNotifications;
+  });
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [selectedUserForModal, setSelectedUserForModal] = useState(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteTargetUserId, setInviteTargetUserId] = useState(null);
+  
+  // Search and Explore States
+  const [peopleSearchQuery, setPeopleSearchQuery] = useState('');
+  const [selectedExplorePost, setSelectedExplorePost] = useState(null);
+
+
+  useEffect(() => {
+    localStorage.setItem('challenges_notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   useEffect(() => {
     async function loadData() {
@@ -324,6 +361,107 @@ export default function App() {
     await updateUser(updatedUser);
   };
 
+  // Follow/Unfollow a user
+  const handleFollowUser = async (targetUserId) => {
+    if (targetUserId === currentUser.id) return;
+    
+    let isFollowing = (currentUser.following || []).includes(targetUserId);
+    let updatedFollowing;
+    if (isFollowing) {
+      updatedFollowing = (currentUser.following || []).filter(id => id !== targetUserId);
+    } else {
+      updatedFollowing = [...(currentUser.following || []), targetUserId];
+    }
+
+    const updatedCurrentUser = {
+      ...currentUser,
+      following: updatedFollowing
+    };
+    setCurrentUser(updatedCurrentUser);
+    setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedCurrentUser : u));
+    await updateUser(updatedCurrentUser);
+
+    // Update target user's followers
+    setUsers(prev => prev.map(u => {
+      if (u.id === targetUserId) {
+        let updatedFollowers;
+        if (isFollowing) {
+          updatedFollowers = (u.followers || []).filter(id => id !== currentUser.id);
+        } else {
+          updatedFollowers = [...(u.followers || []), currentUser.id];
+          
+          // Send notification
+          const newNotif = {
+            id: `notif_${Date.now()}`,
+            type: "follow",
+            senderId: currentUser.id,
+            senderName: currentUser.name,
+            senderAvatar: currentUser.avatar,
+            text: "התחיל לעקוב אחריך",
+            timestamp: "כרגע",
+            read: false
+          };
+          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+        }
+        const updatedTarget = { ...u, followers: updatedFollowers };
+        updateUser(updatedTarget);
+        
+        // If showing in modal, update it
+        if (selectedUserForModal && selectedUserForModal.id === targetUserId) {
+          setSelectedUserForModal(updatedTarget);
+        }
+        return updatedTarget;
+      }
+      return u;
+    }));
+  };
+
+  // Send a joint challenge invite
+  const handleSendJointChallenge = (targetUserId, challengeId) => {
+    const challenge = challenges.find(c => c.id === challengeId);
+    if (!challenge) return;
+
+    // Send invite notice
+    const newNotif = {
+      id: `notif_${Date.now()}`,
+      type: "joint_challenge",
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderAvatar: currentUser.avatar,
+      text: `הזמין אותך לאתגר משותף: ${challenge.title}`,
+      challengeId: challengeId,
+      timestamp: "כרגע",
+      read: false,
+      status: "pending"
+    };
+
+    setNotifications(prev => [newNotif, ...prev]);
+    alert("ההזמנה לאתגר המשותף נשלחה בהצלחה! ✉️");
+    setIsInviteModalOpen(false);
+  };
+
+  // Accept a joint challenge
+  const handleAcceptJointChallenge = async (notif) => {
+    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, status: 'accepted' } : n));
+    
+    if (!currentUser.activeChallenges.includes(notif.challengeId)) {
+      const updatedUser = {
+        ...currentUser,
+        activeChallenges: [...currentUser.activeChallenges, notif.challengeId]
+      };
+      setCurrentUser(updatedUser);
+      setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+      await updateUser(updatedUser);
+    }
+    
+    alert(`הסכמת לאתגר המשותף! האתגר נוסף לרשימה שלך. 💪`);
+  };
+
+  // Decline a joint challenge
+  const handleDeclineJointChallenge = (notifId) => {
+    setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, status: 'declined' } : n));
+  };
+
   // Like a post on the feed
   const handleLikePost = (postId) => {
     if (currentUser.isBlocked) {
@@ -552,6 +690,20 @@ export default function App() {
     });
     await updateUser(updatedUser);
 
+    // Notify followers
+    const newNotif = {
+      id: `notif_${Date.now()}`,
+      type: "new_challenge",
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderAvatar: currentUser.avatar,
+      text: `העלה אתגר חדש: ${newChallengeTitle}`,
+      challengeId: challengeId,
+      timestamp: "כרגע",
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+
     // Reset inputs & Go to Challenges Tab
     setNewChallengeTitle('');
     setNewChallengeDesc('');
@@ -659,15 +811,109 @@ export default function App() {
     <div className="app-container">
       {/* HEADER */}
       <header className="app-header">
-        <div className="logo-container">
+        <div 
+          className="logo-container" 
+
+          onClick={() => {
+            if (activeTab === 'feed') {
+              setIsNotifOpen(!isNotifOpen);
+              if (!isNotifOpen) {
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+              }
+            }
+          }}
+          style={{ cursor: activeTab === 'feed' ? 'pointer' : 'default', position: 'relative' }}
+        >
           <ActivityIcon className="logo-icon" size={28} style={{ color: 'var(--accent)' }} />
-          <span className="logo-text">Pulse</span>
+          <span className="logo-text">Pulse ⚡</span>
+          {activeTab === 'feed' && notifications.some(n => !n.read) && (
+            <span className="notification-dot" style={{ position: 'absolute', top: '-4px', right: '-4px' }}></span>
+          )}
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
           <button onClick={toggleTheme} className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%' }}>
             {theme === 'light' ? <MoonIcon size={20} /> : <SunIcon size={20} />}
           </button>
+
+
+          {/* Notifications Dropdown Panel */}
+          {isNotifOpen && (
+            <div className="notifications-dropdown">
+              <div className="notif-header">
+                <span>התראות</span>
+                <button className="story-close-btn" style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }} onClick={() => setIsNotifOpen(false)}>סגור</button>
+              </div>
+              {notifications.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}>אין התראות חדשות</p>
+              ) : (
+                notifications.map(n => (
+                  <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}>
+                    <img 
+                      src={n.senderAvatar} 
+                      alt="" 
+                      className="notif-avatar" 
+                      onClick={() => {
+                        const targetUsr = users.find(u => u.id === n.senderId);
+                        if (targetUsr) {
+                          setSelectedUserForModal(targetUsr);
+                          setIsUserModalOpen(true);
+                          setIsNotifOpen(false);
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div className="notif-content">
+                      <div>
+                        <strong 
+                          style={{ cursor: 'pointer', color: 'var(--accent)' }}
+                          onClick={() => {
+                            const targetUsr = users.find(u => u.id === n.senderId);
+                            if (targetUsr) {
+                              setSelectedUserForModal(targetUsr);
+                              setIsUserModalOpen(true);
+                              setIsNotifOpen(false);
+                            }
+                          }}
+                        >
+                          {n.senderName}
+                        </strong>{' '}
+                        {n.text}
+                      </div>
+                      <span className="notif-time">{n.timestamp}</span>
+                      
+                      {n.type === 'joint_challenge' && (
+                        <div className="notif-actions">
+                          {n.status === 'pending' ? (
+                            <>
+                              <button 
+                                className="btn btn-primary" 
+                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', background: 'var(--success)' }}
+                                onClick={() => handleAcceptJointChallenge(n)}
+                              >
+                                אשר 👍
+                              </button>
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                                onClick={() => handleDeclineJointChallenge(n.id)}
+                              >
+                                סרב ✖
+                              </button>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: n.status === 'accepted' ? 'var(--success)' : 'var(--text-muted)', fontWeight: 'bold' }}>
+                              {n.status === 'accepted' ? 'התקבל ✓' : 'סורב'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
           
           <div className="user-info" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('profile')}>
             <img src={currentUser.avatar} alt={currentUser.name} className="user-avatar" style={{ width: 34, height: 34 }} />
@@ -676,7 +922,7 @@ export default function App() {
                 {currentUser.name}
                 <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>🔥 {currentUser.streak || 7}</span>
               </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>XP {currentUser.xp}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>Level {Math.floor(currentUser.xp / 500) + 1}</span>
             </div>
           </div>
         </div>
@@ -808,7 +1054,13 @@ export default function App() {
 
                     {/* Reel text information overlay */}
                     <div className="reel-info-container">
-                      <div className="reel-author-row">
+                      <div className="reel-author-row" style={{ cursor: 'pointer' }} onClick={() => {
+                        const targetUsr = users.find(u => u.id === post.userId) || users.find(u => u.name === post.userName);
+                        if (targetUsr) {
+                          setSelectedUserForModal(targetUsr);
+                          setIsUserModalOpen(true);
+                        }
+                      }}>
                         <img src={post.userAvatar} alt={post.userName} className="reel-author-avatar" />
                         <span className="reel-author-name">{post.userName}</span>
                         {isAuthorBlocked && (
@@ -1251,82 +1503,255 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: LEADERBOARD */}
-        {activeTab === 'leaderboard' && (
+        {/* TAB 4: SEARCH & EXPLORE */}
+        {activeTab === 'search' && (
           <div>
-            <h2 style={{ fontWeight: 800 }}>טבלת האלופים</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>הציונים הגבוהים ביותר המבוססים על השלמת אתגרים וצבירת XP.</p>
-            
-            <div className="leaderboard-list">
-              {users.map((user, index) => (
+            <div style={{ marginBottom: '1rem', position: 'relative' }}>
+              <div className="search-bar-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <SearchIcon size={20} style={{ position: 'absolute', right: '1rem', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="חפש חברים ואנשים..."
+                  value={peopleSearchQuery}
+                  onChange={(e) => setPeopleSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 2.5rem 0.75rem 1rem',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    transition: 'var(--transition)',
+                    textAlign: 'right',
+                    direction: 'rtl'
+                  }}
+                />
+              </div>
+
+              {/* Autocomplete Dropdown */}
+              {peopleSearchQuery && (
                 <div 
-                  key={user.id} 
-                  className={`leaderboard-item ${index < 3 ? 'top-three' : ''}`}
+                  style={{ 
+                    position: 'absolute', 
+                    top: '100%', 
+                    left: 0, 
+                    right: 0, 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '12px', 
+                    boxShadow: 'var(--shadow-lg)', 
+                    zIndex: 10, 
+                    marginTop: '0.5rem', 
+                    maxHeight: '250px', 
+                    overflowY: 'auto',
+                    padding: '0.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}
                 >
-                  <div className="leaderboard-user">
-                    <span className={`rank-badge rank-${index + 1}`}>{index + 1}</span>
-                    <img src={user.avatar} alt={user.name} className="user-avatar" style={{ border: 'none' }} />
-                    <div>
-                      <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        {user.name}
-                        {user.isBlocked && (
-                          <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
-                        )}
-                      </h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem' }}>
-                        <span>{user.completedChallengesCount} אתגרים</span>
-                        {user.hardChallengesCompleted > 0 && (
-                          <span style={{ color: '#ffa500' }}>🔥 {user.hardChallengesCompleted} קשים</span>
-                        )}
-                      </p>
+                  {users
+                    .filter(u => u.id !== currentUser.id)
+                    .filter(u => u.name.toLowerCase().includes(peopleSearchQuery.toLowerCase()))
+                    .map(user => (
+                      <div 
+                        key={user.id} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          padding: '0.5rem 0.75rem',
+                          borderRadius: '8px',
+                          background: 'var(--bg-tertiary)',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          setSelectedUserForModal(user);
+                          setIsUserModalOpen(true);
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <img src={user.avatar} alt={user.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <div style={{ textAlign: 'right' }}>
+                            <h4 style={{ fontWeight: 700, margin: 0, fontSize: '0.85rem' }}>{user.name}</h4>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>LEVEL {Math.floor(user.xp / 500) + 1} • {user.xp} XP</span>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFollowUser(user.id);
+                          }}
+                          className={`btn ${currentUser.following?.includes(user.id) ? 'btn-secondary' : 'btn-primary'}`}
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px' }}
+                        >
+                          {currentUser.following?.includes(user.id) ? 'עוקב' : 'עקוב'}
+                        </button>
+                      </div>
+                    ))}
+                  {users.filter(u => u.id !== currentUser.id).filter(u => u.name.toLowerCase().includes(peopleSearchQuery.toLowerCase())).length === 0 && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '0.5rem' }}>לא נמצאו אנשים מתאימים</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Video grid layout */}
+            <div className="search-explore-grid">
+              {feed.map(post => (
+                <div 
+                  key={post.id} 
+                  className="explore-card"
+                  onClick={() => setSelectedExplorePost(post)}
+                >
+                  <video 
+                    src={getPostVideo(post)} 
+                    className="explore-video" 
+                    loop 
+                    muted 
+                    autoPlay 
+                    playsInline 
+                  />
+                  <div className="explore-overlay">
+                    <div className="explore-challenge-title">{post.challengeTitle}</div>
+                    <div className="explore-user-row">
+                      <img src={post.userAvatar} alt={post.userName} className="explore-user-avatar" />
+                      <span className="explore-username">{post.userName}</span>
                     </div>
                   </div>
-                  
-                  <span className="xp-badge">{user.xp} XP</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+
+
         {/* TAB 5: PROFILE */}
         {activeTab === 'profile' && (
           <div>
-            <div className="profile-hero">
-              <img src={currentUser.avatar} alt={currentUser.name} className="profile-avatar" />
-              <h2 style={{ fontWeight: 800 }}>
-                {currentUser.name}
-                {currentUser.isBlocked && (
-                  <span style={{ marginRight: '0.5rem', background: '#ff4d4d', color: '#fff', fontSize: '0.85rem', padding: '0.2rem 0.6rem', borderRadius: '4px', verticalAlign: 'middle' }}>חסום ⛔</span>
-                )}
-              </h2>
-              <span style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 'bold' }}>דרגה: אלטילט על 🏅</span>
-              
-              <div className="profile-stats">
-                <div className="stat-item">
-                  <span className="stat-val">{currentUser.xp}</span>
-                  <span className="stat-lbl">XP סה״כ</span>
+            {/* RPG Character Profile Card */}
+            <div className="game-hud-card">
+              <div className="game-profile-header">
+                <div className="game-avatar-wrapper">
+                  <img src={currentUser.avatar} alt={currentUser.name} className="game-avatar-img" />
                 </div>
-                <div className="stat-item" style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', padding: '0 1.5rem' }}>
-                  <span className="stat-val">{currentUser.completedChallengesCount}</span>
-                  <span className="stat-lbl">אתגרים שהושלמו</span>
+                <div className="game-user-details">
+                  <h2 style={{ fontWeight: 800, margin: 0, fontSize: '1.4rem' }}>
+                    {currentUser.name}
+                    {currentUser.isBlocked && (
+                      <span style={{ marginRight: '0.5rem', background: '#ff4d4d', color: '#fff', fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
+                    )}
+                  </h2>
+                  
+                  {/* Gamer Title & Level */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                    <span className="game-level-tag">LEVEL {Math.floor(currentUser.xp / 500) + 1}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      {Math.floor(currentUser.xp / 500) + 1 >= 5 ? '🏅 אלוף מיתולוגי' :
+                       Math.floor(currentUser.xp / 500) + 1 >= 4 ? '🛡️ גיבור' :
+                       Math.floor(currentUser.xp / 500) + 1 >= 3 ? '⚔️ לוחם' :
+                       Math.floor(currentUser.xp / 500) + 1 >= 2 ? '⚡ מתלמד' : '🌱 טירון'}
+                    </span>
+                  </div>
+
+                  {/* Level Progress Bar */}
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                      <span>XP {currentUser.xp % 500} / 500</span>
+                      <span>התקדמות לדרגה הבאה</span>
+                    </div>
+                    <div className="game-stat-bar-bg" style={{ height: '6px' }}>
+                      <div className="game-stat-bar-fill fill-agility" style={{ width: `${(currentUser.xp % 500) / 5}%` }}></div>
+                    </div>
+                  </div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-val">{currentUser.hardChallengesCompleted || 0}</span>
-                  <span className="stat-lbl">אתגרים קשים 🔥</span>
+              </div>
+
+              {/* Social Stats Row */}
+              <div className="social-stats-row" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '0.5rem' }}>
+                <div className="social-stat-item">
+                  <span className="social-stat-value">{currentUser.followers?.length || 0}</span>
+                  <span className="social-stat-label">עוקבים</span>
+                </div>
+                <div className="social-stat-item" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', borderRight: '1px solid rgba(255,255,255,0.1)', padding: '0 1.5rem' }}>
+                  <span className="social-stat-value">{currentUser.following?.length || 0}</span>
+                  <span className="social-stat-label">עוקב אחרי</span>
+                </div>
+                <div className="social-stat-item">
+                  <span className="social-stat-value">{currentUser.completedChallengesCount}</span>
+                  <span className="social-stat-label">השלמות</span>
+                </div>
+              </div>
+
+              {/* RPG Stats / Attributes */}
+              <h3 style={{ fontSize: '0.9rem', color: '#c084fc', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.35rem', margin: '1rem 0 0.5rem' }}>מאפייני דמות RPG</h3>
+              <div className="game-stats-container">
+                <div className="game-stat-row">
+                  <div className="game-stat-label">
+                    <span>כוח 💪</span>
+                    <span>{currentUser.stats?.strength || 50}</span>
+                  </div>
+                  <div className="game-stat-bar-bg">
+                    <div className="game-stat-bar-fill fill-strength" style={{ width: `${currentUser.stats?.strength || 50}%` }}></div>
+                  </div>
+                </div>
+                
+                <div className="game-stat-row">
+                  <div className="game-stat-label">
+                    <span>סיבולת 🏃‍♂️</span>
+                    <span>{currentUser.stats?.stamina || 50}</span>
+                  </div>
+                  <div className="game-stat-bar-bg">
+                    <div className="game-stat-bar-fill fill-stamina" style={{ width: `${currentUser.stats?.stamina || 50}%` }}></div>
+                  </div>
+                </div>
+
+                <div className="game-stat-row">
+                  <div className="game-stat-label">
+                    <span>זריזות ⚡</span>
+                    <span>{currentUser.stats?.agility || 50}</span>
+                  </div>
+                  <div className="game-stat-bar-bg">
+                    <div className="game-stat-bar-fill fill-agility" style={{ width: `${currentUser.stats?.agility || 50}%` }}></div>
+                  </div>
+                </div>
+
+                <div className="game-stat-row">
+                  <div className="game-stat-label">
+                    <span>רוגע/מיינד 🧘‍♀️</span>
+                    <span>{currentUser.stats?.zen || 50}</span>
+                  </div>
+                  <div className="game-stat-bar-bg">
+                    <div className="game-stat-bar-fill fill-zen" style={{ width: `${currentUser.stats?.zen || 50}%` }}></div>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Shiny Collectible Badges Grid */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <h3 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>תגים והישגים שקיבלת</h3>
-              <div className="badges-grid">
-                {currentUser.badges.map(b => (
-                  <span key={b} className="badge-tag">{b}</span>
-                ))}
+              <h3 style={{ fontWeight: 800, marginBottom: '0.25rem', fontSize: '1.15rem' }}>תגים נוצצים והישגים 🏆</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>תגים יוקרתיים שאספת מאתגרים מיוחדים. רחפו מעליהם כדי לראות את אפקט הניצוץ!</p>
+              
+              <div className="badges-container">
+                {currentUser.badges.map((b, idx) => {
+                  const parts = b.split(' ');
+                  const emoji = parts[0] || '🏅';
+                  const title = parts.slice(1).join(' ') || b;
+                  return (
+                    <div key={b} className="shiny-badge-card" title="לחצו להציג מידע מלא">
+                      <div className="badge-emoji-container">{emoji}</div>
+                      <span className="badge-title-text">{title}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Active Challenges list */}
             <div>
               <h3 style={{ fontWeight: 700, marginBottom: '0.75rem' }}>האתגרים הפעילים שלך</h3>
               {currentUser.activeChallenges.length === 0 ? (
@@ -1363,29 +1788,25 @@ export default function App() {
       <nav className="tab-navigation">
         <button className={`tab-btn ${activeTab === 'feed' ? 'active' : ''}`} onClick={() => setActiveTab('feed')}>
           <ActivityIcon size={20} />
-          <span>פיד</span>
         </button>
         
         <button className={`tab-btn ${activeTab === 'challenges' ? 'active' : ''}`} onClick={() => setActiveTab('challenges')}>
           <DumbbellIcon size={20} />
-          <span>אתגרים</span>
         </button>
 
         <button className={`tab-btn ${activeTab === 'create' ? 'active' : ''}`} onClick={() => setActiveTab('create')}>
           <PlusIcon size={20} />
-          <span>יצירה</span>
         </button>
         
-        <button className={`tab-btn ${activeTab === 'leaderboard' ? 'active' : ''}`} onClick={() => setActiveTab('leaderboard')}>
-          <TrophyIcon size={20} />
-          <span>מובילים</span>
+        <button className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>
+          <SearchIcon size={20} />
         </button>
         
         <button className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
           <UserIcon size={20} />
-          <span>פרופיל</span>
         </button>
       </nav>
+
 
       {/* STORY VIEWER MODAL */}
       {activeStoryIndex !== null && (
@@ -1691,6 +2112,278 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* USER PROFILE MODAL */}
+      {isUserModalOpen && selectedUserForModal && (
+        <div className="user-profile-modal-backdrop" onClick={() => setIsUserModalOpen(false)}>
+          <div className="user-profile-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-close">
+              <h3 style={{ fontWeight: 800, margin: 0 }}>פרופיל שחקן</h3>
+              <button className="story-close-btn" style={{ color: 'var(--text-primary)' }} onClick={() => setIsUserModalOpen(false)}>
+                <CloseIcon size={24} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '1rem' }}>
+              <div className="game-profile-header" style={{ marginBottom: '1rem' }}>
+                <div className="game-avatar-wrapper" style={{ width: 70, height: 70 }}>
+                  <img src={selectedUserForModal.avatar} alt="" className="game-avatar-img" />
+                </div>
+                <div className="game-user-details">
+                  <h4 style={{ fontWeight: 800, margin: 0, fontSize: '1.2rem' }}>{selectedUserForModal.name}</h4>
+                  <span className="game-level-tag" style={{ fontSize: '0.65rem' }}>LEVEL {Math.floor(selectedUserForModal.xp / 500) + 1}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginRight: '0.5rem', fontWeight: 'bold' }}>
+                    {Math.floor(selectedUserForModal.xp / 500) + 1 >= 5 ? '🏅 אלוף מיתולוגי' :
+                     Math.floor(selectedUserForModal.xp / 500) + 1 >= 4 ? '🛡️ גיבור' :
+                     Math.floor(selectedUserForModal.xp / 500) + 1 >= 3 ? '⚔️ לוחם' :
+                     Math.floor(selectedUserForModal.xp / 500) + 1 >= 2 ? '⚡ מתלמד' : '🌱 טירון'}
+                  </span>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 'bold', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span>⭐ {selectedUserForModal.xp} XP</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>• מקום {selectedUserForModal.rank || '#'}</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Follow / Joint Challenge buttons */}
+              {selectedUserForModal.id !== currentUser.id && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <button 
+                    onClick={() => handleFollowUser(selectedUserForModal.id)} 
+                    className={`btn ${currentUser.following?.includes(selectedUserForModal.id) ? 'btn-secondary' : 'btn-primary'}`}
+                    style={{ flex: 1, fontSize: '0.85rem', padding: '0.5rem 0' }}
+                  >
+                    {currentUser.following?.includes(selectedUserForModal.id) ? '✓ עוקב' : 'עקוב'}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setInviteTargetUserId(selectedUserForModal.id);
+                      setIsInviteModalOpen(true);
+                      setIsUserModalOpen(false);
+                    }}
+                    className="btn btn-primary"
+                    style={{ flex: 1, fontSize: '0.85rem', padding: '0.5rem 0', background: 'var(--accent)', color: '#000', fontWeight: 'bold' }}
+                  >
+                    🤝 אתגר יחד
+                  </button>
+                </div>
+              )}
+
+              {/* Social Stats Row */}
+              <div className="social-stats-row">
+                <div className="social-stat-item">
+                  <span className="social-stat-value">{selectedUserForModal.followers?.length || 0}</span>
+                  <span className="social-stat-label">עוקבים</span>
+                </div>
+                <div className="social-stat-item" style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', padding: '0 1.5rem' }}>
+                  <span className="social-stat-value">{selectedUserForModal.following?.length || 0}</span>
+                  <span className="social-stat-label">עוקב אחרי</span>
+                </div>
+                <div className="social-stat-item">
+                  <span className="social-stat-value">{selectedUserForModal.completedChallengesCount}</span>
+                  <span className="social-stat-label">השלמות</span>
+                </div>
+              </div>
+
+              {/* RPG Stats */}
+              <h4 style={{ fontSize: '0.85rem', color: '#c084fc', fontWeight: 'bold', margin: '0.75rem 0 0.5rem' }}>מאפייני RPG</h4>
+              <div className="game-stats-container" style={{ margin: 0, gap: '0.75rem' }}>
+                <div className="game-stat-row">
+                  <div className="game-stat-label" style={{ fontSize: '0.75rem' }}>
+                    <span>כוח 💪</span>
+                    <span>{selectedUserForModal.stats?.strength || 50}</span>
+                  </div>
+                  <div className="game-stat-bar-bg" style={{ height: '8px' }}>
+                    <div className="game-stat-bar-fill fill-strength" style={{ width: `${selectedUserForModal.stats?.strength || 50}%` }}></div>
+                  </div>
+                </div>
+                <div className="game-stat-row">
+                  <div className="game-stat-label" style={{ fontSize: '0.75rem' }}>
+                    <span>סיבולת 🏃‍♂️</span>
+                    <span>{selectedUserForModal.stats?.stamina || 50}</span>
+                  </div>
+                  <div className="game-stat-bar-bg" style={{ height: '8px' }}>
+                    <div className="game-stat-bar-fill fill-stamina" style={{ width: `${selectedUserForModal.stats?.stamina || 50}%` }}></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Achievements */}
+              <h4 style={{ fontSize: '0.85rem', color: '#ffd700', fontWeight: 'bold', margin: '1rem 0 0.5rem' }}>תגים נוצצים</h4>
+              <div className="badges-container" style={{ gap: '0.5rem' }}>
+                {selectedUserForModal.badges?.map(b => {
+                  const parts = b.split(' ');
+                  const emoji = parts[0] || '🏅';
+                  const title = parts.slice(1).join(' ') || b;
+                  return (
+                    <div key={b} className="shiny-badge-card" style={{ padding: '0.5rem 0.25rem' }}>
+                      <span style={{ fontSize: '1.5rem' }}>{emoji}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>{title}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JOINT CHALLENGE INVITATION MODAL */}
+      {isInviteModalOpen && inviteTargetUserId && (
+        <div className="user-profile-modal-backdrop" onClick={() => setIsInviteModalOpen(false)}>
+          <div className="user-profile-modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '1.25rem' }}>
+            <div className="modal-header-close" style={{ padding: 0, marginBottom: '1rem' }}>
+              <h3 style={{ fontWeight: 800, margin: 0 }}>הזמן לאתגר משותף 🤝</h3>
+              <button className="story-close-btn" style={{ color: 'var(--text-primary)' }} onClick={() => setIsInviteModalOpen(false)}>
+                <CloseIcon size={24} />
+              </button>
+            </div>
+            
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              בחר אתגר מתוך רשימת האתגרים הזמינים כדי להזמין את{' '}
+              <strong>{users.find(u => u.id === inviteTargetUserId)?.name}</strong> להשלים ביחד איתך:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {challenges.map(c => (
+                <div 
+                  key={c.id} 
+                  className="glass-card" 
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', cursor: 'pointer', border: '1px solid var(--border)' }}
+                  onClick={() => handleSendJointChallenge(inviteTargetUserId, c.id)}
+                >
+                  <div>
+                    <h4 style={{ fontWeight: 700, margin: 0, fontSize: '0.95rem' }}>{c.title}</h4>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>פרס: {c.xpReward} XP</span>
+                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', background: 'var(--accent)', color: '#000', fontWeight: 'bold' }}
+                  >
+                    הזמן
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXPLORE POST DETAIL MODAL */}
+      {selectedExplorePost && (
+        <div className="user-profile-modal-backdrop" onClick={() => setSelectedExplorePost(null)}>
+          <div className="user-profile-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header-close">
+              <h3 style={{ fontWeight: 800, margin: 0 }}>תיעוד אתגר</h3>
+              <button className="story-close-btn" style={{ color: 'var(--text-primary)' }} onClick={() => setSelectedExplorePost(null)}>
+                <CloseIcon size={24} />
+              </button>
+            </div>
+            
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', background: '#000' }}>
+              <video 
+                src={getPostVideo(selectedExplorePost)} 
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                controls 
+                autoPlay 
+                loop
+                playsInline
+              />
+            </div>
+            
+            <div style={{ padding: '1rem', direction: 'rtl', textAlign: 'right' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <img 
+                  src={selectedExplorePost.userAvatar} 
+                  alt="" 
+                  style={{ width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }}
+                  onClick={() => {
+                    const postUser = users.find(u => u.id === selectedExplorePost.userId);
+                    if (postUser) {
+                      setSelectedUserForModal(postUser);
+                      setIsUserModalOpen(true);
+                      setSelectedExplorePost(null);
+                    }
+                  }}
+                />
+                <div>
+                  <h4 style={{ fontWeight: 800, margin: 0, fontSize: '1rem' }}>{selectedExplorePost.userName}</h4>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedExplorePost.timestamp}</span>
+                </div>
+              </div>
+              
+              <h5 style={{ fontWeight: 800, color: 'var(--accent)', marginBottom: '0.25rem' }}>{selectedExplorePost.challengeTitle}</h5>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '1rem' }}>{selectedExplorePost.achievementDetail}</p>
+              
+              {/* Like / Clap action row */}
+              <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '0.5rem 0', marginBottom: '1rem' }}>
+                <button 
+                  onClick={() => handleLikePost(selectedExplorePost.id)}
+                  style={{ background: 'none', border: 'none', color: selectedExplorePost.hasLiked ? '#ef4444' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
+                >
+                  <span>❤️ {selectedExplorePost.likes}</span>
+                </button>
+                <button 
+                  onClick={() => handleClapPost(selectedExplorePost.id)}
+                  style={{ background: 'none', border: 'none', color: selectedExplorePost.hasClapped ? 'var(--warning)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
+                >
+                  <span>🔥 {selectedExplorePost.claps}</span>
+                </button>
+              </div>
+
+              {/* Comments Section */}
+              <h5 style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.5rem' }}>תגובות ({selectedExplorePost.comments?.length || 0})</h5>
+              <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                {(selectedExplorePost.comments || []).map(comment => (
+                  <div key={comment.id} style={{ background: 'var(--bg-tertiary)', padding: '0.5rem', borderRadius: '8px', fontSize: '0.85rem' }}>
+                    <strong>{comment.userName}: </strong>
+                    <span>{comment.text}</span>
+                  </div>
+                ))}
+                {(!selectedExplorePost.comments || selectedExplorePost.comments.length === 0) && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>אין עדיין תגובות. היה הראשון להגיב!</p>
+                )}
+              </div>
+
+              {/* Add Comment Input */}
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const text = e.target.commentText.value.trim();
+                  if (!text) return;
+                  
+                  // Add comment
+                  const newComment = {
+                    id: `c_${Date.now()}`,
+                    userName: currentUser.name,
+                    text: text
+                  };
+
+                  // Update database and states
+                  const updatedComments = [...(selectedExplorePost.comments || []), newComment];
+                  const updatedPost = { ...selectedExplorePost, comments: updatedComments };
+                  
+                  setFeed(prev => prev.map(p => p.id === selectedExplorePost.id ? updatedPost : p));
+                  setSelectedExplorePost(updatedPost);
+                  updateFeedPost(updatedPost);
+                  
+                  e.target.reset();
+                }}
+                style={{ display: 'flex', gap: '0.5rem' }}
+              >
+                <input 
+                  type="text" 
+                  name="commentText" 
+                  placeholder="הוסף תגובה..." 
+                  style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                />
+                <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>שלח</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
