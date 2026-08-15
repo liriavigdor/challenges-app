@@ -2104,15 +2104,18 @@ body {
 .search-explore-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
-  margin-top: 1rem;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2px;
+  margin-top: 0.5rem;
+  height: calc(100vh - 110px);
+  min-height: 560px;
 }
 
 .explore-card {
   position: relative;
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
-  aspect-ratio: 9 / 14;
+  height: 100%;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border);
   cursor: pointer;
@@ -2177,4 +2180,85 @@ body {
   flex: 1;
   text-align: right;
 }
+
+/* Pulsing Map Pins styling */
+.map-pin-wrapper {
+  position: absolute;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.map-pin-wrapper:hover {
+  transform: translate(-50%, -100%) scale(1.15) !important;
+}
+.map-pin-wrapper.selected .pin-marker {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.pulsing-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0.8;
+  animation: pulse-ring-anim 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes pulse-ring-anim {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Chats tab custom scrollbar */
+.chats-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.chats-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* --- AESTHETIC COLLECTIBLE BADGES & INSTAGRAM GRID --- */
+.collectible-badge-token {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.collectible-badge-token:hover {
+  transform: translateY(-4px) scale(1.05);
+  filter: brightness(1.25);
+}
+.collectible-badge-token .badge-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: skewX(-25deg);
+  transition: none;
+}
+.collectible-badge-token:hover .badge-shimmer {
+  left: 150%;
+  transition: all 0.8s ease-out;
+}
+
+.instagram-grid-item:hover .insta-img {
+  transform: scale(1.06);
+}
+.instagram-grid-item:hover .instagram-grid-overlay {
+  opacity: 1 !important;
+}
+
 

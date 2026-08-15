@@ -14,22 +14,26 @@ const USERS_KEY = "challenges_users";
 const CHALLENGES_KEY = "challenges_items";
 const FEED_KEY = "challenges_feed";
 
-// Initialize LocalStorage if empty
+// Initialize LocalStorage if empty or if initial data has been expanded
 function initLocalStorage() {
-  if (!localStorage.getItem(USERS_KEY)) {
+  const storedUsers = localStorage.getItem(USERS_KEY);
+  if (!storedUsers || JSON.parse(storedUsers).length < initialUsers.length) {
     localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
   }
-  if (!localStorage.getItem(CHALLENGES_KEY)) {
+  
+  const storedChallenges = localStorage.getItem(CHALLENGES_KEY);
+  if (!storedChallenges || JSON.parse(storedChallenges).length < initialChallenges.length) {
     localStorage.setItem(CHALLENGES_KEY, JSON.stringify(initialChallenges));
   }
-  if (!localStorage.getItem(FEED_KEY)) {
+  
+  const storedFeed = localStorage.getItem(FEED_KEY);
+  if (!storedFeed || JSON.parse(storedFeed).length < initialFeed.length) {
     localStorage.setItem(FEED_KEY, JSON.stringify(initialFeed));
   }
 }
 
 initLocalStorage();
 
-// Users Service
 export async function getUsers() {
   if (isFirebaseActive) {
     try {
@@ -38,9 +42,9 @@ export async function getUsers() {
       querySnapshot.forEach((doc) => {
         usersList.push({ id: doc.id, ...doc.data() });
       });
-      if (usersList.length === 0) {
-        // Seed Firestore if empty
-        for (const user of initialUsers) {
+      // Seed Firestore with any missing users
+      for (const user of initialUsers) {
+        if (!usersList.some(u => u.id === user.id)) {
           const { id, ...rest } = user;
           await setDoc(doc(db, "users", id), rest);
           usersList.push(user);
@@ -69,7 +73,6 @@ export async function updateUser(user) {
   localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
 }
 
-// Challenges Service
 export async function getChallenges() {
   if (isFirebaseActive) {
     try {
@@ -78,9 +81,9 @@ export async function getChallenges() {
       querySnapshot.forEach((doc) => {
         challengesList.push({ id: doc.id, ...doc.data() });
       });
-      if (challengesList.length === 0) {
-        // Seed Firestore if empty
-        for (const challenge of initialChallenges) {
+      // Seed Firestore with any missing challenges
+      for (const challenge of initialChallenges) {
+        if (!challengesList.some(c => c.id === challenge.id)) {
           const { id, ...rest } = challenge;
           await setDoc(doc(db, "challenges", id), rest);
           challengesList.push(challenge);
@@ -109,7 +112,6 @@ export async function saveChallenge(challenge) {
   localStorage.setItem(CHALLENGES_KEY, JSON.stringify(challenges));
 }
 
-// Feed Service
 export async function getFeed() {
   if (isFirebaseActive) {
     try {
@@ -118,9 +120,9 @@ export async function getFeed() {
       querySnapshot.forEach((doc) => {
         feedList.push({ id: doc.id, ...doc.data() });
       });
-      if (feedList.length === 0) {
-        // Seed Firestore if empty
-        for (const post of initialFeed) {
+      // Seed Firestore with any missing feed items
+      for (const post of initialFeed) {
+        if (!feedList.some(p => p.id === post.id)) {
           const { id, ...rest } = post;
           await setDoc(doc(db, "feed", id), rest);
           feedList.push(post);
