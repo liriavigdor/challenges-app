@@ -46,6 +46,92 @@ const getPostVideo = (post) => {
   return 'https://assets.mixkit.co/videos/preview/mixkit-hiking-in-the-snow-in-winter-41865-large.mp4';
 };
 
+function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLocation, filteredChallenges }) {
+  const mapRef = React.useRef(null);
+  const mapInstanceRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!mapRef.current) return;
+
+    const L = window.L;
+    if (!L) return;
+
+    // Center map around user coordinates
+    const map = L.map(mapRef.current, {
+      center: userCoords,
+      zoom: 12,
+      zoomControl: false
+    });
+    mapInstanceRef.current = map;
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Dark tiles for premium styling matching dark theme
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    // User Location marker (blue pulsing ring)
+    const userIcon = L.divIcon({
+      className: 'user-location-marker',
+      html: `<div class="user-pulse-marker"></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+    L.marker(userCoords, { icon: userIcon }).addTo(map).bindPopup('אתה כאן 📍');
+
+    const bounds = [userCoords];
+
+    // Add pins for challenges
+    mapLocations.forEach((loc) => {
+      const hasActive = filteredChallenges.some(ch => ch.id === loc.challengeId);
+      if (!hasActive) return;
+
+      const isSelected = selectedLocation?.id === loc.id;
+      
+      const pinIcon = L.divIcon({
+        className: `custom-map-pin ${isSelected ? 'selected' : ''}`,
+        html: `<div class="pin-inner">📍</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      });
+
+      const marker = L.marker([loc.lat, loc.lng], { icon: pinIcon }).addTo(map);
+      bounds.push([loc.lat, loc.lng]);
+
+      marker.on('click', () => {
+        onSelectLocation(loc);
+      });
+    });
+
+    if (bounds.length > 1) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [userCoords, mapLocations, filteredChallenges, selectedLocation]);
+
+  return (
+    <div 
+      ref={mapRef} 
+      id="leaflet-map-element"
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        borderRadius: '16px',
+        background: '#121212'
+      }} 
+    />
+  );
+}
+
 export default function App() {
 
   const [theme, setTheme] = useState('dark');
@@ -89,46 +175,117 @@ export default function App() {
   const [activeChatId, setActiveChatId] = useState(null);
   const [chatInputText, setChatInputText] = useState("");
 
-  // Map & location challenges states
-  const [challengesViewMode, setChallengesViewMode] = useState('list');
-  const [selectedMapLocation, setSelectedMapLocation] = useState(null);
-
   useEffect(() => {
     localStorage.setItem('challenges_chats', JSON.stringify(chats));
   }, [chats]);
+
+  // Map & location challenges states
+  const [challengesViewMode, setChallengesViewMode] = useState('map');
+  const [selectedMapLocation, setSelectedMapLocation] = useState(null);
+  const [userCoords, setUserCoords] = useState([32.0853, 34.7818]); // Default Tel Aviv
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserCoords([position.coords.latitude, position.coords.longitude]);
+        },
+        (error) => {
+          console.log("Could not obtain user location: ", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, []);
 
   const mapLocations = [
     {
       id: "loc_yarkon",
       name: "🌳 פארק הירקון, תל אביב",
-      x: 45,
-      y: 40,
+      lat: 32.0991,
+      lng: 34.8016,
       challengeId: "run_10k",
       description: "פארק הירקון מציע מסלולי ריצה פסטורליים לאורך הנחל. בצעו את הריצה כאן!"
     },
     {
       id: "loc_holmes",
-      name: "🏋️‍♂️ מועדון הולמס פלייס",
-      x: 30,
-      y: 55,
+      name: "🏋️‍♂️ מועדון הולמס פלייס עזריאלי",
+      lat: 32.0780,
+      lng: 34.7925,
       challengeId: "pushups_100",
       description: "אתגר שכיבות הסמיכה המושלם לביצוע בתוך המועדון הממוזג והמאובזר."
     },
     {
       id: "loc_beach",
-      name: "🏖️ טיילת חוף הים",
-      x: 20,
-      y: 68,
+      name: "🏖️ טיילת חוף גורדון",
+      lat: 32.0754,
+      lng: 34.7628,
       challengeId: "plank_30d",
       description: "החול החם והבריזה מהים יוצרים אתגר פלאנק מרענן במיוחד."
     },
     {
       id: "loc_hermon",
       name: "🏔️ הר החרמון",
-      x: 75,
-      y: 18,
+      lat: 33.3146,
+      lng: 35.7820,
       challengeId: "climb_mount",
       description: "ההר הגבוה במדינה. האתגר פעיל רק למי שמטפס בפועל ומגיע לפסגה."
+    },
+    {
+      id: "loc_israman",
+      name: "🏊‍♂️ טריאתלון ישראמן, אילת",
+      lat: 29.5581,
+      lng: 34.9482,
+      challengeId: "israman_eilat",
+      description: "מסלול הטריאתלון המאתגר בישראל. הירשמו והוכיחו הגעה וביצוע באילת."
+    },
+    {
+      id: "loc_galilee",
+      name: "🌊 חוף צמח, כנרת",
+      lat: 32.7050,
+      lng: 35.5900,
+      challengeId: "galilee_swim",
+      description: "נקודת ההזנקה הרשמית של צליחת הכנרת. שחו מכאן לכיוון עין גב."
+    },
+    {
+      id: "loc_masada",
+      name: "🏰 שביל הנחש, מצדה",
+      lat: 31.3125,
+      lng: 35.3620,
+      challengeId: "masada_sunrise",
+      description: "העפילו אל המבצר ההיסטורי דרך שביל הנחש לפנות בוקר והעלו הוכחה."
+    },
+    {
+      id: "loc_sovev_emek",
+      name: "🌲 משמר העמק, סובב עמק",
+      lat: 32.5847,
+      lng: 35.1378,
+      challengeId: "sovev_emek_100",
+      description: "מסלול האולטרה-מרתון המפורסם בישראל. הריצה מתבצעת בגבעות המנשה."
+    },
+    {
+      id: "loc_hermon_cycle",
+      name: "🚴‍♂️ מעלה מג'דל שמס, חרמון",
+      lat: 33.2652,
+      lng: 35.7725,
+      challengeId: "hermon_cycle",
+      description: "העלייה המפרכת לחרמון באופניים. הוכיחו את הטיפוס מנקודה זו."
+    },
+    {
+      id: "loc_ramon",
+      name: "🏜️ מכתש רמון, מצפה רמון",
+      lat: 30.6120,
+      lng: 34.8030,
+      challengeId: "ramon_crater_run",
+      description: "צאו לריצה מרהיבה ומאתגרת בנוף הירחי המדברי של מכתש רמון."
+    },
+    {
+      id: "loc_freedive",
+      name: "🐬 חוף האלמוגים, אילת",
+      lat: 29.5100,
+      lng: 34.9180,
+      challengeId: "freedive_20m",
+      description: "אתגר צלילה חופשית ל-20 מטרים במים העמוקים ליד חוף האלמוגים."
     }
   ];
 
@@ -174,6 +331,7 @@ export default function App() {
   const [peopleSearchQuery, setPeopleSearchQuery] = useState('');
   const [selectedExplorePost, setSelectedExplorePost] = useState(null);
   const [exploreReelsStartIndex, setExploreReelsStartIndex] = useState(null);
+  const [activeBadgeDetail, setActiveBadgeDetail] = useState(null);
 
 
   useEffect(() => {
@@ -389,6 +547,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('הכל');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedChallengeId, setExpandedChallengeId] = useState(null);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   // Form states for creating a new challenge
   const [newChallengeTitle, setNewChallengeTitle] = useState('');
@@ -606,7 +765,7 @@ export default function App() {
     }));
   };
 
-  // Double tap to like with animation trigger
+  // Double tap to clap/fire with animation trigger
   const handleDoubleTapPost = (postId) => {
     if (currentUser.isBlocked) return;
     
@@ -614,13 +773,13 @@ export default function App() {
     setDoubleTapPostId(postId);
     setTimeout(() => setDoubleTapPostId(null), 800);
 
-    // Perform like if not already liked
+    // Perform clap if not already clapped
     setFeed(prev => prev.map(post => {
-      if (post.id === postId && !post.hasLiked) {
+      if (post.id === postId && !post.hasClapped) {
         return {
           ...post,
-          likes: post.likes + 1,
-          hasLiked: true
+          claps: post.claps + 1,
+          hasClapped: true
         };
       }
       return post;
@@ -933,8 +1092,13 @@ export default function App() {
   const filteredChallenges = challenges.filter(c => {
     const matchesCategory = selectedCategory === 'הכל' || c.category === selectedCategory;
     const matchesSearch = c.title.includes(searchQuery) || c.description.includes(searchQuery);
-    const matchesStarred = !showStarredOnly || c.isIconic;
-    return matchesCategory && matchesSearch && matchesStarred;
+    
+    if (challengesViewMode === 'iconic') {
+      return matchesCategory && matchesSearch && c.isIconic;
+    } else if (challengesViewMode === 'challenges') {
+      return matchesCategory && matchesSearch && !c.isIconic;
+    }
+    return matchesCategory && matchesSearch;
   });
 
   return (
@@ -962,8 +1126,8 @@ export default function App() {
         </div>
 
         {/* Middle: Name (centered) */}
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
-          <span className="logo-text" style={{ fontSize: '1.6rem', fontWeight: 800, background: 'linear-gradient(135deg, var(--accent), #ff007f)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: "'Outfit', sans-serif" }}>Pulse</span>
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          <span className="logo-text">Pulse</span>
         </div>
 
         {/* Right side: Add button or user info (when not on feed) */}
@@ -1145,6 +1309,8 @@ export default function App() {
               </div>
             </div>
 
+
+
             {/* Reels-style swiping container */}
             <div className="reels-feed-container">
               {feed.map(post => {
@@ -1167,23 +1333,15 @@ export default function App() {
                     {/* Gradient Overlay for text contrast */}
                     <div className="reel-overlay-gradient"></div>
 
-                    {/* Double-tap Floating Heart pop animation */}
+                    {/* Double-tap Floating Fire pop animation */}
                     {doubleTapPostId === post.id && (
-                      <div className="double-tap-heart-anim">
-                        <HeartIcon size={80} fill="currentColor" />
+                      <div className="double-tap-fire-anim">
+                        <FireIcon size={80} fill="currentColor" />
                       </div>
                     )}
 
                     {/* Left vertical actions column (Instagram Reels layout) */}
                     <div className="reel-actions-column">
-                      {/* Likes */}
-                      <div className="reel-action-btn-wrapper" onClick={() => handleLikePost(post.id)}>
-                        <div className={`reel-action-circle ${post.hasLiked ? 'active-heart' : ''}`}>
-                          <HeartIcon size={24} fill={post.hasLiked ? "currentColor" : "none"} />
-                        </div>
-                        <span className="reel-action-text">{post.likes}</span>
-                      </div>
-
                       {/* Claps */}
                       <div className="reel-action-btn-wrapper" onClick={() => handleClapPost(post.id)}>
                         <div className={`reel-action-circle ${post.hasClapped ? 'active-clap' : ''}`}>
@@ -1208,18 +1366,12 @@ export default function App() {
                             alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור נקודות XP עכשיו!`);
                           }
                         }}>
-                          <div className="reel-action-circle" style={{ background: isJoinedChallenge ? 'var(--success)' : 'var(--accent)', color: '#000' }}>
+                          <div className="reel-action-circle" style={{ color: isJoinedChallenge ? 'var(--success)' : 'var(--accent)' }}>
                             <DumbbellIcon size={22} />
                           </div>
                           <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>{isJoinedChallenge ? 'משתתף' : 'אתגר אותי'}</span>
                         </div>
                       )}
-
-                      {/* Report button */}
-                      <div className="reel-action-btn-wrapper" onClick={() => handleReportPost(post.id)} style={{ marginTop: '0.5rem' }}>
-                        <span style={{ fontSize: '1.25rem' }}>🚩</span>
-                        <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>דווח</span>
-                      </div>
                     </div>
 
                     {/* Reel text information overlay */}
@@ -1266,130 +1418,353 @@ export default function App() {
               </button>
             </div>
 
-            {/* View Toggle */}
-            <div className="view-toggle-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', background: 'var(--bg-tertiary)', borderRadius: '30px', padding: '0.25rem', width: 'fit-content', margin: '0 auto 1.5rem auto' }}>
+            {/* Filters toggle button row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
               <button 
-                onClick={() => setChallengesViewMode('list')} 
-                className={`toggle-btn ${challengesViewMode === 'list' ? 'active' : ''}`}
-                style={{ 
-                  padding: '0.5rem 1.5rem', 
-                  borderRadius: '30px', 
-                  border: 'none', 
-                  background: challengesViewMode === 'list' ? 'var(--accent)' : 'transparent', 
-                  color: challengesViewMode === 'list' ? '#000' : 'var(--text-secondary)', 
-                  fontWeight: 'bold', 
-                  cursor: 'pointer', 
-                  transition: 'all 0.2s' 
+                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                style={{
+                  background: isFiltersOpen ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: isFiltersOpen ? '#000' : 'var(--text-primary)',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: '24px',
+                  padding: '0.5rem 1.25rem',
+                  fontSize: '0.85rem',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  transition: 'all 0.25s ease',
+                  boxShadow: isFiltersOpen ? '0 4px 12px var(--accent-glow)' : 'var(--shadow-sm)'
                 }}
               >
-                📋 רשימה
+                <span>🔍 מסננים</span>
+                <span style={{ fontSize: '0.75rem' }}>{isFiltersOpen ? '▲' : '▼'}</span>
               </button>
-              <button 
-                onClick={() => setChallengesViewMode('map')} 
-                className={`toggle-btn ${challengesViewMode === 'map' ? 'active' : ''}`}
-                style={{ 
-                  padding: '0.5rem 1.5rem', 
-                  borderRadius: '30px', 
-                  border: 'none', 
-                  background: challengesViewMode === 'map' ? 'var(--accent)' : 'transparent', 
-                  color: challengesViewMode === 'map' ? '#000' : 'var(--text-secondary)', 
-                  fontWeight: 'bold', 
-                  cursor: 'pointer', 
-                  transition: 'all 0.2s' 
-                }}
-              >
-                🗺️ מפת מיקומים
-              </button>
+
+              {(selectedCategory !== 'הכל' || searchQuery !== '') && (
+                <button
+                  onClick={() => {
+                    setSelectedCategory('הכל');
+                    setSearchQuery('');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--accent)',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    padding: '0.25rem 0.5rem'
+                  }}
+                >
+                  נקה הכל ✕
+                </button>
+              )}
             </div>
 
-            {challengesViewMode === 'list' ? (
-              <>
-                {/* Filters */}
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                  <div className="category-filter" style={{ marginBottom: 0 }}>
-                    {categories.map(cat => (
+            {/* Dropdown Filter Panel */}
+            {isFiltersOpen && (
+              <div 
+                className="filters-glass-panel"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: '16px',
+                  padding: '1rem',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                  animation: 'modal-pop-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                  boxShadow: 'var(--shadow-md)'
+                }}
+              >
+                {/* Search Bar */}
+                <div className="search-bar-wrapper" style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div className="search-input-container" style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', background: 'var(--bg-tertiary)', borderRadius: '30px', padding: '0.25rem 0.75rem', border: '1px solid var(--border)' }}>
+                    <SearchIcon size={18} style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', marginRight: '0.25rem' }} />
+                    <input 
+                      type="text" 
+                      className="search-input-clean" 
+                      placeholder="חפשו לפי שם, קושי או תיאור..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        flex: 1,
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem',
+                        padding: '0.4rem 0.25rem',
+                        direction: 'rtl'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Categories */}
+                <div className="category-filter" style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
+                  {categories.map(cat => {
+                    let emoji = '';
+                    if (cat === 'הכל') emoji = '🌟';
+                    if (cat === 'כוח') emoji = '💪';
+                    if (cat === 'אירובי') emoji = '🏃‍♂️';
+                    if (cat === 'שטח') emoji = '🏕️';
+                    if (cat === 'ליבה') emoji = '🧘';
+                    
+                    return (
                       <button 
                         key={cat} 
                         className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
                         onClick={() => setSelectedCategory(cat)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.4rem 1rem',
+                          borderRadius: '30px',
+                          border: selectedCategory === cat ? 'none' : '1px solid var(--border)',
+                          background: selectedCategory === cat ? 'var(--accent)' : 'var(--bg-tertiary)',
+                          color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)',
+                          fontSize: '0.85rem',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'all 0.2s'
+                        }}
                       >
-                        {cat}
+                        <span>{emoji}</span> {cat}
                       </button>
-                    ))}
-                  </div>
-                  <button
-                    className={`filter-btn ${showStarredOnly ? 'active' : ''}`}
-                    onClick={() => setShowStarredOnly(!showStarredOnly)}
-                    style={{
-                      background: showStarredOnly ? '#ffd700' : 'var(--bg-tertiary)',
-                      color: showStarredOnly ? '#000' : 'var(--warning)',
-                      borderColor: '#ffd700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    ★ מיוחדים
-                  </button>
+                    );
+                  })}
                 </div>
+              </div>
+            )}
 
-                <div className="form-group" style={{ marginBottom: '1.5rem', position: 'relative' }}>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="חפשו אתגר ספציפי..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: '2.5rem' }}
-                  />
-                </div>
+            {/* Segmented View Toggle (Map / Challenges / Iconic) */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+              <div className="view-toggle-container" style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: '30px', padding: '0.25rem', border: '1px solid var(--border)', width: '100%', maxWidth: '380px' }}>
+                <button 
+                  onClick={() => setChallengesViewMode('map')} 
+                  className={`toggle-btn ${challengesViewMode === 'map' ? 'active' : ''}`}
+                  style={{ 
+                    flex: 1,
+                    padding: '0.45rem 0.5rem', 
+                    borderRadius: '30px', 
+                    border: 'none', 
+                    background: challengesViewMode === 'map' ? 'var(--accent)' : 'transparent', 
+                    color: challengesViewMode === 'map' ? '#fff' : 'var(--text-secondary)', 
+                    fontWeight: 'bold', 
+                    cursor: 'pointer', 
+                    boxShadow: challengesViewMode === 'map' ? '0 2px 8px var(--accent-glow)' : 'none',
+                    fontSize: '0.8rem',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  🗺️ מפה
+                </button>
+                <button 
+                  onClick={() => setChallengesViewMode('challenges')} 
+                  className={`toggle-btn ${challengesViewMode === 'challenges' ? 'active' : ''}`}
+                  style={{ 
+                    flex: 1,
+                    padding: '0.45rem 0.5rem', 
+                    borderRadius: '30px', 
+                    border: 'none', 
+                    background: challengesViewMode === 'challenges' ? 'var(--accent)' : 'transparent', 
+                    color: challengesViewMode === 'challenges' ? '#fff' : 'var(--text-secondary)', 
+                    fontWeight: 'bold', 
+                    cursor: 'pointer', 
+                    boxShadow: challengesViewMode === 'challenges' ? '0 2px 8px var(--accent-glow)' : 'none',
+                    fontSize: '0.8rem',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  📋 אתגרים
+                </button>
+                <button 
+                  onClick={() => setChallengesViewMode('iconic')} 
+                  className={`toggle-btn ${challengesViewMode === 'iconic' ? 'active' : ''}`}
+                  style={{ 
+                    flex: 1,
+                    padding: '0.45rem 0.5rem', 
+                    borderRadius: '30px', 
+                    border: 'none', 
+                    background: challengesViewMode === 'iconic' ? 'var(--accent)' : 'transparent', 
+                    color: challengesViewMode === 'iconic' ? '#fff' : 'var(--text-secondary)', 
+                    fontWeight: 'bold', 
+                    cursor: 'pointer', 
+                    boxShadow: challengesViewMode === 'iconic' ? '0 2px 8px var(--accent-glow)' : 'none',
+                    fontSize: '0.8rem',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  👑 אייקוניים
+                </button>
+              </div>
+            </div>
 
-                <div className="challenges-grid">
+            {challengesViewMode !== 'map' ? (
+              <>
+                <div className="challenges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                   {filteredChallenges.map(c => {
                     const isJoined = currentUser.activeChallenges.includes(c.id);
-                    const isExpanded = expandedChallengeId === c.id;
                     return (
                       <div 
                         key={c.id} 
-                        className="glass-card challenge-card" 
-                        style={{ 
-                          position: 'relative', 
-                          padding: '1rem',
-                          background: c.isIconic ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.95), rgba(212, 175, 55, 0.95))' : 'var(--glass-bg)',
-                          color: c.isIconic ? '#000000' : 'var(--text-primary)',
-                          border: c.isIconic ? '2px solid #ffd700' : '1px solid var(--glass-border)',
-                          boxShadow: c.isIconic ? '0 0 15px rgba(255, 215, 0, 0.3)' : 'var(--shadow)'
+                        className="challenge-grid-card"
+                        onClick={() => setExpandedChallengeId(c.id)}
+                        style={{
+                          cursor: 'pointer',
+                          position: 'relative',
+                          borderRadius: '16px',
+                          overflow: 'hidden',
+                          background: c.isIconic ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(212, 175, 55, 0.03))' : 'var(--bg-secondary)',
+                          border: c.isIconic ? '1.5px solid #ffd700' : '1px solid var(--border)',
+                          boxShadow: c.isIconic ? '0 4px 15px rgba(255, 215, 0, 0.1)' : 'var(--shadow)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
                         }}
                       >
-                        {c.isIconic && (
-                          <div className="iconic-star" style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(0, 0, 0, 0.1)', padding: '0.25rem 0.35rem', borderRadius: '50%', fontSize: '1rem', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }} title="אתגר אייקוני">
-                            ★
-                          </div>
-                        )}
-                        
-                        <div 
-                          className="accordion-header" 
-                          onClick={() => setExpandedChallengeId(isExpanded ? null : c.id)}
-                          style={{ color: 'inherit' }}
-                        >
-                          <div>
-                            <h3 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'inherit' }}>{c.title}</h3>
-                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: c.isIconic ? 'rgba(0, 0, 0, 0.7)' : 'var(--text-secondary)' }}>
-                              <span className={`difficulty-tag difficulty-${c.difficulty}`} style={c.isIconic ? { background: '#000', color: '#fff' } : {}}>{c.difficulty}</span>
-                              <span>⚡ {c.xpReward} XP</span>
-                              <span>👥 {c.participantsCount} משתתפים</span>
-                            </div>
-                          </div>
-                          <span style={{ fontSize: '1.2rem', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none', color: 'inherit' }}>
-                            ▼
+                        {/* Image banner */}
+                        <div style={{ position: 'relative', height: '110px', width: '100%', overflow: 'hidden' }}>
+                          <img 
+                            src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80'} 
+                            alt={c.title} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }}></div>
+                          
+                          {/* Iconic star */}
+                          {c.isIconic && (
+                            <span style={{ position: 'absolute', top: '8px', left: '8px', background: '#ffd700', color: '#000', padding: '0.15rem 0.4rem', borderRadius: '12px', fontSize: '0.65rem', fontWeight: '900', boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
+                              ★ אייקוני
+                            </span>
+                          )}
+                          
+                          {/* XP tag in bottom right of image */}
+                          <span style={{ position: 'absolute', bottom: '6px', right: '8px', background: 'rgba(0,0,0,0.65)', color: '#fff', padding: '0.15rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                            ⚡ {c.xpReward} XP
                           </span>
                         </div>
 
-                        <div className={`accordion-content ${isExpanded ? 'expanded' : ''}`}>
-                          {c.image && <img src={c.image} alt={c.title} className="challenge-img" style={{ maxHeight: '140px', marginTop: '0.5rem' }} />}
-                          
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {/* Card Info */}
+                        <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, direction: 'rtl', textAlign: 'right' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{c.title}</h4>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: 'auto' }}>
+                            <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>{c.difficulty}</span>
+                            <span style={{ fontSize: '0.65rem' }}>👥 {c.participantsCount} פעילים</span>
+                          </div>
+                        </div>
+
+                        {/* Joined status indicator line */}
+                        {isJoined && (
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', background: 'var(--success)' }}></div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Modal Detail Popup Overlay */}
+                {expandedChallengeId && (() => {
+                  const c = challenges.find(ch => ch.id === expandedChallengeId);
+                  if (!c) return null;
+                  const isJoined = currentUser.activeChallenges.includes(c.id);
+                  return (
+                    <div 
+                      className="challenge-detail-backdrop" 
+                      onClick={() => setExpandedChallengeId(null)}
+                      style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0, 0, 0, 0.75)',
+                        zIndex: 1200,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backdropFilter: 'blur(8px)',
+                        padding: '1rem'
+                      }}
+                    >
+                      <div 
+                        className="challenge-detail-modal" 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          width: '100%',
+                          maxWidth: '380px',
+                          background: 'var(--bg-secondary)',
+                          border: '1.5px solid var(--border)',
+                          borderRadius: '24px',
+                          boxShadow: 'var(--shadow-lg)',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          direction: 'rtl',
+                          textAlign: 'right'
+                        }}
+                      >
+                        {/* Header Image banner */}
+                        <div style={{ position: 'relative', height: '160px', width: '100%' }}>
+                          <img 
+                            src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop&q=80'} 
+                            alt={c.title} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-secondary) 0%, transparent 100%)' }}></div>
+                          <button 
+                            onClick={() => setExpandedChallengeId(null)}
+                            style={{
+                              position: 'absolute',
+                              top: '12px',
+                              left: '12px',
+                              background: 'rgba(0,0,0,0.6)',
+                              border: 'none',
+                              color: '#fff',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '1rem'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div>
+                            <h3 style={{ fontWeight: 900, fontSize: '1.3rem', margin: 0, color: 'var(--text-primary)' }}>{c.title}</h3>
+                            
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', fontSize: '0.75rem', flexWrap: 'wrap' }}>
+                              <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.2rem 0.5rem', borderRadius: '6px' }}>{c.difficulty}</span>
+                              <span style={{ background: 'var(--accent-glow)', color: 'var(--accent)', padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: 'bold' }}>⚡ {c.xpReward} XP</span>
+                              <span style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>👥 {c.participantsCount} משתתפים</span>
+                            </div>
+                          </div>
+
+                          {/* Community difficulty grade */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             <span>📊 קושי קהילה:</span>
                             <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>
                               {c.difficultyGrades && c.difficultyGrades.length > 0
@@ -1398,20 +1773,26 @@ export default function App() {
                             </span>
                           </div>
 
+                          {/* Iconic tag reward info */}
                           {c.isIconic && c.badgeReward && (
-                            <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px dashed #ffd700', padding: '0.3rem 0.5rem', borderRadius: '8px', margin: '0.5rem 0', fontSize: '0.8rem', color: '#ffd700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <span>🏆 מעניק תג:</span>
+                            <div style={{ background: 'rgba(255,215,0,0.08)', border: '1px dashed #ffd700', padding: '0.5rem 0.75rem', borderRadius: '12px', fontSize: '0.8rem', color: '#ffd700', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem' }}>
+                              <span>🏆 מעניק תג מיוחד:</span>
                               <strong>{c.badgeReward}</strong>
                             </div>
                           )}
-                          
-                          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0.75rem 0' }}>{c.description}</p>
-                          
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+
+                          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0.25rem 0 0.5rem 0' }}>
+                            {c.description}
+                          </p>
+
+                          {/* Action buttons */}
+                          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                             <button 
-                              onClick={() => toggleJoinChallenge(c.id)} 
+                              onClick={() => {
+                                toggleJoinChallenge(c.id);
+                              }} 
                               className={`btn ${isJoined ? 'btn-secondary' : 'btn-primary'}`} 
-                              style={{ flex: 1 }}
+                              style={{ flex: 1, padding: '0.65rem' }}
                             >
                               {isJoined ? 'עזוב אתגר' : 'הצטרף לאתגר'}
                             </button>
@@ -1421,9 +1802,10 @@ export default function App() {
                                 onClick={() => {
                                   setProofChallengeId(c.id);
                                   setActiveTab('complete-challenge');
+                                  setExpandedChallengeId(null);
                                 }} 
                                 className="btn btn-primary" 
-                                style={{ background: 'var(--success)' }}
+                                style={{ background: 'var(--success)', padding: '0.65rem' }}
                               >
                                 העלה הוכחה 📷
                               </button>
@@ -1431,9 +1813,9 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })()}
               </>
             ) : (
               /* INTERACTIVE MAP VIEW */
@@ -1443,84 +1825,26 @@ export default function App() {
                 </p>
 
                 <div 
-                  className="mock-map-canvas" 
+                  className="real-map-canvas" 
                   style={{ 
                     position: 'relative', 
                     width: '100%', 
-                    aspectRatio: '16 / 9', 
-                    background: 'var(--bg-tertiary)', 
+                    height: 'calc(100vh - 290px)', 
+                    minHeight: '480px', 
                     borderRadius: '16px', 
                     overflow: 'hidden', 
                     border: '1px solid var(--border)',
                     boxShadow: 'var(--shadow-md)'
                   }}
                 >
-                  {/* Styled Mock SVG Map */}
-                  <svg width="100%" height="100%" viewBox="0 0 800 450" style={{ display: 'block' }}>
-                    {/* Ocean / Mediterranean Sea */}
-                    <rect x="0" y="0" width="180" height="450" fill="rgba(14, 116, 144, 0.15)" />
-                    {/* Beachfront line */}
-                    <path d="M 180 0 Q 200 150 170 300 T 190 450" fill="none" stroke="rgba(234, 179, 8, 0.4)" strokeWidth="8" />
-                    
-                    {/* Land Grid background */}
-                    <defs>
-                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="1"/>
-                      </pattern>
-                    </defs>
-                    <rect x="180" y="0" width="620" height="450" fill="url(#grid)" />
-
-                    {/* Park Yarkon River and green area */}
-                    <path d="M 180 180 Q 300 160 400 200 T 550 170" fill="none" stroke="rgba(34, 197, 94, 0.2)" strokeWidth="32" strokeLinecap="round" />
-                    <path d="M 180 180 Q 300 160 400 200 T 550 170" fill="none" stroke="rgba(56, 189, 248, 0.3)" strokeWidth="8" strokeLinecap="round" />
-
-                    {/* Mountains in North-East (Hermon) */}
-                    <path d="M 680 50 L 730 0 L 780 50 Z" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                    <path d="M 700 30 L 730 0 L 750 25 Z" fill="#ffffff" opacity="0.4" />
-                    <path d="M 710 80 L 750 30 L 790 80 Z" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-
-                    {/* Tel Aviv City Grid representations */}
-                    <rect x="220" y="240" width="80" height="120" rx="10" fill="rgba(255, 255, 255, 0.02)" stroke="rgba(192, 132, 252, 0.05)" strokeWidth="2" />
-                    <text x="260" y="300" fill="rgba(255,255,255,0.08)" fontSize="12" fontWeight="bold" textAnchor="middle">תל אביב</text>
-                  </svg>
-
-                  {/* Pulsing Pins */}
-                  {mapLocations.map(loc => {
-                    const isSelected = selectedMapLocation?.id === loc.id;
-                    return (
-                      <div 
-                        key={loc.id}
-                        className={`map-pin-wrapper ${isSelected ? 'selected' : ''}`}
-                        style={{
-                          position: 'absolute',
-                          left: `${loc.x}%`,
-                          top: `${loc.y}%`,
-                          transform: 'translate(-50%, -100%)',
-                          cursor: 'pointer',
-                          zIndex: isSelected ? 5 : 2
-                        }}
-                        onClick={() => setSelectedMapLocation(loc)}
-                      >
-                        <div className="pulsing-ring"></div>
-                        <div className="pin-marker" style={{
-                          background: isSelected ? 'var(--accent)' : 'var(--bg-tertiary)',
-                          color: isSelected ? '#000' : 'var(--text-primary)',
-                          border: isSelected ? '2px solid #fff' : '2px solid var(--accent)',
-                          borderRadius: '50%',
-                          width: '32px',
-                          height: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: 'var(--shadow-lg)',
-                          fontSize: '1rem',
-                          transition: 'all 0.2s'
-                        }}>
-                          📍
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <ChallengeMap 
+                    userCoords={userCoords}
+                    mapLocations={mapLocations}
+                    selectedLocation={selectedMapLocation}
+                    onSelectLocation={setSelectedMapLocation}
+                    filteredChallenges={filteredChallenges}
+                  />
+                </div>
 
                   {/* Location quick summary drawer */}
                   {selectedMapLocation && (() => {
@@ -1604,7 +1928,6 @@ export default function App() {
                       </div>
                     );
                   })()}
-                </div>
               </div>
             )}
           </div>
@@ -2271,33 +2594,73 @@ export default function App() {
                   const emoji = parts[0] || '🏅';
                   const title = parts.slice(1).join(' ') || b;
                   
-                  // Unique military/scout patch colors
+                  // Unique military/scout patch colors & metal rim variants
                   const patchColors = [
-                    { bg: '#2d4a22', border: '#ffd700' }, // Forest Green & Gold (Scout classic)
-                    { bg: '#1b3a4b', border: '#cbd5e1' }, // Deep Blue & Silver
-                    { bg: '#5c1d3c', border: '#f472b6' }, // Maroon & Pink/Light-Gold
-                    { bg: '#7f1d1d', border: '#ffd700' }, // Crimson & Gold (Army style)
-                    { bg: '#3f3f46', border: '#a1a1aa' }  // Tactical Grey & Silver
+                    { bg: '#132a13', border: '#ffd700' }, // Forest Green & Gold Rim
+                    { bg: '#0f2027', border: '#cbd5e1' }, // Deep Midnight Blue & Silver Rim
+                    { bg: '#3a0ca3', border: '#f72585' }, // Neon Violet & Electric Pink Metal Rim
+                    { bg: '#4a154b', border: '#ffb703' }, // Indigo & Amber Gold Rim
+                    { bg: '#1f1f2e', border: '#8ecae6' }  // Dark Slate & Sky Blue Chrome Rim
                   ];
                   const colorConfig = patchColors[idx % patchColors.length];
+
+                  // Diverse patch shapes
+                  const shapes = ['circle', 'shield', 'hexagon', 'diamond', 'octagon'];
+                  const shape = shapes[idx % shapes.length];
+
+                  // Diverse patch sizes
+                  const sizes = ['sm', 'md', 'lg'];
+                  const size = sizes[idx % sizes.length];
+
+                  // Emoji sizes based on patch size (large and full-scaled, not trimmed)
+                  const emojiFontSize = size === 'sm' ? '1.8rem' : size === 'md' ? '2.4rem' : '2.9rem';
+
+                  // Description mockup for popup
+                  const getBadgeDesc = (titleStr) => {
+                    if (titleStr.includes('רצף') || titleStr.includes('7 ימים')) {
+                      return 'הוענק על שמירה על מוטיבציה ופעילות רציפה באפליקציה במשך שבוע שלם ללא הפסקה!';
+                    }
+                    if (titleStr.includes('מרתון')) {
+                      return 'הוענק על השלמת אתגר ריצה מפרך למרחק רב. כוח רצון של פלדה!';
+                    }
+                    if (titleStr.includes('פסגות')) {
+                      return 'הוענק למטפסי הרים כבירים שהשלימו אתגר גובה יוצא דופן!';
+                    }
+                    if (titleStr.includes('ברזל')) {
+                      return 'הוענק למי שהוכיח עמידות פיזית קיצונית וכוח סיבולת על-אנושי באתגרי כוח קשים!';
+                    }
+                    if (titleStr.includes('זריז')) {
+                      return 'הוענק על ביצוע אתגרים במהירות שיא וזמן תגובה מדהים!';
+                    }
+                    return 'תג הצטיינות מיוחד המוענק לחברי תנועת האתגרים על השלמת יעדים ייחודיים!';
+                  };
+
+                  const badgeDetail = {
+                    title,
+                    emoji,
+                    desc: getBadgeDesc(title),
+                    colorConfig,
+                    shape,
+                    size
+                  };
 
                   return (
                     <div 
                       key={b} 
                       className="scout-patch-badge"
-                      title={`תג הישג: ${title}`}
+                      title={`תג הישג: ${title} - לחץ לפרטים`}
+                      onClick={() => setActiveBadgeDetail(badgeDetail)}
                     >
                       <div 
-                        className="scout-patch-circle"
+                        className={`scout-patch-circle patch-shape-${shape} patch-size-${size}`}
                         style={{
                           background: colorConfig.bg,
-                          color: colorConfig.border
+                          '--metal-border': colorConfig.border
                         }}
                       >
                         <div className="scout-patch-gloss"></div>
-                        <span className="scout-patch-emoji">{emoji}</span>
+                        <span className="scout-patch-emoji" style={{ fontSize: emojiFontSize }}>{emoji}</span>
                       </div>
-                      <span className="scout-patch-label">{title}</span>
                     </div>
                   );
                 })}
@@ -2963,23 +3326,15 @@ export default function App() {
                   {/* Gradient Overlay for text contrast */}
                   <div className="reel-overlay-gradient"></div>
 
-                  {/* Double-tap Floating Heart pop animation */}
+                  {/* Double-tap Floating Fire pop animation */}
                   {doubleTapPostId === post.id && (
-                    <div className="double-tap-heart-anim">
-                      <HeartIcon size={80} fill="currentColor" />
+                    <div className="double-tap-fire-anim">
+                      <FireIcon size={80} fill="currentColor" />
                     </div>
                   )}
 
                   {/* Left vertical actions column */}
                   <div className="reel-actions-column">
-                    {/* Likes */}
-                    <div className="reel-action-btn-wrapper" onClick={() => handleLikePost(post.id)}>
-                      <div className={`reel-action-circle ${post.hasLiked ? 'active-heart' : ''}`}>
-                        <HeartIcon size={24} fill={post.hasLiked ? "currentColor" : "none"} />
-                      </div>
-                      <span className="reel-action-text">{post.likes}</span>
-                    </div>
-
                     {/* Claps */}
                     <div className="reel-action-btn-wrapper" onClick={() => handleClapPost(post.id)}>
                       <div className={`reel-action-circle ${post.hasClapped ? 'active-clap' : ''}`}>
@@ -3004,18 +3359,12 @@ export default function App() {
                           alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור נקודות XP עכשיו!`);
                         }
                       }}>
-                        <div className="reel-action-circle" style={{ background: isJoinedChallenge ? 'var(--success)' : 'var(--accent)', color: '#000' }}>
+                        <div className="reel-action-circle" style={{ color: isJoinedChallenge ? 'var(--success)' : 'var(--accent)' }}>
                           <DumbbellIcon size={22} />
                         </div>
                         <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>{isJoinedChallenge ? 'משתתף' : 'אתגר אותי'}</span>
                       </div>
                     )}
-
-                    {/* Report button */}
-                    <div className="reel-action-btn-wrapper" onClick={() => handleReportPost(post.id)} style={{ marginTop: '0.5rem' }}>
-                      <span style={{ fontSize: '1.25rem' }}>🚩</span>
-                      <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>דווח</span>
-                    </div>
                   </div>
 
                   {/* Reel text information overlay */}
@@ -3049,6 +3398,83 @@ export default function App() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* SCOUT BADGE DETAILS MODAL */}
+      {activeBadgeDetail && (
+        <div className="user-profile-modal-backdrop" onClick={() => setActiveBadgeDetail(null)} style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)' }}>
+          <div 
+            className="user-profile-modal-content challenge-detail-modal" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              padding: '2.5rem 1.5rem 1.5rem', 
+              maxWidth: '380px', 
+              width: '90%',
+              textAlign: 'center', 
+              background: 'var(--bg-secondary)', 
+              color: 'var(--text-primary)',
+              borderRadius: '24px',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-lg)'
+            }}
+          >
+            <div className="modal-header-close" style={{ padding: 0, justifyContent: 'flex-end', marginBottom: '0.5rem', display: 'flex' }}>
+              <button 
+                className="story-close-btn" 
+                style={{ color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer' }} 
+                onClick={() => setActiveBadgeDetail(null)}
+              >
+                <CloseIcon size={24} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0 1.5rem' }}>
+              <div 
+                className={`scout-patch-circle patch-shape-${activeBadgeDetail.shape} patch-size-lg`}
+                style={{
+                  background: activeBadgeDetail.colorConfig.bg,
+                  color: activeBadgeDetail.colorConfig.border,
+                  width: '110px',
+                  height: '110px',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
+                  transform: 'scale(1.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifycontent: 'center'
+                }}
+              >
+                <div className="scout-patch-gloss"></div>
+                <span className="scout-patch-emoji" style={{ fontSize: '3.5rem', display: 'block', lineHeight: 1 }}>{activeBadgeDetail.emoji}</span>
+              </div>
+            </div>
+
+            <h3 style={{ fontWeight: 800, fontSize: '1.3rem', color: 'var(--text-primary)', marginBottom: '0.75rem', direction: 'rtl' }}>
+              {activeBadgeDetail.title}
+            </h3>
+            
+            <div style={{
+              background: 'var(--bg-tertiary)',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              border: '1px solid var(--border)',
+              fontSize: '0.85rem',
+              lineHeight: 1.6,
+              color: 'var(--text-secondary)',
+              marginBottom: '1.5rem',
+              direction: 'rtl'
+            }}>
+              {activeBadgeDetail.desc}
+            </div>
+
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%', borderRadius: '9999px', background: 'var(--accent)' }} 
+              onClick={() => setActiveBadgeDetail(null)}
+            >
+              המשך
+            </button>
           </div>
         </div>
       )}
