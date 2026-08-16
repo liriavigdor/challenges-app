@@ -16,18 +16,16 @@ export const TrophyIcon = ({ size = 24, className = "" }) => (
   </svg>
 );
 
-export const DumbbellIcon = ({ size = 24, className = "" }) => (
+export const SwordsIcon = ({ size = 24, className = "" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M6.5 6.5 4 9" />
-    <path d="m21.5 21.5-2.5-2.5" />
-    <path d="m16.5 16.5-1.5-1.5" />
-    <path d="m7.5 7.5-1.5-1.5" />
-    <path d="M9 4 4 9" />
-    <path d="M20 15l-5 5" />
-    <path d="M11.5 7.5 16.5 12.5" />
-    <path d="M12.5 11.5 7.5 16.5" />
-    <path d="m15 4 5 5" />
-    <path d="M9 20l-5-5" />
+    <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+    <line x1="13" y1="19" x2="19" y2="13" />
+    <line x1="16" y1="16" x2="20" y2="20" />
+    <line x1="19" y1="21" x2="21" y2="19" />
+    <polyline points="9.5 17.5 21 6 21 3 18 3 6.5 14.5" />
+    <line x1="11" y1="19" x2="5" y2="13" />
+    <line x1="8" y1="16" x2="4" y2="20" />
+    <line x1="5" y1="21" x2="3" y2="19" />
   </svg>
 );
 

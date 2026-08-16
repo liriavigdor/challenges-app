@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   FireIcon, 
   TrophyIcon, 
-  DumbbellIcon, 
+  SwordsIcon, 
   MedalIcon, 
   UserIcon, 
   ActivityIcon, 
@@ -49,14 +49,15 @@ const getPostVideo = (post) => {
 function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLocation, filteredChallenges }) {
   const mapRef = React.useRef(null);
   const mapInstanceRef = React.useRef(null);
+  const markersRef = React.useRef([]);
 
+  // 1. Initialize Map Instance Once
   React.useEffect(() => {
     if (!mapRef.current) return;
 
     const L = window.L;
     if (!L) return;
 
-    // Center map around user coordinates
     const map = L.map(mapRef.current, {
       center: userCoords,
       zoom: 12,
@@ -66,14 +67,13 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Dark tiles for premium styling matching dark theme
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap &copy; CARTO',
       subdomains: 'abcd',
       maxZoom: 20
     }).addTo(map);
 
-    // User Location marker (blue pulsing ring)
+    // User Location marker
     const userIcon = L.divIcon({
       className: 'user-location-marker',
       html: `<div class="user-pulse-marker"></div>`,
@@ -81,6 +81,26 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
       iconAnchor: [12, 12]
     });
     L.marker(userCoords, { icon: userIcon }).addTo(map).bindPopup('אתה כאן 📍');
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []); // Only run once on mount
+
+  // 2. Reactively manage markers and selected state changes
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const L = window.L;
+    if (!L) return;
+
+    // Clear old markers
+    markersRef.current.forEach(m => map.removeLayer(m));
+    markersRef.current = [];
 
     const bounds = [userCoords];
 
@@ -99,24 +119,22 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
       });
 
       const marker = L.marker([loc.lat, loc.lng], { icon: pinIcon }).addTo(map);
+      markersRef.current.push(marker);
       bounds.push([loc.lat, loc.lng]);
 
       marker.on('click', () => {
         onSelectLocation(loc);
+        map.setView([loc.lat, loc.lng], 13, { animate: true, duration: 0.8 });
       });
     });
 
-    if (bounds.length > 1) {
+    // Handle center/zoom view changes
+    if (selectedLocation) {
+      map.setView([selectedLocation.lat, selectedLocation.lng], 13, { animate: true });
+    } else if (bounds.length > 1) {
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [userCoords, mapLocations, filteredChallenges, selectedLocation]);
+  }, [mapLocations, filteredChallenges, selectedLocation]);
 
   return (
     <div 
@@ -1367,7 +1385,7 @@ export default function App() {
                           }
                         }}>
                           <div className="reel-action-circle" style={{ color: isJoinedChallenge ? 'var(--success)' : 'var(--accent)' }}>
-                            <DumbbellIcon size={22} />
+                          <SwordsIcon size={22} />
                           </div>
                           <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>{isJoinedChallenge ? 'משתתף' : 'אתגר אותי'}</span>
                         </div>
@@ -1819,7 +1837,7 @@ export default function App() {
               </>
             ) : (
               /* INTERACTIVE MAP VIEW */
-              <div className="interactive-map-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="interactive-map-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                   לחצו על הסימונים במפה כדי לגלות אתגרים בלעדיים שזמינים לביצוע במיקום זה בלבד! 📍
                 </p>
@@ -1844,9 +1862,8 @@ export default function App() {
                     onSelectLocation={setSelectedMapLocation}
                     filteredChallenges={filteredChallenges}
                   />
-                </div>
 
-                  {/* Location quick summary drawer */}
+                  {/* Location quick summary drawer placed inside map absolute container to prevent component recreation */}
                   {selectedMapLocation && (() => {
                     const linkedChallenge = challenges.find(ch => ch.id === selectedMapLocation.challengeId);
                     const isJoined = linkedChallenge ? currentUser.activeChallenges.includes(linkedChallenge.id) : false;
@@ -1869,7 +1886,7 @@ export default function App() {
                           boxShadow: '0 -4px 15px rgba(0,0,0,0.3)',
                           direction: 'rtl',
                           textAlign: 'right',
-                          zIndex: 10
+                          zIndex: 1000
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1928,6 +1945,7 @@ export default function App() {
                       </div>
                     );
                   })()}
+                </div>
               </div>
             )}
           </div>
@@ -2773,7 +2791,7 @@ export default function App() {
         </button>
         
         <button className={`tab-btn ${activeTab === 'challenges' ? 'active' : ''}`} onClick={() => setActiveTab('challenges')}>
-          <DumbbellIcon size={20} />
+          <SwordsIcon size={20} />
         </button>
 
         <button className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`} onClick={() => setActiveTab('chats')}>
@@ -3360,7 +3378,7 @@ export default function App() {
                         }
                       }}>
                         <div className="reel-action-circle" style={{ color: isJoinedChallenge ? 'var(--success)' : 'var(--accent)' }}>
-                          <DumbbellIcon size={22} />
+                          <SwordsIcon size={22} />
                         </div>
                         <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>{isJoinedChallenge ? 'משתתף' : 'אתגר אותי'}</span>
                       </div>

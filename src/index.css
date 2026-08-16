@@ -2552,11 +2552,13 @@ body {
   align-items: center;
   justify-content: center;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
-  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.25s ease;
 }
 
 .custom-map-pin.selected {
-  transform: scale(1.3) translateY(-4px);
+  /* Keep normal size (1x scale) */
+  transform: none;
+  filter: drop-shadow(0 0 12px var(--accent));
 }
 
 .custom-map-pin .pin-inner {
@@ -2564,6 +2566,18 @@ body {
   line-height: 1;
   text-shadow: 0 0 10px rgba(0,0,0,0.5);
   cursor: pointer;
+  border-radius: 50%;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.custom-map-pin.selected .pin-inner {
+  background: var(--accent-glow);
+  outline: 3px solid var(--accent);
+  box-shadow: 0 0 15px var(--accent);
 }
 
 /* Customize Leaflet Control Buttons */

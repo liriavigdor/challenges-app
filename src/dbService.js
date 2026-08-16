@@ -17,7 +17,10 @@ const FEED_KEY = "challenges_feed";
 // Initialize LocalStorage if empty or if initial data has been expanded
 function initLocalStorage() {
   const storedUsers = localStorage.getItem(USERS_KEY);
-  if (!storedUsers || JSON.parse(storedUsers).length < initialUsers.length) {
+  // Force update if user badges count changed
+  const parsedStored = storedUsers ? JSON.parse(storedUsers) : [];
+  const storedUser1Badges = parsedStored.find(u => u.id === 'user_1')?.badges || [];
+  if (!storedUsers || parsedStored.length < initialUsers.length || storedUser1Badges.length < 16) {
     localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
   }
   
@@ -42,12 +45,18 @@ export async function getUsers() {
       querySnapshot.forEach((doc) => {
         usersList.push({ id: doc.id, ...doc.data() });
       });
-      // Seed Firestore with any missing users
+      // Seed Firestore with any missing users or update user_1 badges if they are outdated
       for (const user of initialUsers) {
-        if (!usersList.some(u => u.id === user.id)) {
+        const existing = usersList.find(u => u.id === user.id);
+        if (!existing) {
           const { id, ...rest } = user;
           await setDoc(doc(db, "users", id), rest);
           usersList.push(user);
+        } else if (user.id === 'user_1' && (!existing.badges || existing.badges.length < 16)) {
+          // Force update user_1's badges in Firebase to match new full badge list
+          const { id, ...rest } = user;
+          await setDoc(doc(db, "users", id), rest, { merge: true });
+          existing.badges = user.badges;
         }
       }
       return usersList;
