@@ -159,6 +159,36 @@ export const initialNotifications = [
     timestamp: "לפני שעה",
     read: false,
     status: "pending" // pending, accepted, declined
+  },
+  {
+    id: "notif_3",
+    type: "like",
+    senderId: "user_3",
+    senderName: "דניאל מזרחי",
+    senderAvatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80",
+    text: "אהב/ה את פוסט השלמת האתגר שלך: \"100 שכיבות סמיכה ברצף\" ❤️",
+    timestamp: "לפני שעתיים",
+    read: true
+  },
+  {
+    id: "notif_4",
+    type: "comment",
+    senderId: "user_5",
+    senderName: "נטע ברק",
+    senderAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80",
+    text: "הגיב/ה על הפוסט שלך: \"מדהים! השראה לכולנו\" 💬",
+    timestamp: "לפני יום",
+    read: true
+  },
+  {
+    id: "notif_5",
+    type: "follow_approve",
+    senderId: "user_6",
+    senderName: "גיא רגב",
+    senderAvatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80",
+    text: "אישר/ה את בקשת המעקב שלך 🤝",
+    timestamp: "לפני יומיים",
+    read: true
   }
 ];
 

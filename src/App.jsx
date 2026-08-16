@@ -173,6 +173,7 @@ export default function App() {
   // Search and Explore States
   const [peopleSearchQuery, setPeopleSearchQuery] = useState('');
   const [selectedExplorePost, setSelectedExplorePost] = useState(null);
+  const [exploreReelsStartIndex, setExploreReelsStartIndex] = useState(null);
 
 
   useEffect(() => {
@@ -939,121 +940,60 @@ export default function App() {
   return (
     <div className="app-container">
       {/* HEADER */}
-      <header className="app-header">
-        <div 
-          className="logo-container" 
-
-          onClick={() => {
-            if (activeTab === 'feed') {
-              setIsNotifOpen(!isNotifOpen);
-              if (!isNotifOpen) {
-                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-              }
-            }
-          }}
-          style={{ cursor: activeTab === 'feed' ? 'pointer' : 'default', position: 'relative' }}
-        >
-          <ActivityIcon className="logo-icon" size={28} style={{ color: 'var(--accent)' }} />
-          <span className="logo-text">Pulse ⚡</span>
-          {activeTab === 'feed' && notifications.some(n => !n.read) && (
-            <span className="notification-dot" style={{ position: 'absolute', top: '-4px', right: '-4px' }}></span>
-          )}
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
-          <button onClick={toggleTheme} className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%' }}>
-            {theme === 'light' ? <MoonIcon size={20} /> : <SunIcon size={20} />}
-          </button>
-
-
-          {/* Notifications Dropdown Panel */}
-          {isNotifOpen && (
-            <div className="notifications-dropdown">
-              <div className="notif-header">
-                <span>התראות</span>
-                <button className="story-close-btn" style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }} onClick={() => setIsNotifOpen(false)}>סגור</button>
-              </div>
-              {notifications.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}>אין התראות חדשות</p>
-              ) : (
-                notifications.map(n => (
-                  <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}>
-                    <img 
-                      src={n.senderAvatar} 
-                      alt="" 
-                      className="notif-avatar" 
-                      onClick={() => {
-                        const targetUsr = users.find(u => u.id === n.senderId);
-                        if (targetUsr) {
-                          setSelectedUserForModal(targetUsr);
-                          setIsUserModalOpen(true);
-                          setIsNotifOpen(false);
-                        }
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <div className="notif-content">
-                      <div>
-                        <strong 
-                          style={{ cursor: 'pointer', color: 'var(--accent)' }}
-                          onClick={() => {
-                            const targetUsr = users.find(u => u.id === n.senderId);
-                            if (targetUsr) {
-                              setSelectedUserForModal(targetUsr);
-                              setIsUserModalOpen(true);
-                              setIsNotifOpen(false);
-                            }
-                          }}
-                        >
-                          {n.senderName}
-                        </strong>{' '}
-                        {n.text}
-                      </div>
-                      <span className="notif-time">{n.timestamp}</span>
-                      
-                      {n.type === 'joint_challenge' && (
-                        <div className="notif-actions">
-                          {n.status === 'pending' ? (
-                            <>
-                              <button 
-                                className="btn btn-primary" 
-                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', background: 'var(--success)' }}
-                                onClick={() => handleAcceptJointChallenge(n)}
-                              >
-                                אשר 👍
-                              </button>
-                              <button 
-                                className="btn btn-secondary" 
-                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
-                                onClick={() => handleDeclineJointChallenge(n.id)}
-                              >
-                                סרב ✖
-                              </button>
-                            </>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: n.status === 'accepted' ? 'var(--success)' : 'var(--text-muted)', fontWeight: 'bold' }}>
-                              {n.status === 'accepted' ? 'התקבל ✓' : 'סורב'}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-          
-          <div className="user-info" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('profile')}>
-            <img src={currentUser.avatar} alt={currentUser.name} className="user-avatar" style={{ width: 34, height: 34 }} />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {currentUser.name}
-                <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>🔥 {currentUser.streak || 7}</span>
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>Level {Math.floor(currentUser.xp / 500) + 1}</span>
-            </div>
+      <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100, padding: '0.75rem 1.5rem', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--glass-border)' }}>
+        {/* Left side: Symbol & Theme Toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 10 }}>
+          <div 
+            onClick={() => {
+              setActiveTab('notifications');
+              setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            }}
+            style={{ cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center' }}
+            title="התראות"
+          >
+            <ActivityIcon className="logo-icon" size={26} style={{ color: 'var(--accent)' }} />
+            {notifications.some(n => !n.read) && (
+              <span className="notification-dot" style={{ position: 'absolute', top: '-4px', right: '-4px', width: '8px', height: '8px', background: '#ff4d4d', borderRadius: '50%' }}></span>
+            )}
           </div>
+          <button onClick={toggleTheme} className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%', border: 'none', background: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+          </button>
+        </div>
+
+        {/* Middle: Name (centered) */}
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
+          <span className="logo-text" style={{ fontSize: '1.6rem', fontWeight: 800, background: 'linear-gradient(135deg, var(--accent), #ff007f)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: "'Outfit', sans-serif" }}>Pulse</span>
+        </div>
+
+        {/* Right side: Add button or user info (when not on feed) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', zIndex: 10 }}>
+          {activeTab === 'feed' ? (
+            <button 
+              onClick={() => setActiveTab('create')} 
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-primary)',
+                fontSize: '2rem',
+                fontWeight: '300',
+                cursor: 'pointer',
+                padding: '0 0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1
+              }}
+              title="צור אתגר חדש"
+            >
+              +
+            </button>
+          ) : (
+            <div className="user-info" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => setActiveTab('profile')}>
+              <img src={currentUser.avatar} alt={currentUser.name} className="user-avatar" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{currentUser.name}</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -1067,6 +1007,107 @@ export default function App() {
           </div>
         )}
         
+        {/* TAB: NOTIFICATIONS */}
+        {activeTab === 'notifications' && (
+          <div style={{ maxWidth: '600px', margin: '0 auto', padding: '1rem 0', width: '100%', direction: 'rtl' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <button 
+                onClick={() => setActiveTab('feed')} 
+                style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}
+              >
+                ← חזרה לפיד
+              </button>
+              <h2 style={{ fontWeight: 800, margin: 0, fontSize: '1.5rem', flex: 1, textAlign: 'right' }}>התראות 🔔</h2>
+            </div>
+
+            {notifications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border)' }}>
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>אין התראות חדשות. כשתקבל לייקים, תגובות או עוקבים הם יופיעו כאן!</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {notifications.map(n => (
+                  <div 
+                    key={n.id} 
+                    className={`glass-card notif-item ${!n.read ? 'unread' : ''}`}
+                    style={{ 
+                      display: 'flex', 
+                      gap: '1rem', 
+                      padding: '1rem', 
+                      borderRadius: '12px', 
+                      alignItems: 'center', 
+                      border: '1px solid var(--glass-border)',
+                      background: !n.read ? 'rgba(168, 85, 247, 0.08)' : 'var(--glass-bg)',
+                      boxShadow: 'var(--shadow)',
+                      direction: 'rtl',
+                      textAlign: 'right'
+                    }}
+                  >
+                    <img 
+                      src={n.senderAvatar} 
+                      alt="" 
+                      className="notif-avatar" 
+                      onClick={() => {
+                        const targetUsr = users.find(u => u.id === n.senderId);
+                        if (targetUsr) {
+                          setSelectedUserForModal(targetUsr);
+                          setIsUserModalOpen(true);
+                        }
+                      }}
+                      style={{ cursor: 'pointer', width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                    <div className="notif-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div style={{ fontSize: '0.9rem' }}>
+                        <strong 
+                          style={{ cursor: 'pointer', color: 'var(--accent)' }}
+                          onClick={() => {
+                            const targetUsr = users.find(u => u.id === n.senderId);
+                            if (targetUsr) {
+                              setSelectedUserForModal(targetUsr);
+                              setIsUserModalOpen(true);
+                            }
+                          }}
+                        >
+                          {n.senderName}
+                        </strong>{' '}
+                        {n.text}
+                      </div>
+                      <span className="notif-time" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{n.timestamp}</span>
+                      
+                      {n.type === 'joint_challenge' && (
+                        <div className="notif-actions" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          {n.status === 'pending' ? (
+                            <>
+                              <button 
+                                className="btn btn-primary" 
+                                style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', background: 'var(--success)', color: '#000', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                onClick={() => handleAcceptJointChallenge(n)}
+                              >
+                                אשר 👍
+                              </button>
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer' }}
+                                onClick={() => handleDeclineJointChallenge(n.id)}
+                              >
+                                סרב ✖
+                              </button>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: '0.8rem', color: n.status === 'accepted' ? 'var(--success)' : 'var(--text-muted)', fontWeight: 'bold' }}>
+                              {n.status === 'accepted' ? 'התקבל ✓' : 'סורב'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TAB 1: FEED */}
         {activeTab === 'feed' && (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -2128,11 +2169,11 @@ export default function App() {
 
             {/* Video grid layout */}
             <div className="search-explore-grid">
-              {feed.map(post => (
+              {feed.map((post, index) => (
                 <div 
                   key={post.id} 
                   className="explore-card"
-                  onClick={() => setSelectedExplorePost(post)}
+                  onClick={() => setExploreReelsStartIndex(index)}
                 >
                   <video 
                     src={getPostVideo(post)} 
@@ -2224,43 +2265,39 @@ export default function App() {
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>תגים ייחודיים שאספת מאתגרים מיוחדים. רחפו מעליהם כדי לראות את אפקט הניצוץ והאנימציה!</p>
               
-              <div className="collectible-badges-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+              <div className="scout-patch-container">
                 {currentUser.badges.map((b, idx) => {
                   const parts = b.split(' ');
                   const emoji = parts[0] || '🏅';
                   const title = parts.slice(1).join(' ') || b;
-                  const borderColors = ['#ffd700', '#a855f7', '#06b6d4', '#ef4444'];
-                  const bgColors = [
-                    'rgba(255, 215, 0, 0.12)',
-                    'rgba(168, 85, 247, 0.12)',
-                    'rgba(6, 182, 212, 0.12)',
-                    'rgba(239, 68, 68, 0.12)'
+                  
+                  // Unique military/scout patch colors
+                  const patchColors = [
+                    { bg: '#2d4a22', border: '#ffd700' }, // Forest Green & Gold (Scout classic)
+                    { bg: '#1b3a4b', border: '#cbd5e1' }, // Deep Blue & Silver
+                    { bg: '#5c1d3c', border: '#f472b6' }, // Maroon & Pink/Light-Gold
+                    { bg: '#7f1d1d', border: '#ffd700' }, // Crimson & Gold (Army style)
+                    { bg: '#3f3f46', border: '#a1a1aa' }  // Tactical Grey & Silver
                   ];
-                  const selectedIdx = idx % borderColors.length;
+                  const colorConfig = patchColors[idx % patchColors.length];
 
                   return (
                     <div 
                       key={b} 
-                      className="collectible-badge-token" 
-                      style={{ 
-                        background: bgColors[selectedIdx],
-                        border: `1.5px solid ${borderColors[selectedIdx]}`,
-                        boxShadow: `0 0 10px ${borderColors[selectedIdx]}30`,
-                        borderRadius: '20px',
-                        padding: '0.35rem 0.75rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        position: 'relative',
-                        overflow: 'hidden'
-                      }}
+                      className="scout-patch-badge"
                       title={`תג הישג: ${title}`}
                     >
-                      <span className="badge-emoji" style={{ fontSize: '1.05rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>{emoji}</span>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>{title}</span>
-                      <div className="badge-shimmer" />
+                      <div 
+                        className="scout-patch-circle"
+                        style={{
+                          background: colorConfig.bg,
+                          color: colorConfig.border
+                        }}
+                      >
+                        <div className="scout-patch-gloss"></div>
+                        <span className="scout-patch-emoji">{emoji}</span>
+                      </div>
+                      <span className="scout-patch-label">{title}</span>
                     </div>
                   );
                 })}
@@ -2851,117 +2888,167 @@ export default function App() {
         </div>
       )}
 
-      {/* EXPLORE POST DETAIL MODAL */}
-      {selectedExplorePost && (
-        <div className="user-profile-modal-backdrop" onClick={() => setSelectedExplorePost(null)}>
-          <div className="user-profile-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="modal-header-close">
-              <h3 style={{ fontWeight: 800, margin: 0 }}>תיעוד אתגר</h3>
-              <button className="story-close-btn" style={{ color: 'var(--text-primary)' }} onClick={() => setSelectedExplorePost(null)}>
-                <CloseIcon size={24} />
-              </button>
-            </div>
-            
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', background: '#000' }}>
-              <video 
-                src={getPostVideo(selectedExplorePost)} 
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                controls 
-                autoPlay 
-                loop
-                playsInline
-              />
-            </div>
-            
-            <div style={{ padding: '1rem', direction: 'rtl', textAlign: 'right' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <img 
-                  src={selectedExplorePost.userAvatar} 
-                  alt="" 
-                  style={{ width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }}
-                  onClick={() => {
-                    const postUser = users.find(u => u.id === selectedExplorePost.userId);
-                    if (postUser) {
-                      setSelectedUserForModal(postUser);
-                      setIsUserModalOpen(true);
-                      setSelectedExplorePost(null);
-                    }
-                  }}
-                />
-                <div>
-                  <h4 style={{ fontWeight: 800, margin: 0, fontSize: '1rem' }}>{selectedExplorePost.userName}</h4>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedExplorePost.timestamp}</span>
-                </div>
-              </div>
-              
-              <h5 style={{ fontWeight: 800, color: 'var(--accent)', marginBottom: '0.25rem' }}>{selectedExplorePost.challengeTitle}</h5>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '1rem' }}>{selectedExplorePost.achievementDetail}</p>
-              
-              {/* Like / Clap action row */}
-              <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '0.5rem 0', marginBottom: '1rem' }}>
-                <button 
-                  onClick={() => handleLikePost(selectedExplorePost.id)}
-                  style={{ background: 'none', border: 'none', color: selectedExplorePost.hasLiked ? '#ef4444' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
-                >
-                  <span>❤️ {selectedExplorePost.likes}</span>
-                </button>
-                <button 
-                  onClick={() => handleClapPost(selectedExplorePost.id)}
-                  style={{ background: 'none', border: 'none', color: selectedExplorePost.hasClapped ? 'var(--warning)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
-                >
-                  <span>🔥 {selectedExplorePost.claps}</span>
-                </button>
-              </div>
+      {/* EXPLORE SCROLLABLE REELS MODAL */}
+      {exploreReelsStartIndex !== null && (
+        <div className="story-viewer-backdrop" style={{ zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
+          {/* Header row in modal */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '60px',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0 1.5rem',
+            zIndex: 1001,
+            color: '#fff',
+            direction: 'rtl'
+          }}>
+            <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>אקספלור סרטונים 🎬</span>
+            <button 
+              onClick={() => setExploreReelsStartIndex(null)} 
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fff',
+                fontSize: '1.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              ✕
+            </button>
+          </div>
 
-              {/* Comments Section */}
-              <h5 style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.5rem' }}>תגובות ({selectedExplorePost.comments?.length || 0})</h5>
-              <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                {(selectedExplorePost.comments || []).map(comment => (
-                  <div key={comment.id} style={{ background: 'var(--bg-tertiary)', padding: '0.5rem', borderRadius: '8px', fontSize: '0.85rem' }}>
-                    <strong>{comment.userName}: </strong>
-                    <span>{comment.text}</span>
+          {/* Scrolling Reels Container */}
+          <div 
+            ref={(el) => {
+              if (el && exploreReelsStartIndex !== null) {
+                const selectedCard = el.children[exploreReelsStartIndex];
+                if (selectedCard) {
+                  selectedCard.scrollIntoView({ behavior: 'auto' });
+                }
+              }
+            }}
+            className="reels-feed-container" 
+            style={{ 
+              borderRadius: 0, 
+              width: '100%', 
+              height: '100vh',
+              maxHeight: '100vh',
+              border: 'none'
+            }}
+          >
+            {feed.map((post, idx) => {
+              const postAuthor = users.find(u => u.id === post.userId);
+              const isAuthorBlocked = postAuthor ? postAuthor.isBlocked : false;
+              const associatedChallenge = challenges.find(c => c.title === post.challengeTitle);
+              const isJoinedChallenge = currentUser.activeChallenges.includes(associatedChallenge?.id);
+
+              return (
+                <div 
+                  key={`explore_reel_${post.id}`} 
+                  className="reel-card"
+                  onDoubleClick={() => handleDoubleTapPost(post.id)}
+                >
+                  {/* Background visual */}
+                  {post.proofImage && (
+                    <img src={post.proofImage} alt="הישג" className="reel-bg-image" />
+                  )}
+
+                  {/* Gradient Overlay for text contrast */}
+                  <div className="reel-overlay-gradient"></div>
+
+                  {/* Double-tap Floating Heart pop animation */}
+                  {doubleTapPostId === post.id && (
+                    <div className="double-tap-heart-anim">
+                      <HeartIcon size={80} fill="currentColor" />
+                    </div>
+                  )}
+
+                  {/* Left vertical actions column */}
+                  <div className="reel-actions-column">
+                    {/* Likes */}
+                    <div className="reel-action-btn-wrapper" onClick={() => handleLikePost(post.id)}>
+                      <div className={`reel-action-circle ${post.hasLiked ? 'active-heart' : ''}`}>
+                        <HeartIcon size={24} fill={post.hasLiked ? "currentColor" : "none"} />
+                      </div>
+                      <span className="reel-action-text">{post.likes}</span>
+                    </div>
+
+                    {/* Claps */}
+                    <div className="reel-action-btn-wrapper" onClick={() => handleClapPost(post.id)}>
+                      <div className={`reel-action-circle ${post.hasClapped ? 'active-clap' : ''}`}>
+                        <FireIcon size={24} fill={post.hasClapped ? "currentColor" : "none"} />
+                      </div>
+                      <span className="reel-action-text">{post.claps}</span>
+                    </div>
+
+                    {/* Comments Sheet Trigger */}
+                    <div className="reel-action-btn-wrapper" onClick={() => setCommentSheetPostId(post.id)}>
+                      <div className="reel-action-circle">
+                        <CommentIcon size={24} />
+                      </div>
+                      <span className="reel-action-text">{post.comments ? post.comments.length : 0}</span>
+                    </div>
+
+                    {/* Dumbbell Icon to join challenge */}
+                    {associatedChallenge && (
+                      <div className="reel-action-btn-wrapper" onClick={() => {
+                        toggleJoinChallenge(associatedChallenge.id);
+                        if (!isJoinedChallenge) {
+                          alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור נקודות XP עכשיו!`);
+                        }
+                      }}>
+                        <div className="reel-action-circle" style={{ background: isJoinedChallenge ? 'var(--success)' : 'var(--accent)', color: '#000' }}>
+                          <DumbbellIcon size={22} />
+                        </div>
+                        <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>{isJoinedChallenge ? 'משתתף' : 'אתגר אותי'}</span>
+                      </div>
+                    )}
+
+                    {/* Report button */}
+                    <div className="reel-action-btn-wrapper" onClick={() => handleReportPost(post.id)} style={{ marginTop: '0.5rem' }}>
+                      <span style={{ fontSize: '1.25rem' }}>🚩</span>
+                      <span className="reel-action-text" style={{ fontSize: '0.65rem' }}>דווח</span>
+                    </div>
                   </div>
-                ))}
-                {(!selectedExplorePost.comments || selectedExplorePost.comments.length === 0) && (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>אין עדיין תגובות. היה הראשון להגיב!</p>
-                )}
-              </div>
 
-              {/* Add Comment Input */}
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const text = e.target.commentText.value.trim();
-                  if (!text) return;
-                  
-                  // Add comment
-                  const newComment = {
-                    id: `c_${Date.now()}`,
-                    userName: currentUser.name,
-                    text: text
-                  };
+                  {/* Reel text information overlay */}
+                  <div className="reel-info-container">
+                    <div className="reel-author-row" style={{ cursor: 'pointer' }} onClick={() => {
+                      const targetUsr = users.find(u => u.id === post.userId) || users.find(u => u.name === post.userName);
+                      if (targetUsr) {
+                        setSelectedUserForModal(targetUsr);
+                        setIsUserModalOpen(true);
+                        setExploreReelsStartIndex(null);
+                      }
+                    }}>
+                      <img src={post.userAvatar} alt={post.userName} className="reel-author-avatar" />
+                      <span className="reel-author-name">{post.userName}</span>
+                      {isAuthorBlocked && (
+                        <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
+                      )}
+                      <span className="reel-streak-tag">
+                        🔥 רצף {post.streak || 5} ימים
+                      </span>
+                    </div>
 
-                  // Update database and states
-                  const updatedComments = [...(selectedExplorePost.comments || []), newComment];
-                  const updatedPost = { ...selectedExplorePost, comments: updatedComments };
-                  
-                  setFeed(prev => prev.map(p => p.id === selectedExplorePost.id ? updatedPost : p));
-                  setSelectedExplorePost(updatedPost);
-                  updateFeedPost(updatedPost);
-                  
-                  e.target.reset();
-                }}
-                style={{ display: 'flex', gap: '0.5rem' }}
-              >
-                <input 
-                  type="text" 
-                  name="commentText" 
-                  placeholder="הוסף תגובה..." 
-                  style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
-                />
-                <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>שלח</button>
-              </form>
-            </div>
+                    <div className="reel-challenge-tag">
+                      🏆 {post.challengeTitle}
+                    </div>
+
+                    <div className="reel-desc">
+                      {post.achievementDetail}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
