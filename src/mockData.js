@@ -4,6 +4,7 @@ export const initialUsers = [
     name: "רועי כהן",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
     xp: 2450,
+    trophies: 1250,
     rank: 1,
     completedChallengesCount: 18,
     badges: [
@@ -31,13 +32,15 @@ export const initialUsers = [
     streak: 7,
     followers: ["user_2", "user_3", "user_5", "user_7"],
     following: ["user_2", "user_4", "user_6"],
-    stats: { strength: 78, stamina: 85, agility: 62, zen: 45 }
+    stats: { strength: 78, stamina: 85, agility: 62, zen: 45 },
+    avatarConfig: { type: 'runner', shirtColor: '#ef4444', glowColor: '#00ffff' }
   },
   {
     id: "user_2",
     name: "יובל לוי",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
     xp: 1980,
+    trophies: 1180,
     rank: 2,
     completedChallengesCount: 14,
     badges: ["💪 איש הברזל", "⚡ זריז במיוחד"],
@@ -48,13 +51,15 @@ export const initialUsers = [
     streak: 5,
     followers: ["user_1", "user_4", "user_6"],
     following: ["user_1", "user_3", "user_5"],
-    stats: { strength: 90, stamina: 70, agility: 80, zen: 30 }
+    stats: { strength: 90, stamina: 70, agility: 80, zen: 30 },
+    avatarConfig: { type: 'weightlifter', shirtColor: '#3b82f6', glowColor: '#a855f7' }
   },
   {
     id: "user_3",
     name: "דניאל מזרחי",
     avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80",
     xp: 1620,
+    trophies: 1120,
     rank: 3,
     completedChallengesCount: 11,
     badges: ["🚲 מדווש על", "🏔️ חובב גבהים"],
@@ -65,13 +70,15 @@ export const initialUsers = [
     streak: 3,
     followers: ["user_2"],
     following: ["user_1", "user_7"],
-    stats: { strength: 65, stamina: 88, agility: 70, zen: 50 }
+    stats: { strength: 65, stamina: 88, agility: 70, zen: 50 },
+    avatarConfig: { type: 'cyclist', shirtColor: '#10b981', glowColor: '#eab308' }
   },
   {
     id: "user_4",
     name: "שירה אלוני",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80",
     xp: 1400,
+    trophies: 1050,
     rank: 4,
     completedChallengesCount: 9,
     badges: ["🧘 יוגה מאסטר"],
@@ -82,13 +89,15 @@ export const initialUsers = [
     streak: 12,
     followers: ["user_1"],
     following: ["user_2", "user_8"],
-    stats: { strength: 50, stamina: 60, agility: 55, zen: 95 }
+    stats: { strength: 50, stamina: 60, agility: 55, zen: 95 },
+    avatarConfig: { type: 'yoga', shirtColor: '#ec4899', glowColor: '#22c55e' }
   },
   {
     id: "user_5",
     name: "נטע ברק",
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80",
     xp: 1250,
+    trophies: 980,
     rank: 5,
     completedChallengesCount: 8,
     badges: ["🏊‍♀️ דולפין", "🌟 כוכב עולה"],
@@ -99,13 +108,15 @@ export const initialUsers = [
     streak: 4,
     followers: ["user_2"],
     following: ["user_1"],
-    stats: { strength: 55, stamina: 75, agility: 65, zen: 60 }
+    stats: { strength: 55, stamina: 75, agility: 65, zen: 60 },
+    avatarConfig: { type: 'runner', shirtColor: '#f97316', glowColor: '#ffffff' }
   },
   {
     id: "user_6",
     name: "גיא רגב",
     avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80",
     xp: 1100,
+    trophies: 950,
     rank: 6,
     completedChallengesCount: 7,
     badges: ["🏋️‍♂️ שור זועם"],
@@ -116,13 +127,15 @@ export const initialUsers = [
     streak: 6,
     followers: ["user_1"],
     following: ["user_2"],
-    stats: { strength: 85, stamina: 55, agility: 60, zen: 35 }
+    stats: { strength: 85, stamina: 55, agility: 60, zen: 35 },
+    avatarConfig: { type: 'weightlifter', shirtColor: '#8b5cf6', glowColor: '#ff007f' }
   },
   {
     id: "user_7",
     name: "מיכל אשד",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
     xp: 950,
+    trophies: 880,
     rank: 7,
     completedChallengesCount: 5,
     badges: ["🧘‍♀️ שקט פנימי"],
@@ -133,13 +146,15 @@ export const initialUsers = [
     streak: 8,
     followers: ["user_3"],
     following: ["user_1"],
-    stats: { strength: 40, stamina: 50, agility: 50, zen: 85 }
+    stats: { strength: 40, stamina: 50, agility: 50, zen: 85 },
+    avatarConfig: { type: 'yoga', shirtColor: '#14b8a6', glowColor: '#00ffff' }
   },
   {
     id: "user_8",
     name: "אלון גל",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
     xp: 880,
+    trophies: 850,
     rank: 8,
     completedChallengesCount: 4,
     badges: ["🚴‍♂️ רוכב רוח"],
@@ -150,7 +165,8 @@ export const initialUsers = [
     streak: 2,
     followers: ["user_4"],
     following: ["user_4"],
-    stats: { strength: 60, stamina: 70, agility: 68, zen: 40 }
+    stats: { strength: 60, stamina: 70, agility: 68, zen: 40 },
+    avatarConfig: { type: 'cyclist', shirtColor: '#6b7280', glowColor: '#ffb703' }
   }
 ];
 
@@ -876,3 +892,89 @@ export const initialStories = [
     ]
   }
 ];
+
+export const initialMatches = [
+  {
+    id: "match_1",
+    challengeId: "run_5k",
+    challengeTitle: "ריצת 5 ק\"מ מהירה",
+    challengerId: "user_2", // יובל לוי
+    opponentId: "user_1", // רועי כהן (המשתמש הנוכחי)
+    trophiesStaked: 30,
+    status: "referee_court", // pending, active, referee_court, completed
+    challengerProof: {
+      duration: "21:45",
+      avgSpeed: "13.8 קמ\"ש",
+      maxSpeed: "16.2 קמ\"ש",
+      avgHeartRate: 165,
+      device: "Garmin Forerunner 965",
+      isManual: false
+    },
+    opponentProof: {
+      duration: "12:10",
+      avgSpeed: "24.6 קמ\"ש",
+      maxSpeed: "55.0 קמ\"ש", // רמאות קיצונית!
+      avgHeartRate: 72, // דופק מנוחה!
+      device: "Manual GPX Upload",
+      isManual: true
+    },
+    verdict: null,
+    winnerId: null
+  },
+  {
+    id: "match_2",
+    challengeId: "plank_30d",
+    challengeTitle: "אתגר פלאנק יומי",
+    challengerId: "user_1", // רועי כהן
+    opponentId: "user_4", // שירה אלוני
+    trophiesStaked: 25,
+    status: "active",
+    challengerProof: null,
+    opponentProof: {
+      duration: "4:00 דקות",
+      avgHeartRate: 125,
+      device: "Apple Watch Series 9",
+      isManual: false
+    },
+    verdict: null,
+    winnerId: null
+  },
+  {
+    id: "match_3",
+    challengeId: "pushups_100",
+    challengeTitle: "100 שכיבות סמיכה",
+    challengerId: "user_1",
+    opponentId: "user_3",
+    trophiesStaked: 20,
+    status: "completed",
+    challengerProof: {
+      count: 100,
+      avgHeartRate: 140,
+      device: "Garmin Venu 3",
+      isManual: false
+    },
+    opponentProof: {
+      count: 85,
+      avgHeartRate: 145,
+      device: "Suunto Race",
+      isManual: false
+    },
+    verdict: "השופט קבע: שני המתחרים הציגו רמת הגינות גבוהה ונתוני דופק שתואמים את המאמץ. רועי כהן השלים את כל 100 החזרות ומוכרז כמנצח!",
+    winnerId: "user_1"
+  }
+];
+
+export const initialArenas = [
+  { id: "arena_1", name: "פארק הירקון הירוק 🌳", minTrophies: 0, maxTrophies: 1000, color: "#10b981" },
+  { id: "arena_2", name: "חוף גורדון שטוף השמש 🏖️", minTrophies: 1000, maxTrophies: 1200, color: "#3b82f6" },
+  { id: "arena_3", name: "פסגת החרמון המושלגת 🏔️", minTrophies: 1200, maxTrophies: 9999, color: "#a855f7" }
+];
+
+export const initialGlobalTournament = {
+  title: "גביע סוף השבוע: מרתון הירקון 5K 🏆",
+  timeLeft: "⏳ נותרו 14 שעות לסיום",
+  participantsCount: 342,
+  description: "הקליטו וסנכרנו ריצת 5 ק\"מ מהירה ביותר בירקון. המקום הראשון יזכה ב-150 גביעים ובתואר אלוף הירקון המיתולוגי!"
+};
+
+

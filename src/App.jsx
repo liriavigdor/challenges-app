@@ -21,7 +21,11 @@ import {
   BellIcon,
   TargetIcon
 } from './icons';
-import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications } from './mockData';
+import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications, initialMatches, initialArenas, initialGlobalTournament } from './mockData';
+import AIRefereeCourt from './AIRefereeCourt';
+import AvatarPodium from './AvatarPodium';
+
+
 import { 
   getUsers, 
   updateUser, 
@@ -67,10 +71,12 @@ const isUserGeneratedChallenge = (challenge) => {
   return !systemCreators.includes(challenge.creator);
 };
 
-function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLocation, filteredChallenges }) {
+function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLocation, filteredChallenges, theme }) {
   const mapRef = React.useRef(null);
   const mapInstanceRef = React.useRef(null);
   const markersRef = React.useRef([]);
+  const userMarkerRef = React.useRef(null);
+  const tileLayerRef = React.useRef(null);
 
   // 1. Initialize Map Instance Once
   React.useEffect(() => {
@@ -88,12 +94,6 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 20
-    }).addTo(map);
-
     // User Location marker
     const userIcon = L.divIcon({
       className: 'user-location-marker',
@@ -101,7 +101,7 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
       iconSize: [24, 24],
       iconAnchor: [12, 12]
     });
-    L.marker(userCoords, { icon: userIcon }).addTo(map).bindPopup('אתה כאן 📍');
+    userMarkerRef.current = L.marker(userCoords, { icon: userIcon }).addTo(map).bindPopup('אתה כאן 📍');
 
     return () => {
       if (mapInstanceRef.current) {
@@ -110,6 +110,40 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
       }
     };
   }, []); // Only run once on mount
+
+  // 1.2 Reactively update map tile layer when theme changes
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const L = window.L;
+    if (!L) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    // CARTO Voyager for Light mode, Dark Matter for Dark mode
+    const tileUrl = theme === 'dark'
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+    tileLayerRef.current = L.tileLayer(tileUrl, {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+  }, [theme]);
+
+  // 1.5 Reactively update user position marker and center map when userCoords changes
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng(userCoords);
+    }
+    map.setView(userCoords, map.getZoom());
+  }, [userCoords]);
 
   // 2. Reactively manage markers and selected state changes
   React.useEffect(() => {
@@ -172,10 +206,29 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
   );
 }
 
+const getUserRank = (xp) => {
+  if (xp >= 2200) return { name: 'Generalissimo', icon: '👑', className: 'rank-generalissimo', label: 'גנרליסימו' };
+  if (xp >= 1500) return { name: 'Major', icon: '🌟', className: 'rank-major', label: 'מייג׳ור' };
+  if (xp >= 1100) return { name: 'Sergeant', icon: '⚔️', className: 'rank-sergeant', label: 'סמל' };
+  if (xp >= 900) return { name: 'Private', icon: '🎖️', className: 'rank-private', label: 'טוראי' };
+  return { name: 'Recruit', icon: '🥾', className: 'rank-recruit', label: 'טירון' };
+};
+
 export default function App() {
 
   const [theme, setTheme] = useState('dark');
   const [activeTab, setActiveTab] = useState('feed');
+  const [matches, setMatches] = useState(initialMatches);
+  const [activeJudgeMatchId, setActiveJudgeMatchId] = useState(null);
+  const [arenas, setArenas] = useState(initialArenas);
+  const [globalTournament, setGlobalTournament] = useState(initialGlobalTournament);
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+
+  const getCurrentArena = (trophies) => {
+    return initialArenas.find(a => (trophies || 1000) >= a.minTrophies && (trophies || 1000) < a.maxTrophies) || initialArenas[initialArenas.length - 1];
+  };
+
+
   const [language, setLanguage] = useState(() => {
     const saved = localStorage.getItem('challenges_language');
     return saved || 'he';
@@ -238,7 +291,7 @@ export default function App() {
   }, [chats]);
 
   // Map & location challenges states
-  const [challengesViewMode, setChallengesViewMode] = useState('map');
+  const [challengesViewMode, setChallengesViewMode] = useState('challenges');
   const [selectedMapLocation, setSelectedMapLocation] = useState(null);
   const [userCoords, setUserCoords] = useState([32.0853, 34.7818]); // Default Tel Aviv
 
@@ -419,6 +472,91 @@ export default function App() {
   const [selectedExplorePost, setSelectedExplorePost] = useState(null);
   const [exploreReelsStartIndex, setExploreReelsStartIndex] = useState(null);
   const [activeBadgeDetail, setActiveBadgeDetail] = useState(null);
+
+  const handleRefereeVerdict = (matchId, winnerId, verdictText) => {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    const updatedMatches = matches.map(m => {
+      if (m.id === matchId) {
+        return {
+          ...m,
+          status: 'completed',
+          winnerId,
+          verdict: verdictText
+        };
+      }
+      return m;
+    });
+    setMatches(updatedMatches);
+
+    if (winnerId && winnerId !== 'draw') {
+      const staked = match.trophiesStaked;
+      const loserId = winnerId === match.challengerId ? match.opponentId : match.challengerId;
+
+      setUsers(prevUsers => prevUsers.map(u => {
+        if (u.id === winnerId) {
+          const updated = { 
+            ...u, 
+            trophies: (u.trophies || 1000) + staked, 
+            xp: u.xp + 150 
+          };
+          if (u.id === currentUser.id) {
+            setCurrentUser(updated);
+          }
+          return updated;
+        }
+        if (u.id === loserId) {
+          const updated = { 
+            ...u, 
+            trophies: Math.max(100, (u.trophies || 1000) - Math.round(staked * 0.7)),
+            xp: Math.max(0, u.xp - 30)
+          };
+          if (u.id === currentUser.id) {
+            setCurrentUser(updated);
+          }
+          return updated;
+        }
+        return u;
+      }));
+    }
+
+    setActiveJudgeMatchId(null);
+  };
+
+  const handleCreateDuel = (opponentId, challengeId, trophiesStaked) => {
+    const ch = challenges.find(c => c.id === challengeId) || { title: "אתגר כושר" };
+    const newMatch = {
+      id: `match_${Date.now()}`,
+      challengeId,
+      challengeTitle: ch.title,
+      challengerId: currentUser.id,
+      opponentId,
+      trophiesStaked: Number(trophiesStaked),
+      status: "active",
+      challengerProof: null,
+      opponentProof: null,
+      verdict: null,
+      winnerId: null
+    };
+
+    setMatches([newMatch, ...matches]);
+    
+    const newNotif = {
+      id: `notif_${Date.now()}`,
+      type: "joint_challenge",
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderAvatar: currentUser.avatar,
+      text: `הזמין אותך לדו-קרב ראש בראש: ${ch.title} על ${trophiesStaked} גביעים! ⚔️`,
+      challengeId,
+      timestamp: "לפני דקה",
+      read: false,
+      status: "pending"
+    };
+    setNotifications([newNotif, ...notifications]);
+  };
+
 
 
   useEffect(() => {
@@ -1654,7 +1792,7 @@ export default function App() {
 
             {/* Segmented View Toggle (Map / Challenges / Iconic) */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-              <div className="view-toggle-container" style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: '30px', padding: '0.25rem', border: '1px solid var(--border)', width: '100%', maxWidth: '380px' }}>
+              <div className="view-toggle-container" style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: '30px', padding: '0.25rem', border: '1px solid var(--border)', width: '100%', maxWidth: '480px' }}>
                 <button 
                   onClick={() => setChallengesViewMode('map')} 
                   className={`toggle-btn ${challengesViewMode === 'map' ? 'active' : ''}`}
@@ -1724,10 +1862,208 @@ export default function App() {
                 >
                   👑 אייקוניים
                 </button>
+                <button 
+                  onClick={() => setChallengesViewMode('duels')} 
+                  className={`toggle-btn ${challengesViewMode === 'duels' ? 'active' : ''}`}
+                  style={{ 
+                    flex: 1,
+                    padding: '0.45rem 0.5rem', 
+                    borderRadius: '30px', 
+                    border: 'none', 
+                    background: challengesViewMode === 'duels' ? 'var(--accent)' : 'transparent', 
+                    color: challengesViewMode === 'duels' ? '#fff' : 'var(--text-secondary)', 
+                    fontWeight: 'bold', 
+                    cursor: 'pointer', 
+                    boxShadow: challengesViewMode === 'duels' ? '0 2px 8px var(--accent-glow)' : 'none',
+                    fontSize: '0.8rem',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  ⚔️ דו-קרב
+                </button>
               </div>
             </div>
 
-            {challengesViewMode !== 'map' ? (
+            {challengesViewMode === 'challenges' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', direction: 'rtl', textAlign: 'right' }}>
+                
+                {/* 1. Arena Banner */}
+                {(() => {
+                  const arena = getCurrentArena(currentUser.trophies);
+                  const nextArena = arenas[arenas.indexOf(arena) + 1] || null;
+                  const progressPct = nextArena 
+                    ? Math.min(100, Math.max(0, ((currentUser.trophies - arena.minTrophies) / (nextArena.minTrophies - arena.minTrophies)) * 100))
+                    : 100;
+                  
+                  return (
+                    <div className="arena-banner" style={{ color: '#fff' }}>
+                      {/* Center divider — subtle split-screen effect */}
+                      <div className="arena-center-divider" />
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                        <div>
+                          <span style={{ fontSize: '0.8rem', opacity: 0.75, fontWeight: 'bold', letterSpacing: '0.5px', textTransform: 'uppercase' }}>הזירה הנוכחית שלך</span>
+                          <h3 style={{ margin: '0.2rem 0', fontWeight: 900, fontSize: '1.5rem', textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>{arena.name}</h3>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+                          <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }}>🏟️</span>
+                          <span style={{ fontSize: '0.65rem', opacity: 0.7, fontWeight: 'bold', letterSpacing: '0.3px' }}>ARENA</span>
+                        </div>
+                      </div>
+                      
+                      <div style={{ marginTop: '1rem', position: 'relative', zIndex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem', opacity: 0.9 }}>
+                          <span>🏆 {currentUser.trophies || 1000} גביעים</span>
+                          {nextArena ? (
+                            <span>{nextArena.minTrophies} גביעים לארנה הבאה</span>
+                          ) : (
+                            <span>הגעת לארנה המקסימלית! 👑</span>
+                          )}
+                        </div>
+                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <div style={{ width: `${progressPct}%`, height: '100%', background: 'linear-gradient(90deg, var(--cyan), var(--fire))', borderRadius: '4px', boxShadow: '0 0 10px rgba(255,255,255,0.4)', transition: 'width 1s ease-out' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 2. Main Game Mode Buttons */}
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button 
+                    onClick={() => setChallengesViewMode('duels')}
+                    className="btn"
+                    style={{ 
+                      flex: 1, 
+                      padding: '1.25rem 1rem', 
+                      background: 'linear-gradient(135deg, #ef4444, #b91c1c)', 
+                      color: '#fff', 
+                      borderRadius: '16px', 
+                      border: 'none', 
+                      fontWeight: 'bold', 
+                      boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <span style={{ fontSize: '1.8rem' }}>⚔️</span>
+                    <strong style={{ fontSize: '1rem' }}>דו-קרב חברים</strong>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>שחק על גביעים מול חברים</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      alert(`הרשמה לטורניר: "${globalTournament.title}"\n\n${globalTournament.description}\n\nהקלט פעילות ריצה כדי להיכנס אוטומטית ללובי!`);
+                    }}
+                    className="btn"
+                    style={{ 
+                      flex: 1, 
+                      padding: '1.25rem 1rem', 
+                      background: 'linear-gradient(135deg, #a855f7, #6b21a8)', 
+                      color: '#fff', 
+                      borderRadius: '16px', 
+                      border: 'none', 
+                      fontWeight: 'bold', 
+                      boxShadow: '0 4px 15px rgba(168, 85, 247, 0.4)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <span style={{ fontSize: '1.8rem' }}>🏆</span>
+                    <strong style={{ fontSize: '1rem' }}>טורניר שבועי</strong>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>{globalTournament.timeLeft}</span>
+                  </button>
+                </div>
+
+                {/* 3. My active Challenge Deck */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontWeight: 800, margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>🃏 חפיסת האתגרים שלי (Active Deck)</h3>
+                    <button 
+                      onClick={() => setChallengesViewMode('iconic')}
+                      style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      + הוסף אתגר
+                    </button>
+                  </div>
+
+                  {currentUser.activeChallenges.length === 0 ? (
+                    <div className="glass-card" style={{ padding: '2rem', textAlign: 'center', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                      <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem 0', fontSize: '0.9rem' }}>אין לך אתגרים פעילים בחפיסה כרגע.</p>
+                      <button 
+                        onClick={() => setChallengesViewMode('iconic')} 
+                        className="btn btn-primary" 
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                      >
+                        עיין באתגרים אייקוניים 👑
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="clash-deck-grid">
+                      {currentUser.activeChallenges.map(challengeId => {
+                        const c = challenges.find(ch => ch.id === challengeId);
+                        if (!c) return null;
+                        return (
+                          <div 
+                            key={c.id} 
+                            className={`clash-card ${c.isIconic ? 'clash-card-iconic' : ''}`}
+                            onClick={() => setExpandedChallengeId(c.id)}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <h4 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--text-primary)' }}>{c.title}</h4>
+                              {c.isIconic && <span style={{ fontSize: '1rem' }}>👑</span>}
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.category} • {c.difficulty}</span>
+                            
+                            <div style={{ marginTop: '0.5rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                                <span>התקדמות</span>
+                                <span>🏆 {c.xpReward} XP</span>
+                              </div>
+                              <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ width: '50%', height: '100%', background: 'var(--accent)', borderRadius: '3px' }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Global Active Tournament details panel */}
+                <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)', background: 'linear-gradient(to right, rgba(168,85,247,0.05), transparent)' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '0.95rem', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span>🏆</span> {globalTournament.title}
+                  </h4>
+                  <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    {globalTournament.description}
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <span>👥 {globalTournament.participantsCount} נרשמו כבר</span>
+                    <span style={{ color: '#a855f7', fontWeight: 'bold' }}>{globalTournament.timeLeft}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {challengesViewMode === 'iconic' && (
               <>
                 <div className="challenges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                   {filteredChallenges.map(c => {
@@ -1982,7 +2318,9 @@ export default function App() {
                   );
                 })()}
               </>
-            ) : (
+            )}
+
+            {challengesViewMode === 'map' && (
               /* INTERACTIVE MAP VIEW */
               <div className="interactive-map-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
@@ -2008,6 +2346,7 @@ export default function App() {
                     selectedLocation={selectedMapLocation}
                     onSelectLocation={setSelectedMapLocation}
                     filteredChallenges={filteredChallenges}
+                    theme={theme}
                   />
 
                   {/* Location quick summary drawer placed inside map absolute container to prevent component recreation */}
@@ -2125,6 +2464,216 @@ export default function App() {
                 >
                   <PlusIcon size={28} />
                 </button>
+              </div>
+            </div>
+          )}
+
+          {challengesViewMode === 'duels' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* 1. Create a Duel Box */}
+              <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                <h3 style={{ fontWeight: 800, margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>⚔️ הזמן חבר לדו-קרב חדש</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  
+                  {/* Opponent Selection */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>בחר חבר:</label>
+                    <select 
+                      id="duel-opponent-select"
+                      style={{ width: '100%', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '0.5rem', borderRadius: '8px', outline: 'none' }}
+                    >
+                      <option value="">-- בחר מתוך רשימת המעקב --</option>
+                      {users.filter(u => u.id !== currentUser.id).map(u => (
+                        <option key={u.id} value={u.id}>{u.name} (🏆 {u.trophies || 1000})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Challenge Selection */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>בחר אתגר:</label>
+                    <select 
+                      id="duel-challenge-select"
+                      style={{ width: '100%', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '0.5rem', borderRadius: '8px', outline: 'none' }}
+                    >
+                      <option value="">-- בחר סוג אתגר --</option>
+                      {challenges.map(c => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Stake Selection */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>סכום גביעים על הכף:</label>
+                    <select 
+                      id="duel-trophies-select"
+                      style={{ width: '100%', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '0.5rem', borderRadius: '8px', outline: 'none' }}
+                    >
+                      <option value="15">15 גביעים 🏆</option>
+                      <option value="25">25 גביעים 🏆 (מומלץ)</option>
+                      <option value="50">50 גביעים 🏆 (קרב רציני!)</option>
+                    </select>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      const oppId = document.getElementById('duel-opponent-select').value;
+                      const chId = document.getElementById('duel-challenge-select').value;
+                      const trophies = document.getElementById('duel-trophies-select').value;
+                      if (!oppId || !chId) {
+                        alert('אנא בחר חבר ואתגר כדי להתחיל בדו-קרב!');
+                        return;
+                      }
+                      handleCreateDuel(oppId, chId, trophies);
+                      alert('דו-קרב חדש נוצר והזמנה נשלחה לחבר!');
+                    }}
+                    className="btn btn-primary" 
+                    style={{ width: '100%', padding: '0.6rem', marginTop: '0.25rem' }}
+                  >
+                    שלח הזמנה לדו-קרב ⚔️
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Active Duels list */}
+              <div>
+                <h3 style={{ fontWeight: 800, margin: '0 0 0.75rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>⚔️ קרבות פעילים והכרעות שופט</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {matches.map(m => {
+                    const challengerUser = users.find(u => u.id === m.challengerId);
+                    const opponentUser = users.find(u => u.id === m.opponentId);
+                    
+                    return (
+                      <div key={m.id} className="duel-card" style={{ padding: '1rem' }}>
+                        {/* Header: challenge title + trophy stake */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.challengeTitle}</span>
+                          <span className="trophy-pill" style={{ background: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.35)', fontWeight: 800 }}>
+                            🏆 {m.trophiesStaked} גביעים
+                          </span>
+                        </div>
+
+                        {/* Split-panel battle view */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.25rem 0 0.75rem' }}>
+                          {/* Challenger side — cyan */}
+                          <div className={`duel-side-challenger ${m.winnerId === m.challengerId ? 'duel-side-winner' : ''}`} style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-start', borderRadius: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                              <img src={challengerUser?.avatar} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--cyan)', objectFit: 'cover', flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {challengerUser?.name}
+                                  {m.winnerId === m.challengerId && <span style={{ marginRight: '0.3rem', fontSize: '0.7rem', color: '#ffd700' }}>👑</span>}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: m.challengerProof ? 'var(--cyan)' : 'var(--text-muted)', fontWeight: 'bold' }}>
+                                  {m.challengerProof ? '✅ הגיש' : '⏳ ממתין'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="duel-progress-track" style={{ width: '100%' }}>
+                              <div className="duel-progress-fill-cyan" style={{ width: m.challengerProof ? '100%' : '0%', height: '100%', borderRadius: '3px', transition: 'width 0.8s ease-out' }} />
+                            </div>
+                          </div>
+
+                          {/* VS Badge */}
+                          <div className="duel-vs-badge" style={{ fontStyle: 'italic', flexShrink: 0 }}>VS</div>
+
+                          {/* Opponent side — fire */}
+                          <div className={`duel-side-opponent ${m.winnerId === m.opponentId ? 'duel-side-winner' : ''}`} style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-end', borderRadius: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'flex-end' }}>
+                              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>
+                                  {m.winnerId === m.opponentId && <span style={{ marginLeft: '0.3rem', fontSize: '0.7rem', color: '#ffd700' }}>👑</span>}
+                                  {opponentUser?.name}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: m.opponentProof ? 'var(--fire)' : 'var(--text-muted)', fontWeight: 'bold', direction: 'rtl' }}>
+                                  {m.opponentProof ? '✅ הגיש' : '⏳ ממתין'}
+                                </div>
+                              </div>
+                              <img src={opponentUser?.avatar} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--fire)', objectFit: 'cover', flexShrink: 0 }} />
+                            </div>
+                            <div className="duel-progress-track" style={{ width: '100%' }}>
+                              <div className="duel-progress-fill-fire" style={{ width: m.opponentProof ? '100%' : '0%', height: '100%', borderRadius: '3px', transition: 'width 0.8s ease-out' }} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status Actions */}
+                        {m.status === 'referee_court' && (
+                          <div style={{ marginTop: '1rem', background: 'rgba(251, 191, 36, 0.06)', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center' }}>
+                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: '#fbbf24' }}>
+                              ⚖️ הדו-קרב הסתיים! אחד הצדדים הגיש ערעור על רמאות.
+                            </p>
+                            <button 
+                              onClick={() => setActiveJudgeMatchId(m.id)}
+                              className="btn btn-primary" 
+                              style={{ width: '100%', padding: '0.5rem', background: '#fbbf24', color: '#000', fontWeight: 'bold' }}
+                            >
+                              כנס אל בית הדין של שופט ה-AI ⚖️
+                            </button>
+                          </div>
+                        )}
+
+                        {m.status === 'active' && (
+                          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                            <button 
+                              onClick={() => {
+                                const updated = matches.map(matchObj => {
+                                  if (matchObj.id === m.id) {
+                                    return {
+                                      ...matchObj,
+                                      challengerProof: {
+                                        duration: "20:50",
+                                        avgSpeed: "14.4 קמ\"ש",
+                                        maxSpeed: "17.0 קמ\"ש",
+                                        avgHeartRate: 168,
+                                        device: "Garmin Epix Gen 2",
+                                        isManual: false
+                                      }
+                                    };
+                                  }
+                                  return matchObj;
+                                });
+                                setMatches(updated);
+                                alert('הגשת את נתוני הריצה שלך בהצלחה!');
+                              }}
+                              disabled={m.challengerProof}
+                              className="btn btn-secondary" 
+                              style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem' }}
+                            >
+                              {m.challengerProof ? 'התוצאה שלך הוגשה' : 'סנכרן פעילות ריצה מסטרבה 🏃'}
+                            </button>
+                            
+                            {m.challengerProof && m.opponentProof && (
+                              <button 
+                                onClick={() => {
+                                  const updated = matches.map(matchObj => {
+                                    if (matchObj.id === m.id) {
+                                      return { ...matchObj, status: 'referee_court' };
+                                    }
+                                    return matchObj;
+                                  });
+                                  setMatches(updated);
+                                }}
+                                className="btn btn-primary" 
+                                style={{ padding: '0.45rem 1rem', fontSize: '0.75rem' }}
+                              >
+                                שלח לשופט ה-AI ⚖️
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {m.status === 'completed' && (
+                          <div style={{ marginTop: '0.75rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', padding: '0.75rem', borderRadius: '12px' }}>
+                            <strong style={{ display: 'block', fontSize: '0.8rem', color: '#10b981', marginBottom: '0.25rem' }}>🏆 המנצח: {users.find(u => u.id === m.winnerId)?.name || 'תיקו'}</strong>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{m.verdict}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -2807,7 +3356,11 @@ export default function App() {
                           <img src={user.avatar} alt={user.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
                           <div style={{ textAlign: 'right' }}>
                             <h4 style={{ fontWeight: 700, margin: 0, fontSize: '0.85rem' }}>{user.name}</h4>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>דרגה {Math.floor(user.xp / 500) + 1} • 🏆 {user.xp} גביעים</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
+                              <span>{getUserRank(user.xp).icon} {getUserRank(user.xp).label}</span>
+                              <span>•</span>
+                              <span style={{ color: '#fbbf24' }}>🏆 {user.trophies || 1000}</span>
+                            </span>
                           </div>
                         </div>
                         <button 
@@ -2866,41 +3419,85 @@ export default function App() {
           <div>
             {/* Redesigned Instagram-style Profile Header */}
             <div className="glass-card game-hud-card" style={{ padding: '1.5rem', marginBottom: '1.5rem', borderRadius: '16px' }}>
-              <div className="game-profile-header" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
-                <div className="game-avatar-wrapper" style={{ width: '80px', height: '80px', borderRadius: '50%', padding: '3px', background: 'linear-gradient(45deg, #ffd700, #a855f7, #06b6d4)', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
-                  <img src={currentUser.avatar} alt={currentUser.name} className="game-avatar-img" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                </div>
-                <div className="game-user-details" style={{ flex: 1 }}>
-                  <h2 style={{ fontWeight: 800, margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {currentUser.name}
-                    {currentUser.isBlocked && (
-                      <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
-                    )}
-                  </h2>
-                  
-                  {/* Level & Title */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
-                    <span className="game-level-tag" style={{ background: 'var(--accent)', color: '#000', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '20px', fontSize: '0.7rem' }}>דרגה {Math.floor(currentUser.xp / 500) + 1}</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                      {Math.floor(currentUser.xp / 500) + 1 >= 5 ? '🏅 אלוף מיתולוגי' :
-                       Math.floor(currentUser.xp / 500) + 1 >= 4 ? '🛡️ גיבור' :
-                       Math.floor(currentUser.xp / 500) + 1 >= 3 ? '⚔️ לוחם' :
-                       Math.floor(currentUser.xp / 500) + 1 >= 2 ? '⚡ מתלמד' : '🌱 טירון'}
-                    </span>
-                  </div>
-
-                  {/* Level Progress Bar */}
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                      <span>גביעים {currentUser.xp % 500} / 500 (סה"כ: 🏆 {currentUser.xp} גביעים)</span>
-                      <span>התקדמות לדרגה הבאה</span>
-                    </div>
-                    <div className="game-stat-bar-bg" style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div className="game-stat-bar-fill fill-agility" style={{ width: `${(currentUser.xp % 500) / 5}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), #a855f7)', borderRadius: '4px' }}></div>
-                    </div>
-                  </div>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
+                <AvatarPodium 
+                  avatarConfig={currentUser.avatarConfig || { type: 'runner', shirtColor: '#ef4444', glowColor: '#ffffff' }}
+                  isCustomizable={isEditingAvatar}
+                  onConfigChange={(newConfig) => {
+                    const updated = { ...currentUser, avatarConfig: newConfig };
+                    setCurrentUser(updated);
+                    setUsers(prev => prev.map(u => u.id === currentUser.id ? updated : u));
+                  }}
+                />
+                <button 
+                  onClick={() => setIsEditingAvatar(!isEditingAvatar)} 
+                  className="btn btn-secondary" 
+                  style={{ fontSize: '0.75rem', padding: '0.4rem 1rem', marginTop: '0.5rem', width: '100%', maxWidth: '200px' }}
+                >
+                  {isEditingAvatar ? 'שמור עיצוב אוואטר' : 'ערוך דמות אוואטר 👕'}
+                </button>
               </div>
+
+              {/* Avatar tier: gold = top, fire = mid, default = base */}
+              {(() => {
+                const avatarTier = currentUser.xp >= 2500 ? 'tier-gold' : currentUser.xp >= 1000 ? 'tier-fire' : '';
+                const userLevel = Math.floor(currentUser.xp / 500) + 1;
+                return (
+                  <div className="game-profile-header" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
+                    <div
+                      className={`game-avatar-wrapper ${avatarTier}`}
+                      style={{ width: '72px', height: '72px' }}
+                      title={`${currentUser.name} • דרגה ${userLevel}`}
+                    >
+                      <img src={currentUser.avatar} alt={currentUser.name} className="game-avatar-img" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    </div>
+                    <div className="game-user-details" style={{ flex: 1 }}>
+                      <h2 style={{ fontWeight: 800, margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {currentUser.name}
+                        {currentUser.isBlocked && (
+                          <span style={{ background: '#ff4d4d', color: '#fff', fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>חסום ⛔</span>
+                        )}
+                      </h2>
+
+                      {/* Rank badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                        {(() => {
+                          const r = getUserRank(currentUser.xp);
+                          return (
+                            <span className={`rank-badge ${r.className}`}>
+                              {r.icon} {r.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Premium Stat Pills */}
+                      <div className="avatar-stats-row" style={{ justifyContent: 'flex-start', marginTop: '0.6rem' }}>
+                        <span className="stat-pill stat-pill-level" style={{ animationDelay: '0s' }}>
+                          ⚡ דרגה {userLevel}
+                        </span>
+                        <span className="stat-pill stat-pill-xp" style={{ animationDelay: '0.1s' }}>
+                          💠 {currentUser.xp} XP
+                        </span>
+                        <span className="stat-pill stat-pill-trophies" style={{ animationDelay: '0.2s' }}>
+                          🏆 {currentUser.trophies || 1000}
+                        </span>
+                      </div>
+
+                      {/* Level Progress Bar */}
+                      <div style={{ marginTop: '0.65rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                          <span>{currentUser.xp % 500} / 500 XP לדרגה הבאה</span>
+                          <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>דרגה {userLevel + 1}</span>
+                        </div>
+                        <div className="game-stat-bar-bg" style={{ height: '7px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${(currentUser.xp % 500) / 5}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), #a855f7)', borderRadius: '4px', transition: 'width 1s ease-out' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Social Stats Row (Followers/Following/Posts count) */}
               <div className="social-stats-row" style={{ display: 'flex', justifyContent: 'space-around', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '0.75rem', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -3445,9 +4042,16 @@ export default function App() {
             </div>
             
             <div style={{ padding: '1rem' }}>
-              <div className="game-profile-header" style={{ marginBottom: '1rem' }}>
-                <div className="game-avatar-wrapper" style={{ width: 70, height: 70 }}>
-                  <img src={selectedUserForModal.avatar} alt="" className="game-avatar-img" />
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                <AvatarPodium 
+                  avatarConfig={selectedUserForModal.avatarConfig || { type: 'runner', shirtColor: '#ef4444', glowColor: '#ffffff' }}
+                  isCustomizable={false}
+                />
+              </div>
+
+              <div className="game-profile-header" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div className="game-avatar-wrapper" style={{ width: 50, height: 50 }}>
+                  <img src={selectedUserForModal.avatar} alt="" className="game-avatar-img" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                 </div>
                 <div className="game-user-details">
                   <h4 style={{ fontWeight: 800, margin: 0, fontSize: '1.2rem' }}>{selectedUserForModal.name}</h4>
@@ -3850,6 +4454,23 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* AI REFEREE COURT MODAL */}
+      {activeJudgeMatchId && (() => {
+        const match = matches.find(m => m.id === activeJudgeMatchId);
+        if (!match) return null;
+        const challenger = users.find(u => u.id === match.challengerId);
+        const opponent = users.find(u => u.id === match.opponentId);
+        return (
+          <AIRefereeCourt 
+            match={match}
+            challenger={challenger}
+            opponent={opponent}
+            onClose={() => setActiveJudgeMatchId(null)}
+            onVerdict={handleRefereeVerdict}
+          />
+        );
+      })()}
     </div>
 
   );
