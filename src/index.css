@@ -37,10 +37,10 @@
   --accent-gradient: linear-gradient(135deg, #51cf66 0%, #2b8a3e 100%);
   --success: #51cf66;
   --warning: #ffd43b;
-  --border: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.15);
   
   --glass-bg: rgba(30, 30, 34, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
   --shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 50px rgba(0, 0, 0, 0.8);
 }
@@ -81,7 +81,8 @@ body {
 .app-container {
   max-width: 500px;
   margin: 0 auto;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-secondary);
@@ -90,6 +91,7 @@ body {
   position: relative;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px);
+  overflow: hidden;
 }
 
 /* Header */
@@ -876,18 +878,17 @@ body {
 .reels-feed-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 72px - 64px); /* Header + Navigation tab height */
+  height: 100%;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
   background: #000;
   border-radius: 12px;
-  overflow-hidden: hidden;
 }
 
 @media (max-width: 600px) {
   .reels-feed-container {
-    height: calc(100vh - 66px - 60px);
+    height: 100%;
     border-radius: 0;
   }
 }
@@ -2340,6 +2341,29 @@ body {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 600px) {
+  .scout-patch-container {
+    gap: 0.75rem;
+    padding: 0.75rem 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .patch-size-sm {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  .patch-size-md {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  .patch-size-lg {
+    width: 64px !important;
+    height: 64px !important;
+  }
+  .scout-patch-badge span {
+    font-size: 0.65rem !important;
+  }
 }
 
 .scout-patch-badge {

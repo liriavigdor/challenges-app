@@ -18,7 +18,8 @@ import {
   ShareIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  BellIcon
+  BellIcon,
+  TargetIcon
 } from './icons';
 import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications } from './mockData';
 import { 
@@ -44,6 +45,26 @@ const getPostVideo = (post) => {
     return 'https://assets.mixkit.co/videos/preview/mixkit-young-athletic-woman-doing-plank-exercise-43160-large.mp4';
   }
   return 'https://assets.mixkit.co/videos/preview/mixkit-hiking-in-the-snow-in-winter-41865-large.mp4';
+};
+
+const isUserGeneratedChallenge = (challenge) => {
+  if (!challenge) return false;
+  if (challenge.isUserGenerated !== undefined) return challenge.isUserGenerated;
+  const systemCreators = [
+    "Pulse Team",
+    "התאחדות הטריאתלון",
+    "מועצה אזורית עמק הירדן",
+    "עיריית תל אביב",
+    "רשות הטבע והגנים",
+    "מועדון השחייה אילת",
+    "סובב עמק",
+    "אופני החרמון",
+    "החברה להגנת הטבע",
+    "מועדון ריצה רמון",
+    "מועדון הולמס פלייס עזריאלי",
+    "התאחדות הצלילה"
+  ];
+  return !systemCreators.includes(challenge.creator);
 };
 
 function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLocation, filteredChallenges }) {
@@ -106,14 +127,15 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
 
     // Add pins for challenges
     mapLocations.forEach((loc) => {
-      const hasActive = filteredChallenges.some(ch => ch.id === loc.challengeId);
-      if (!hasActive) return;
+      const challengeObj = filteredChallenges.find(ch => ch.id === loc.challengeId);
+      if (!challengeObj) return;
 
       const isSelected = selectedLocation?.id === loc.id;
+      const isUserGen = isUserGeneratedChallenge(challengeObj);
       
       const pinIcon = L.divIcon({
-        className: `custom-map-pin ${isSelected ? 'selected' : ''}`,
-        html: `<div class="pin-inner">📍</div>`,
+        className: `custom-map-pin ${isSelected ? 'selected' : ''} ${isUserGen ? 'user-gen-pin' : ''}`,
+        html: `<div class="pin-inner" style="font-size: ${isUserGen ? '18px' : '15px'}; display: flex; align-items: center; justify-content: center; height: 100%; width: 100%;">${isUserGen ? '⚔️' : '📍'}</div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 32]
       });
@@ -154,6 +176,24 @@ export default function App() {
 
   const [theme, setTheme] = useState('dark');
   const [activeTab, setActiveTab] = useState('feed');
+  const [language, setLanguage] = useState(() => {
+    const saved = localStorage.getItem('challenges_language');
+    return saved || 'he';
+  });
+  const [seenStoryIds, setSeenStoryIds] = useState(() => {
+    const saved = localStorage.getItem('challenges_seen_stories');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [creationStep, setCreationStep] = useState(1);
+
+  const toggleLanguage = () => {
+    setLanguage(prev => {
+      const next = prev === 'he' ? 'en' : 'he';
+      localStorage.setItem('challenges_language', next);
+      return next;
+    });
+  };
+
   const [users, setUsers] = useState(initialUsers);
   const [challenges, setChallenges] = useState(initialChallenges);
   const [feed, setFeed] = useState(initialFeed);
@@ -216,7 +256,7 @@ export default function App() {
     }
   }, []);
 
-  const mapLocations = [
+  const baseMapLocations = [
     {
       id: "loc_yarkon",
       name: "🌳 פארק הירקון, תל אביב",
@@ -307,6 +347,24 @@ export default function App() {
     }
   ];
 
+  // Derive dynamic map locations from user-pinned challenges
+  const mapLocations = React.useMemo(() => {
+    const locations = [...baseMapLocations];
+    challenges.forEach(c => {
+      if (c.lat && c.lng && !locations.some(loc => loc.challengeId === c.id)) {
+        locations.push({
+          id: `loc_${c.id}`,
+          name: c.locationName || `⚔️ ${c.title}`,
+          lat: Number(c.lat),
+          lng: Number(c.lng),
+          challengeId: c.id,
+          description: c.locationDescription || c.description
+        });
+      }
+    });
+    return locations;
+  }, [challenges]);
+
   
   // Camera Story states
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -323,9 +381,20 @@ export default function App() {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [storyProgress, setStoryProgress] = useState(0);
 
-  useEffect(() => {
+   useEffect(() => {
     localStorage.setItem('challenges_stories', JSON.stringify(stories));
   }, [stories]);
+
+  useEffect(() => {
+    if (activeStoryIndex !== null) {
+      const activeStory = stories[activeStoryIndex];
+      if (activeStory && !seenStoryIds.includes(activeStory.id)) {
+        const updated = [...seenStoryIds, activeStory.id];
+        setSeenStoryIds(updated);
+        localStorage.setItem('challenges_seen_stories', JSON.stringify(updated));
+      }
+    }
+  }, [activeStoryIndex, stories, seenStoryIds]);
 
   // Reels interactive animation states
   const [doubleTapPostId, setDoubleTapPostId] = useState(null);
@@ -575,6 +644,11 @@ export default function App() {
   const [newChallengeXp, setNewChallengeXp] = useState(200);
   const [newChallengeProofText, setNewChallengeProofText] = useState('');
   const [newChallengeProofImage, setNewChallengeProofImage] = useState('');
+  const [newChallengePinLocation, setNewChallengePinLocation] = useState(false);
+  const [newChallengeLocationName, setNewChallengeLocationName] = useState('');
+  const [newChallengeLat, setNewChallengeLat] = useState('');
+  const [newChallengeLng, setNewChallengeLng] = useState('');
+  const [newChallengeLocationDesc, setNewChallengeLocationDesc] = useState('');
 
   // Form states for completing a challenge (Proof upload simulation)
   const [proofChallengeId, setProofChallengeId] = useState('');
@@ -939,9 +1013,16 @@ export default function App() {
       participantsCount: 1,
       duration: "חד פעמי",
       creator: currentUser.name,
+      isUserGenerated: true,
       image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
       difficultyGrades: [newChallengeDifficulty === 'קל' ? 1 : newChallengeDifficulty === 'בינוני' ? 3 : newChallengeDifficulty === 'קשה' ? 4 : 5],
-      isIconic: false
+      isIconic: false,
+      ...(newChallengePinLocation && newChallengeLat && newChallengeLng ? {
+        lat: Number(newChallengeLat),
+        lng: Number(newChallengeLng),
+        locationName: newChallengeLocationName || `מיקום: ${newChallengeTitle}`,
+        locationDescription: newChallengeLocationDesc || newChallengeDesc
+      } : {})
     };
 
     // Auto-completion feed post (since they must complete it to share it)
@@ -1012,6 +1093,12 @@ export default function App() {
     setNewChallengeDesc('');
     setNewChallengeProofText('');
     setNewChallengeProofImage('');
+    setNewChallengePinLocation(false);
+    setNewChallengeLocationName('');
+    setNewChallengeLat('');
+    setNewChallengeLng('');
+    setNewChallengeLocationDesc('');
+    setCreationStep(1);
     setActiveTab('challenges');
   };
 
@@ -1138,8 +1225,11 @@ export default function App() {
               <span className="notification-dot" style={{ position: 'absolute', top: '-4px', right: '-4px', width: '8px', height: '8px', background: '#ff4d4d', borderRadius: '50%' }}></span>
             )}
           </div>
-          <button onClick={toggleTheme} className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%', border: 'none', background: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <button onClick={toggleTheme} className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%', border: 'none', background: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title={theme === 'light' ? "מצב כהה" : "מצב בהיר"}>
             {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+          </button>
+          <button onClick={toggleLanguage} className="btn btn-secondary" style={{ padding: '0.4rem', border: 'none', background: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: '0.75rem', fontWeight: 'bold' }} title="שנה שפה / Change Language">
+            {language === 'he' ? '🇺🇸 EN' : '🇮🇱 HE'}
           </button>
         </div>
 
@@ -1292,9 +1382,9 @@ export default function App() {
 
         {/* TAB 1: FEED */}
         {activeTab === 'feed' && (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
             {/* Instagram-style Stories Slider */}
-            <div className="stories-wrapper">
+            <div className="stories-wrapper" style={{ flexShrink: 0 }}>
               <div className="stories-container">
                 {/* User's own active challenge indicator / Create shortcut */}
                 <div className="story-circle" onClick={() => {
@@ -1312,25 +1402,26 @@ export default function App() {
                 </div>
 
                 {/* Other users' stories */}
-                {stories.map((story, index) => (
-                  <div key={story.id} className="story-circle" onClick={() => {
-                    setActiveStoryIndex(index);
-                    setActiveSlideIndex(0);
-                    setStoryProgress(0);
-                  }}>
-                    <div className="story-avatar-wrapper">
-                      <img src={story.userAvatar} alt={story.userName} className="story-avatar-img" />
+                {stories.map((story, index) => {
+                  const isSeen = seenStoryIds.includes(story.id);
+                  return (
+                    <div key={story.id} className="story-circle" onClick={() => {
+                      setActiveStoryIndex(index);
+                      setActiveSlideIndex(0);
+                      setStoryProgress(0);
+                    }}>
+                      <div className={`story-avatar-wrapper ${isSeen ? 'viewed' : ''}`}>
+                        <img src={story.userAvatar} alt={story.userName} className="story-avatar-img" />
+                      </div>
+                      <span className="story-username">{story.userName}</span>
                     </div>
-                    <span className="story-username">{story.userName}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-
-
             {/* Reels-style swiping container */}
-            <div className="reels-feed-container">
+            <div className="reels-feed-container" style={{ flex: 1, minHeight: 0 }}>
               {feed.map(post => {
                 const postAuthor = users.find(u => u.id === post.userId);
                 const isAuthorBlocked = postAuthor ? postAuthor.isBlocked : false;
@@ -1381,7 +1472,7 @@ export default function App() {
                         <div className="reel-action-btn-wrapper" onClick={() => {
                           toggleJoinChallenge(associatedChallenge.id);
                           if (!isJoinedChallenge) {
-                            alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור נקודות XP עכשיו!`);
+                            alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור גביעים עכשיו! 🏆`);
                           }
                         }}>
                           <div className="reel-action-circle" style={{ color: isJoinedChallenge ? 'var(--success)' : 'var(--accent)' }}>
@@ -1674,10 +1765,36 @@ export default function App() {
                               ★ אייקוני
                             </span>
                           )}
+
+                          {/* Creator type badge */}
+                          {(() => {
+                            const isUserGen = isUserGeneratedChallenge(c);
+                            return (
+                              <span style={{ 
+                                position: 'absolute', 
+                                top: '8px', 
+                                right: '8px', 
+                                background: isUserGen ? 'rgba(239, 68, 68, 0.85)' : 'rgba(16, 185, 129, 0.85)', 
+                                color: '#fff', 
+                                padding: '0.15rem 0.4rem', 
+                                borderRadius: '12px', 
+                                fontSize: '0.62rem', 
+                                fontWeight: 'bold', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '3px',
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                                backdropFilter: 'blur(4px)'
+                              }}>
+                                {isUserGen ? <SwordsIcon size={11} /> : <TargetIcon size={11} />}
+                                {isUserGen ? 'ראש בראש' : 'אתגר עצמי'}
+                              </span>
+                            );
+                          })()}
                           
-                          {/* XP tag in bottom right of image */}
+                           {/* Trophy tag in bottom right of image */}
                           <span style={{ position: 'absolute', bottom: '6px', right: '8px', background: 'rgba(0,0,0,0.65)', color: '#fff', padding: '0.15rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold' }}>
-                            ⚡ {c.xpReward} XP
+                            🏆 {c.xpReward} גביעים
                           </span>
                         </div>
 
@@ -1776,10 +1893,40 @@ export default function App() {
                             
                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', fontSize: '0.75rem', flexWrap: 'wrap' }}>
                               <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.2rem 0.5rem', borderRadius: '6px' }}>{c.difficulty}</span>
-                              <span style={{ background: 'var(--accent-glow)', color: 'var(--accent)', padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: 'bold' }}>⚡ {c.xpReward} XP</span>
+                              <span style={{ background: 'var(--accent-glow)', color: 'var(--accent)', padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: 'bold' }}>🏆 {c.xpReward} גביעים</span>
                               <span style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>👥 {c.participantsCount} משתתפים</span>
                             </div>
                           </div>
+
+                          {/* Challenge type banner */}
+                          {(() => {
+                            const isUserGen = isUserGeneratedChallenge(c);
+                            return (
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.5rem', 
+                                background: 'var(--bg-tertiary)', 
+                                padding: '0.5rem 0.75rem', 
+                                borderRadius: '12px', 
+                                fontSize: '0.85rem',
+                                border: '1px solid var(--border)',
+                                marginTop: '0.25rem'
+                              }}>
+                                <span style={{ color: isUserGen ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center' }}>
+                                  {isUserGen ? <SwordsIcon size={18} /> : <TargetIcon size={18} />}
+                                </span>
+                                <div>
+                                  <strong style={{ color: 'var(--text-primary)', display: 'block' }}>
+                                    {isUserGen ? 'דו-קרב ראש בראש' : 'אתגר עצמי'}
+                                  </strong>
+                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                                    {isUserGen ? `נוצר על ידי המשתמש: ${c.creator}` : `אתגר רשמי מטעם: ${c.creator}`}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* Community difficulty grade */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -1916,7 +2063,7 @@ export default function App() {
                               <h5 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.9rem' }}>{linkedChallenge.title}</h5>
                               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                                 <span className={`difficulty-tag difficulty-${linkedChallenge.difficulty}`}>{linkedChallenge.difficulty}</span>
-                                <span>⚡ {linkedChallenge.xpReward} XP</span>
+                                <span>🏆 {linkedChallenge.xpReward} גביעים</span>
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1945,11 +2092,44 @@ export default function App() {
                       </div>
                     );
                   })()}
-                </div>
+                {/* Floating Action Button (FAB) to create new challenge */}
+                <button 
+                  onClick={() => setActiveTab('create')} 
+                  style={{
+                    position: 'fixed',
+                    bottom: '90px',
+                    right: '24px',
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                    color: '#000',
+                    border: 'none',
+                    boxShadow: '0 4px 15px var(--accent-glow)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 99,
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px var(--accent-glow)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px var(--accent-glow)';
+                  }}
+                  title="צור אתגר חדש"
+                >
+                  <PlusIcon size={28} />
+                </button>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+      )}
 
 
         {/* TAB 3: CREATE CHALLENGE (INSTAGRAM / TIKTOK POST STYLE WIZARD) */}
@@ -1965,220 +2145,361 @@ export default function App() {
                 <p style={{ color: '#ff4d4d', fontWeight: 'bold', fontSize: '1.1rem' }}>חשבונך חסום. אינך יכול לפרסם אתגרים חדשים.</p>
               </div>
             ) : (
-              <form onSubmit={handleCreateChallenge} className="creator-split-grid">
-                
-                {/* LEFT COLUMN: TikTok / Instagram Style Live Preview & Media Selector */}
-                <div className="creator-preview-pane">
-                  <div className="creator-card-label">תצוגה מקדימה של הפוסט</div>
-                  
-                  {/* Mock Phone Viewport */}
-                  <div className="mock-post-card">
-                    {/* Image Preview */}
-                    <div className="mock-post-media">
-                      <img 
-                        src={newChallengeProofImage || "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"} 
-                        alt="Preview" 
-                        className="mock-media-img"
-                      />
-                      <div className="mock-post-gradient-overlay"></div>
-                      
-                      {/* Floating TikTok Style Badges */}
-                      <div className="mock-post-badges">
-                        <span className={`mock-badge diff-${newChallengeDifficulty}`}>
-                          ⚡ {newChallengeDifficulty}
-                        </span>
-                        <span className="mock-badge category">
-                          🏷️ {newChallengeCategory}
-                        </span>
-                      </div>
+              <div>
+                {/* Step indicator */}
+                <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '1.5rem', direction: 'rtl', padding: '0 0.5rem' }}>
+                  <div style={{ fontWeight: creationStep === 1 ? 'bold' : 'normal', color: creationStep === 1 ? 'var(--accent)' : 'var(--text-muted)', borderBottom: creationStep === 1 ? '2px solid var(--accent)' : 'none', paddingBottom: '4px' }}>1. רקע ואווירה 🖼️</div>
+                  <div style={{ fontWeight: creationStep === 2 ? 'bold' : 'normal', color: creationStep === 2 ? 'var(--accent)' : 'var(--text-muted)', borderBottom: creationStep === 2 ? '2px solid var(--accent)' : 'none', paddingBottom: '4px' }}>2. פרטי האתגר 📝</div>
+                  <div style={{ fontWeight: creationStep === 3 ? 'bold' : 'normal', color: creationStep === 3 ? 'var(--accent)' : 'var(--text-muted)', borderBottom: creationStep === 3 ? '2px solid var(--accent)' : 'none', paddingBottom: '4px' }}>3. הוכחה ופרס 🏆</div>
+                </div>
 
-                      {/* Bottom Info Overlay inside Media */}
-                      <div className="mock-post-bottom-info">
-                        <div className="mock-user-row">
-                          <img src={currentUser.avatar} alt="" className="mock-user-avatar" />
-                          <span className="mock-user-name">{currentUser.name}</span>
-                        </div>
-                        <h4 className="mock-challenge-title">{newChallengeTitle || "שם האתגר שלכם..."}</h4>
-                        <p className="mock-challenge-desc">{newChallengeProofText || "הוכחת הביצוע שלכם תופיע כאן..."}</p>
+                <form onSubmit={handleCreateChallenge} className="creator-split-grid">
+                  
+                  {/* LEFT COLUMN: TikTok / Instagram Style Live Preview */}
+                  <div className="creator-preview-pane">
+                    <div className="creator-card-label">תצוגה מקדימה של הפוסט</div>
+                    
+                    {/* Mock Phone Viewport */}
+                    <div className="mock-post-card">
+                      {/* Image Preview */}
+                      <div className="mock-post-media">
+                        <img 
+                          src={newChallengeProofImage || "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"} 
+                          alt="Preview" 
+                          className="mock-media-img"
+                        />
+                        <div className="mock-post-gradient-overlay"></div>
                         
-                        {/* Dynamic XP counter */}
-                        <div className="mock-xp-row">
-                          <span>XP מוענק:</span>
-                          <span className="mock-xp-glow">
-                            +{Math.round(Number(newChallengeXp) * (newChallengeDifficulty === 'בינוני' ? 1.2 : newChallengeDifficulty === 'קשה' ? 1.5 : newChallengeDifficulty === 'קשה מאוד' ? 2.0 : 1.0))} XP
+                        {/* Floating TikTok Style Badges */}
+                        <div className="mock-post-badges">
+                          <span className={`mock-badge diff-${newChallengeDifficulty}`}>
+                            ⚡ {newChallengeDifficulty}
+                          </span>
+                          <span className="mock-badge category">
+                            🏷️ {newChallengeCategory}
                           </span>
                         </div>
+
+                        {/* Bottom Info Overlay inside Media */}
+                        <div className="mock-post-bottom-info">
+                          <div className="mock-user-row">
+                            <img src={currentUser.avatar} alt="" className="mock-user-avatar" />
+                            <span className="mock-user-name">{currentUser.name}</span>
+                          </div>
+                          <h4 className="mock-challenge-title">{newChallengeTitle || "שם האתגר שלכם..."}</h4>
+                          <p className="mock-challenge-desc">{newChallengeProofText || "הוכחת הביצוע שלכם תופיע כאן..."}</p>
+                          
+                          {/* Dynamic Trophies counter */}
+                          <div className="mock-xp-row">
+                            <span>גביעים מוענקים:</span>
+                            <span className="mock-xp-glow">
+                              +{Math.round(Number(newChallengeXp) * (newChallengeDifficulty === 'בינוני' ? 1.2 : newChallengeDifficulty === 'קשה' ? 1.5 : newChallengeDifficulty === 'קשה מאוד' ? 2.0 : 1.0))} 🏆
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Preset Sporty Media Options */}
-                  <div className="media-preset-section">
-                    <span className="section-label">בחרו תמונת אווירה ספורטיבית:</span>
-                    <div className="media-presets-grid">
-                      {[
-                        { name: "ריצה", url: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&auto=format&fit=crop&q=80" },
-                        { name: "כוח/משקולות", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80" },
-                        { name: "אימון ביתי", url: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=300&auto=format&fit=crop&q=80" },
-                        { name: "ריצה/אירובי", url: "https://images.unsplash.com/photo-1502224562085-639556652f33?w=300&auto=format&fit=crop&q=80" },
-                        { name: "שטח/טיפוס", url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&auto=format&fit=crop&q=80" }
-                      ].map((preset, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          className={`preset-thumb-btn ${newChallengeProofImage === preset.url ? 'active' : ''}`}
-                          onClick={() => setNewChallengeProofImage(preset.url)}
-                        >
-                          <img src={preset.url} alt={preset.name} />
-                          <span>{preset.name}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                      <input 
-                        type="url" 
-                        className="form-control" 
-                        placeholder="או הדביקו כתובת תמונה מותאמת אישית..."
-                        value={newChallengeProofImage}
-                        onChange={(e) => setNewChallengeProofImage(e.target.value)}
-                        style={{ fontSize: '0.8rem' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* RIGHT COLUMN: Details & Settings Panel */}
-                <div className="creator-details-pane">
-                  {/* Step 1: Core Details */}
-                  <div className="glass-card creator-section-card">
-                    <h3 className="section-title" style={{ fontWeight: 700 }}>✍️ פרטי האתגר</h3>
+                  {/* RIGHT COLUMN: Step-by-Step Settings Panels */}
+                  <div className="creator-details-pane">
                     
-                    <div className="form-group">
-                      <label className="form-label">שם האתגר</label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        placeholder="לדוגמה: 100 שכיבות סמיכה ברצף" 
-                        value={newChallengeTitle}
-                        onChange={(e) => setNewChallengeTitle(e.target.value)}
-                        required
-                      />
-                    </div>
+                    {/* Step 1: Media Selection */}
+                    {creationStep === 1 && (
+                      <div className="glass-card creator-section-card">
+                        <h3 className="section-title" style={{ fontWeight: 700 }}>🖼️ רקע ואווירה</h3>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>בחרו תמונה המשקפת את רוח האימון או האתגר שלכם:</p>
+                        
+                        <div className="media-preset-section" style={{ padding: 0, margin: 0 }}>
+                          <div className="media-presets-grid">
+                            {[
+                              { name: "ריצה", url: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&auto=format&fit=crop&q=80" },
+                              { name: "כוח/משקולות", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80" },
+                              { name: "אימון ביתי", url: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=300&auto=format&fit=crop&q=80" },
+                              { name: "ריצה/אירובי", url: "https://images.unsplash.com/photo-1502224562085-639556652f33?w=300&auto=format&fit=crop&q=80" },
+                              { name: "שטח/טיפוס", url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&auto=format&fit=crop&q=80" }
+                            ].map((preset, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                className={`preset-thumb-btn ${newChallengeProofImage === preset.url ? 'active' : ''}`}
+                                onClick={() => setNewChallengeProofImage(preset.url)}
+                              >
+                                <img src={preset.url} alt={preset.name} />
+                                <span>{preset.name}</span>
+                              </button>
+                            ))}
+                          </div>
 
-                    <div className="form-group">
-                      <label className="form-label">תיאור האתגר ומטרות</label>
-                      <textarea 
-                        className="form-control" 
-                        rows="2"
-                        placeholder="הסבירו מה צריך לעשות..." 
-                        value={newChallengeDesc}
-                        onChange={(e) => setNewChallengeDesc(e.target.value)}
-                        required
-                      ></textarea>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div className="form-group">
-                        <label className="form-label">קטגוריה</label>
-                        <select 
-                          className="form-control"
-                          value={newChallengeCategory}
-                          onChange={(e) => setNewChallengeCategory(e.target.value)}
-                        >
-                          <option value="כוח">כוח 💪</option>
-                          <option value="אירובי">אירובי 🏃‍♂️</option>
-                          <option value="ליבה">ליבה 🧘</option>
-                          <option value="שטח">שטח ⛰️</option>
-                        </select>
+                          <div className="form-group" style={{ marginTop: '1rem' }}>
+                            <label className="form-label" style={{ fontSize: '0.8rem' }}>או כתובת תמונה מותאמת אישית (URL):</label>
+                            <input 
+                              type="url" 
+                              className="form-control" 
+                              placeholder="https://..."
+                              value={newChallengeProofImage}
+                              onChange={(e) => setNewChallengeProofImage(e.target.value)}
+                              style={{ fontSize: '0.8rem' }}
+                            />
+                          </div>
+                        </div>
                       </div>
+                    )}
 
-                      <div className="form-group">
-                        <label className="form-label">רמת קושי</label>
-                        <select 
-                          className="form-control"
-                          value={newChallengeDifficulty}
-                          onChange={(e) => setNewChallengeDifficulty(e.target.value)}
-                        >
-                          <option value="קל">קל</option>
-                          <option value="בינוני">בינוני</option>
-                          <option value="קשה">קשה</option>
-                          <option value="קשה מאוד">קשה מאוד</option>
-                        </select>
+                    {/* Step 2: Core Details */}
+                    {creationStep === 2 && (
+                      <div className="glass-card creator-section-card">
+                        <h3 className="section-title" style={{ fontWeight: 700 }}>✍️ פרטי האתגר</h3>
+                        
+                        <div className="form-group">
+                          <label className="form-label">שם האתגר</label>
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            placeholder="לדוגמה: 100 שכיבות סמיכה ברצף" 
+                            value={newChallengeTitle}
+                            onChange={(e) => setNewChallengeTitle(e.target.value)}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">תיאור האתגר ומטרות</label>
+                          <textarea 
+                            className="form-control" 
+                            rows="2"
+                            placeholder="הסבירו מה צריך לעשות..." 
+                            value={newChallengeDesc}
+                            onChange={(e) => setNewChallengeDesc(e.target.value)}
+                            required
+                          ></textarea>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                          <div className="form-group">
+                            <label className="form-label">קטגוריה</label>
+                            <select 
+                              className="form-control"
+                              value={newChallengeCategory}
+                              onChange={(e) => setNewChallengeCategory(e.target.value)}
+                            >
+                              <option value="כוח">כוח 💪</option>
+                              <option value="אירובי">אירובי 🏃‍♂️</option>
+                              <option value="ליבה">ליבה 🧘</option>
+                              <option value="שטח">שטח ⛰️</option>
+                            </select>
+                          </div>
+
+                          <div className="form-group">
+                            <label className="form-label">רמת קושי</label>
+                            <select 
+                              className="form-control"
+                              value={newChallengeDifficulty}
+                              onChange={(e) => setNewChallengeDifficulty(e.target.value)}
+                            >
+                              <option value="קל">קל</option>
+                              <option value="בינוני">בינוני</option>
+                              <option value="קשה">קשה</option>
+                              <option value="קשה מאוד">קשה מאוד</option>
+                            </select>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    )}
 
-                  {/* Step 2: Proof & Captions */}
-                  <div className="glass-card creator-section-card">
-                    <h3 className="section-title" style={{ fontWeight: 700 }}>🏆 הוכחת ביצוע וטקסט פוסט (Caption)</h3>
-                    
-                    <div className="form-group">
-                      <label className="form-label">איך ביצעתם את האתגר בעצמכם? (חובה לפרסום)</label>
-                      <textarea 
-                        className="form-control" 
-                        rows="3"
-                        placeholder="שתפו את הזמן, המרחק או החוויה שלכם. הפוסט יתפרסם בפיד הראשי!" 
-                        value={newChallengeProofText}
-                        onChange={(e) => setNewChallengeProofText(e.target.value)}
-                        required
-                      ></textarea>
+                    {/* Step 3: Proof, Location & Rewards */}
+                    {creationStep === 3 && (
+                      <>
+                        <div className="glass-card creator-section-card">
+                          <h3 className="section-title" style={{ fontWeight: 700 }}>🏆 הוכחת ביצוע וטקסט פוסט (Caption)</h3>
+                          
+                          <div className="form-group">
+                            <label className="form-label">איך ביצעתם את האתגר בעצמכם? (חובה לפרסום)</label>
+                            <textarea 
+                              className="form-control" 
+                              rows="3"
+                              placeholder="שתפו את הזמן, המרחק או החוויה שלכם. הפוסט יתפרסם בפיד הראשי!" 
+                              value={newChallengeProofText}
+                              onChange={(e) => setNewChallengeProofText(e.target.value)}
+                              required
+                            ></textarea>
 
-                      {/* Hashtag helpers */}
-                      <div className="hashtag-helpers" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                        {["#Fitness", "#Pulse", "#NoExcuses", "#WorkoutDone", "#ChallengeAccepted"].map(tag => (
-                          <button
-                            type="button"
-                            key={tag}
-                            className="hashtag-btn"
-                            onClick={() => {
-                              if (!newChallengeProofText.includes(tag)) {
-                                setNewChallengeProofText(prev => prev + " " + tag);
-                              }
-                            }}
-                            style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                          >
-                            {tag}
+                            {/* Hashtag helpers */}
+                            <div className="hashtag-helpers" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                              {["#Fitness", "#Pulse", "#NoExcuses", "#WorkoutDone", "#ChallengeAccepted"].map(tag => (
+                                <button
+                                  type="button"
+                                  key={tag}
+                                  className="hashtag-btn"
+                                  onClick={() => {
+                                    if (!newChallengeProofText.includes(tag)) {
+                                      setNewChallengeProofText(prev => prev + " " + tag);
+                                    }
+                                  }}
+                                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                                >
+                                  {tag}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Location Pinning Component */}
+                          <div className="form-group" style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)', marginTop: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                              <input 
+                                type="checkbox" 
+                                id="pin-location-check"
+                                checked={newChallengePinLocation}
+                                onChange={(e) => {
+                                  setNewChallengePinLocation(e.target.checked);
+                                  if (e.target.checked && userCoords) {
+                                    setNewChallengeLat(userCoords[0]);
+                                    setNewChallengeLng(userCoords[1]);
+                                  }
+                                }}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                              />
+                              <label htmlFor="pin-location-check" style={{ fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                                📍 נעיצת מיקום גיאוגרפי במפת האתגרים
+                              </label>
+                            </div>
+
+                            {newChallengePinLocation && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+                                <div className="form-group" style={{ margin: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>שם המיקום במפה</label>
+                                  <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    placeholder="לדוגמה: גינת ספורט שכונתית"
+                                    value={newChallengeLocationName}
+                                    onChange={(e) => setNewChallengeLocationName(e.target.value)}
+                                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                    required={newChallengePinLocation}
+                                  />
+                                </div>
+
+                                <div className="form-group" style={{ margin: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>תיאור קצר למיקום</label>
+                                  <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    placeholder="הנחיות הגעה או פרטים נוסםים..."
+                                    value={newChallengeLocationDesc}
+                                    onChange={(e) => setNewChallengeLocationDesc(e.target.value)}
+                                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                  />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                  <div className="form-group" style={{ margin: 0 }}>
+                                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>קו רוחב (Lat)</label>
+                                    <input 
+                                      type="number" 
+                                      step="0.0001"
+                                      className="form-control" 
+                                      value={newChallengeLat}
+                                      onChange={(e) => setNewChallengeLat(e.target.value)}
+                                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                      required={newChallengePinLocation}
+                                    />
+                                  </div>
+                                  <div className="form-group" style={{ margin: 0 }}>
+                                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>קו אורך (Lng)</label>
+                                    <input 
+                                      type="number" 
+                                      step="0.0001"
+                                      className="form-control" 
+                                      value={newChallengeLng}
+                                      onChange={(e) => setNewChallengeLng(e.target.value)}
+                                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                      required={newChallengePinLocation}
+                                    />
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  onClick={() => {
+                                    if (navigator.geolocation) {
+                                      navigator.geolocation.getCurrentPosition((pos) => {
+                                        setNewChallengeLat(pos.coords.latitude.toFixed(4));
+                                        setNewChallengeLng(pos.coords.longitude.toFixed(4));
+                                      });
+                                    }
+                                  }}
+                                  style={{ padding: '0.4rem', fontSize: '0.75rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                >
+                                  🎯 דגום את המיקום הנוכחי שלי
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Rewards & Publish */}
+                        <div className="glass-card creator-section-card" style={{ border: '1px solid var(--accent)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                            <span style={{ fontWeight: 'bold' }}>בסיס גביעים לפרס 🏆:</span>
+                            <input 
+                              type="number" 
+                              value={newChallengeXp}
+                              onChange={(e) => setNewChallengeXp(Number(e.target.value))}
+                              className="form-control"
+                              style={{ width: '80px', padding: '0.25rem 0.5rem', textAlign: 'center' }}
+                              min="50"
+                              max="1000"
+                            />
+                          </div>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>הגביעים הסופיים מחושבים אוטומטית לפי רמת הקושי שבחרתם.</p>
+                          
+                          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--accent)', color: '#000', fontWeight: 'bold', fontSize: '1.05rem', boxShadow: '0 4px 15px var(--accent-glow)' }}>
+                            אשר ביצוע ושתף לפוסט 🚀
                           </button>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
+                      </>
+                    )}
 
-                    <div className="form-group">
-                      <label className="form-label">תג מיקום (Location Tag)</label>
-                      <select className="form-control">
-                        <option value="">בחר מיקום (אופציונלי)...</option>
-                        <option value="פארק הירקון">🌳 פארק הירקון, תל אביב</option>
-                        <option value="הולמס פלייס">🏋️‍♂️ מועדון הולמס פלייס</option>
-                        <option value="חוף הים">🏖️ טיילת חוף הים</option>
-                        <option value="החרמון">🏔️ הר החרמון</option>
-                      </select>
+                    {/* Navigation Buttons for Wizard */}
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'space-between', direction: 'rtl' }}>
+                      {creationStep < 3 ? (
+                        <button 
+                          type="button" 
+                          className="btn btn-primary" 
+                          onClick={() => {
+                            if (creationStep === 1 && !newChallengeProofImage) {
+                              // Set default image if none selected
+                              setNewChallengeProofImage("https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80");
+                            }
+                            if (creationStep === 2 && (!newChallengeTitle.trim() || !newChallengeDesc.trim())) {
+                              alert("אנא הזן שם ותיאור עבור האתגר.");
+                              return;
+                            }
+                            setCreationStep(prev => prev + 1);
+                          }}
+                          style={{ flex: 1, background: 'var(--accent)', color: '#000', fontWeight: 'bold' }}
+                        >
+                          המשך ←
+                        </button>
+                      ) : null}
+                      
+                      {creationStep > 1 && (
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          onClick={() => setCreationStep(prev => prev - 1)}
+                          style={{ flex: 1 }}
+                        >
+                          → חזור
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Rewards & Publish */}
-                  <div className="glass-card creator-section-card" style={{ border: '1px solid var(--accent)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <span style={{ fontWeight: 'bold' }}>בסיס XP לפרס:</span>
-                      <input 
-                        type="number" 
-                        value={newChallengeXp}
-                        onChange={(e) => setNewChallengeXp(Number(e.target.value))}
-                        className="form-control"
-                        style={{ width: '80px', padding: '0.25rem 0.5rem', textAlign: 'center' }}
-                        min="50"
-                        max="1000"
-                      />
-                    </div>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>הניקוד הסופי מחושב אוטומטית לפי רמת הקושי שבחרתם.</p>
-                    
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--accent)', color: '#000', fontWeight: 'bold', fontSize: '1.05rem', boxShadow: '0 4px 15px var(--accent-glow)' }}>
-                      אשר ביצוע ושתף לפוסט 🚀
-                    </button>
-                  </div>
-                </div>
-
-              </form>
+                </form>
+              </div>
             )}
           </div>
         )}
@@ -2486,7 +2807,7 @@ export default function App() {
                           <img src={user.avatar} alt={user.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
                           <div style={{ textAlign: 'right' }}>
                             <h4 style={{ fontWeight: 700, margin: 0, fontSize: '0.85rem' }}>{user.name}</h4>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>LEVEL {Math.floor(user.xp / 500) + 1} • {user.xp} XP</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>דרגה {Math.floor(user.xp / 500) + 1} • 🏆 {user.xp} גביעים</span>
                           </div>
                         </div>
                         <button 
@@ -2559,7 +2880,7 @@ export default function App() {
                   
                   {/* Level & Title */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
-                    <span className="game-level-tag" style={{ background: 'var(--accent)', color: '#000', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '20px', fontSize: '0.7rem' }}>LEVEL {Math.floor(currentUser.xp / 500) + 1}</span>
+                    <span className="game-level-tag" style={{ background: 'var(--accent)', color: '#000', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '20px', fontSize: '0.7rem' }}>דרגה {Math.floor(currentUser.xp / 500) + 1}</span>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 'bold' }}>
                       {Math.floor(currentUser.xp / 500) + 1 >= 5 ? '🏅 אלוף מיתולוגי' :
                        Math.floor(currentUser.xp / 500) + 1 >= 4 ? '🛡️ גיבור' :
@@ -2571,7 +2892,7 @@ export default function App() {
                   {/* Level Progress Bar */}
                   <div style={{ marginTop: '0.75rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                      <span>XP {currentUser.xp % 500} / 500 (סה"כ: {currentUser.xp} XP)</span>
+                      <span>גביעים {currentUser.xp % 500} / 500 (סה"כ: 🏆 {currentUser.xp} גביעים)</span>
                       <span>התקדמות לדרגה הבאה</span>
                     </div>
                     <div className="game-stat-bar-bg" style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -2762,7 +3083,7 @@ export default function App() {
                     <div key={c.id} className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <h4 style={{ fontWeight: 700 }}>{c.title}</h4>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>פרס: {c.xpReward} XP</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>פרס: {c.xpReward} גביעים 🏆</span>
                       </div>
                       <button 
                         onClick={() => {
@@ -2813,7 +3134,7 @@ export default function App() {
         <div className="story-viewer-backdrop">
           <div className="story-viewer-content">
             {/* Progress Bars */}
-            <div className="story-progress-container">
+            <div className="story-progress-container" style={{ flexDirection: language === 'he' ? 'row-reverse' : 'row' }}>
               {stories[activeStoryIndex].slides.map((slide, idx) => (
                 <div key={slide.id} className="story-progress-track">
                   <div 
@@ -2831,7 +3152,7 @@ export default function App() {
             </div>
 
             {/* Header Info */}
-            <div className="story-viewer-header">
+            <div className="story-viewer-header" style={{ direction: language === 'he' ? 'rtl' : 'ltr' }}>
               <div className="story-viewer-user">
                 <img src={stories[activeStoryIndex].userAvatar} alt="" className="story-viewer-avatar" />
                 <span className="story-viewer-name">{stories[activeStoryIndex].userName}</span>
@@ -2844,13 +3165,13 @@ export default function App() {
 
             {/* Media Content */}
             <div className="story-media-container">
-              <button className="story-nav-btn story-nav-prev" onClick={handlePrevSlide}>
+              <button className="story-nav-btn story-nav-prev" onClick={language === 'he' ? handleNextSlide : handlePrevSlide}>
                 <ChevronLeftIcon size={24} />
               </button>
 
               <img src={stories[activeStoryIndex].slides[activeSlideIndex].image} alt="" className="story-image" />
 
-              <button className="story-nav-btn story-nav-next" onClick={handleNextSlide}>
+              <button className="story-nav-btn story-nav-next" onClick={language === 'he' ? handlePrevSlide : handleNextSlide}>
                 <ChevronRightIcon size={24} />
               </button>
             </div>
@@ -3130,7 +3451,7 @@ export default function App() {
                 </div>
                 <div className="game-user-details">
                   <h4 style={{ fontWeight: 800, margin: 0, fontSize: '1.2rem' }}>{selectedUserForModal.name}</h4>
-                  <span className="game-level-tag" style={{ fontSize: '0.65rem' }}>LEVEL {Math.floor(selectedUserForModal.xp / 500) + 1}</span>
+                  <span className="game-level-tag" style={{ fontSize: '0.65rem' }}>דרגה {Math.floor(selectedUserForModal.xp / 500) + 1}</span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginRight: '0.5rem', fontWeight: 'bold' }}>
                     {Math.floor(selectedUserForModal.xp / 500) + 1 >= 5 ? '🏅 אלוף מיתולוגי' :
                      Math.floor(selectedUserForModal.xp / 500) + 1 >= 4 ? '🛡️ גיבור' :
@@ -3138,7 +3459,7 @@ export default function App() {
                      Math.floor(selectedUserForModal.xp / 500) + 1 >= 2 ? '⚡ מתלמד' : '🌱 טירון'}
                   </span>
                   <div style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 'bold', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <span>⭐ {selectedUserForModal.xp} XP</span>
+                    <span>🏆 {selectedUserForModal.xp} גביעים</span>
                     <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>• מקום {selectedUserForModal.rank || '#'}</span>
                   </div>
                 </div>
@@ -3185,40 +3506,73 @@ export default function App() {
                 </div>
               </div>
 
-              {/* RPG Stats */}
-              <h4 style={{ fontSize: '0.85rem', color: '#c084fc', fontWeight: 'bold', margin: '0.75rem 0 0.5rem' }}>מאפייני RPG</h4>
-              <div className="game-stats-container" style={{ margin: 0, gap: '0.75rem' }}>
-                <div className="game-stat-row">
-                  <div className="game-stat-label" style={{ fontSize: '0.75rem' }}>
-                    <span>כוח 💪</span>
-                    <span>{selectedUserForModal.stats?.strength || 50}</span>
-                  </div>
-                  <div className="game-stat-bar-bg" style={{ height: '8px' }}>
-                    <div className="game-stat-bar-fill fill-strength" style={{ width: `${selectedUserForModal.stats?.strength || 50}%` }}></div>
-                  </div>
-                </div>
-                <div className="game-stat-row">
-                  <div className="game-stat-label" style={{ fontSize: '0.75rem' }}>
-                    <span>סיבולת 🏃‍♂️</span>
-                    <span>{selectedUserForModal.stats?.stamina || 50}</span>
-                  </div>
-                  <div className="game-stat-bar-bg" style={{ height: '8px' }}>
-                    <div className="game-stat-bar-fill fill-stamina" style={{ width: `${selectedUserForModal.stats?.stamina || 50}%` }}></div>
-                  </div>
-                </div>
-              </div>
-
               {/* Achievements */}
               <h4 style={{ fontSize: '0.85rem', color: '#ffd700', fontWeight: 'bold', margin: '1rem 0 0.5rem' }}>תגים נוצצים</h4>
-              <div className="badges-container" style={{ gap: '0.5rem' }}>
-                {selectedUserForModal.badges?.map(b => {
+              <div className="scout-patch-container" style={{ marginTop: '0.5rem' }}>
+                {selectedUserForModal.badges?.map((b, idx) => {
                   const parts = b.split(' ');
                   const emoji = parts[0] || '🏅';
                   const title = parts.slice(1).join(' ') || b;
+                  
+                  const patchColors = [
+                    { bg: '#132a13', border: '#ffd700' },
+                    { bg: '#0f2027', border: '#cbd5e1' },
+                    { bg: '#3a0ca3', border: '#f72585' },
+                    { bg: '#4a154b', border: '#ffb703' },
+                    { bg: '#1f1f2e', border: '#8ecae6' }
+                  ];
+                  const colorConfig = patchColors[idx % patchColors.length];
+                  const shapes = ['circle', 'shield', 'hexagon', 'diamond', 'octagon'];
+                  const shape = shapes[idx % shapes.length];
+                  const sizes = ['sm', 'md', 'lg'];
+                  const size = sizes[idx % sizes.length];
+                  const emojiFontSize = size === 'sm' ? '1.8rem' : size === 'md' ? '2.4rem' : '2.9rem';
+
+                  const getBadgeDesc = (titleStr) => {
+                    if (titleStr.includes('רצף') || titleStr.includes('7 ימים')) {
+                      return 'הוענק על שמירה על מוטיבציה ופעילות רציפה באפליקציה במשך שבוע שלם ללא הפסקה!';
+                    }
+                    if (titleStr.includes('מרתון')) {
+                      return 'הוענק על השלמת אתגר ריצה מפרך למרחק רב. כוח רצון של פלדה!';
+                    }
+                    if (titleStr.includes('פסגות')) {
+                      return 'הוענק למטפסי הרים כבירים שהשלימו אתגר גובה יוצא דופן!';
+                    }
+                    if (titleStr.includes('ברזל')) {
+                      return 'הוענק למי שהוכיח עמידות פיזית קיצונית וכוח סיבולת על-אנושי באתגרי כוח קשים!';
+                    }
+                    if (titleStr.includes('זריז')) {
+                      return 'הוענק על ביצוע אתגרים במהירות שיא וזמן תגובה מדהים!';
+                    }
+                    return 'תג הצטיינות מיוחד המוענק לחברי תנועת האתגרים על השלמת יעדים ייחודיים!';
+                  };
+
+                  const badgeDetail = {
+                    title,
+                    emoji,
+                    desc: getBadgeDesc(title),
+                    colorConfig,
+                    shape,
+                    size
+                  };
+
                   return (
-                    <div key={b} className="shiny-badge-card" style={{ padding: '0.5rem 0.25rem' }}>
-                      <span style={{ fontSize: '1.5rem' }}>{emoji}</span>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>{title}</span>
+                    <div 
+                      key={b} 
+                      className="scout-patch-badge"
+                      title={`תג הישג: ${title} - לחץ לפרטים`}
+                      onClick={() => setActiveBadgeDetail(badgeDetail)}
+                    >
+                      <div 
+                        className={`scout-patch-circle patch-shape-${shape} patch-size-${size}`}
+                        style={{
+                          background: colorConfig.bg,
+                          '--metal-border': colorConfig.border
+                        }}
+                      >
+                        <div className="scout-patch-gloss"></div>
+                        <span className="scout-patch-emoji" style={{ fontSize: emojiFontSize }}>{emoji}</span>
+                      </div>
                     </div>
                   );
                 })}
@@ -3254,7 +3608,7 @@ export default function App() {
                 >
                   <div>
                     <h4 style={{ fontWeight: 700, margin: 0, fontSize: '0.95rem' }}>{c.title}</h4>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>פרס: {c.xpReward} XP</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>פרס: {c.xpReward} גביעים 🏆</span>
                   </div>
                   <button 
                     className="btn btn-primary" 
@@ -3374,7 +3728,7 @@ export default function App() {
                       <div className="reel-action-btn-wrapper" onClick={() => {
                         toggleJoinChallenge(associatedChallenge.id);
                         if (!isJoinedChallenge) {
-                          alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור נקודות XP עכשיו!`);
+                          alert(`💪 הצטרפת לאתגר: ${associatedChallenge.title}! צבור גביעים עכשיו! 🏆`);
                         }
                       }}>
                         <div className="reel-action-circle" style={{ color: isJoinedChallenge ? 'var(--success)' : 'var(--accent)' }}>
