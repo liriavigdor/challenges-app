@@ -2,7 +2,7 @@ export const initialUsers = [
   {
     id: "user_1",
     name: "רועי כהן",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/adventurer/svg?seed=Roy",
     xp: 2450,
     trophies: 1250,
     rank: 1,
@@ -33,12 +33,12 @@ export const initialUsers = [
     followers: ["user_2", "user_3", "user_5", "user_7"],
     following: ["user_2", "user_4", "user_6"],
     stats: { strength: 78, stamina: 85, agility: 62, zen: 45 },
-    avatarConfig: { type: 'runner', shirtColor: '#ef4444', glowColor: '#00ffff' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }
   },
   {
     id: "user_2",
     name: "יובל לוי",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/bottts/svg?seed=Yuval",
     xp: 1980,
     trophies: 1180,
     rank: 2,
@@ -52,12 +52,12 @@ export const initialUsers = [
     followers: ["user_1", "user_4", "user_6"],
     following: ["user_1", "user_3", "user_5"],
     stats: { strength: 90, stamina: 70, agility: 80, zen: 30 },
-    avatarConfig: { type: 'weightlifter', shirtColor: '#3b82f6', glowColor: '#a855f7' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#a855f7' }
   },
   {
     id: "user_3",
     name: "דניאל מזרחי",
-    avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/lorelei/svg?seed=Daniel",
     xp: 1620,
     trophies: 1120,
     rank: 3,
@@ -71,12 +71,12 @@ export const initialUsers = [
     followers: ["user_2"],
     following: ["user_1", "user_7"],
     stats: { strength: 65, stamina: 88, agility: 70, zen: 50 },
-    avatarConfig: { type: 'cyclist', shirtColor: '#10b981', glowColor: '#eab308' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#eab308' }
   },
   {
     id: "user_4",
     name: "שירה אלוני",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Shira",
     xp: 1400,
     trophies: 1050,
     rank: 4,
@@ -90,12 +90,12 @@ export const initialUsers = [
     followers: ["user_1"],
     following: ["user_2", "user_8"],
     stats: { strength: 50, stamina: 60, agility: 55, zen: 95 },
-    avatarConfig: { type: 'yoga', shirtColor: '#ec4899', glowColor: '#22c55e' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#22c55e' }
   },
   {
     id: "user_5",
     name: "נטע ברק",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Neta",
     xp: 1250,
     trophies: 980,
     rank: 5,
@@ -109,12 +109,12 @@ export const initialUsers = [
     followers: ["user_2"],
     following: ["user_1"],
     stats: { strength: 55, stamina: 75, agility: 65, zen: 60 },
-    avatarConfig: { type: 'runner', shirtColor: '#f97316', glowColor: '#ffffff' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#ffffff' }
   },
   {
     id: "user_6",
     name: "גיא רגב",
-    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/open-peeps/svg?seed=Michal",
     xp: 1100,
     trophies: 950,
     rank: 6,
@@ -128,12 +128,12 @@ export const initialUsers = [
     followers: ["user_1"],
     following: ["user_2"],
     stats: { strength: 85, stamina: 55, agility: 60, zen: 35 },
-    avatarConfig: { type: 'weightlifter', shirtColor: '#8b5cf6', glowColor: '#ff007f' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#ff007f' }
   },
   {
     id: "user_7",
     name: "מיכל אשד",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/micah/svg?seed=Ofer",
     xp: 950,
     trophies: 880,
     rank: 7,
@@ -147,12 +147,12 @@ export const initialUsers = [
     followers: ["user_3"],
     following: ["user_1"],
     stats: { strength: 40, stamina: 50, agility: 50, zen: 85 },
-    avatarConfig: { type: 'yoga', shirtColor: '#14b8a6', glowColor: '#00ffff' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }
   },
   {
     id: "user_8",
     name: "אלון גל",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
+    avatar: "https://api.dicebear.com/9.x/lorelei/svg?seed=Tali",
     xp: 880,
     trophies: 850,
     rank: 8,
@@ -166,7 +166,7 @@ export const initialUsers = [
     followers: ["user_4"],
     following: ["user_4"],
     stats: { strength: 60, stamina: 70, agility: 68, zen: 40 },
-    avatarConfig: { type: 'cyclist', shirtColor: '#6b7280', glowColor: '#ffb703' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#ffb703' }
   }
 ];
 

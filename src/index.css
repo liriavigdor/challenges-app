@@ -3733,3 +3733,428 @@ body {
     inset 0 3px 12px rgba(255,255,255,0.9),
     inset 0 -2px 6px rgba(0,0,0,0.15) !important;
 }
+
+/* ── Wardrobe Layered System ── */
+.avatar-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: all 0.3s ease-out;
+}
+
+.wardrobe-item-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.wardrobe-item-btn:hover {
+  background: var(--border);
+  transform: translateY(-2px);
+}
+
+.wardrobe-item-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+/* ============================================================
+   CLASH ROYALE STYLE GAME OVERHAUL
+   ============================================================ */
+
+/* Trophy Road Horizontal Track */
+.trophy-road-wrapper {
+  background: linear-gradient(180deg, rgba(20, 20, 30, 0.6) 0%, rgba(10, 10, 15, 0.9) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 1.5rem 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.8), var(--shadow-lg);
+}
+
+.trophy-road-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding: 0 0.5rem;
+}
+
+.trophy-road-scroll {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  overflow-x: auto;
+  padding: 1rem 0.5rem 1.5rem;
+  scrollbar-width: none; /* Firefox */
+  position: relative;
+  min-height: 180px;
+}
+
+.trophy-road-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Background Path Line connecting arenas */
+.trophy-road-path-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, #1e293b 0%, #fbbf24 50%, #1e293b 100%);
+  transform: translateY(-50%);
+  z-index: 1;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
+}
+
+/* Arena Milestone Node */
+.arena-milestone-node {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 280px;
+  background: linear-gradient(145deg, #1e1b4b 0%, #0f0b29 100%);
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+
+.arena-milestone-node:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+}
+
+.arena-milestone-node.node-active {
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 10px 25px rgba(0,0,0,0.6);
+  background: linear-gradient(145deg, #2e1065 0%, #0f052d 100%);
+}
+
+.arena-milestone-node.node-locked {
+  opacity: 0.65;
+  filter: grayscale(0.5);
+}
+
+.arena-node-header {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.node-active .arena-node-header {
+  color: #ffd700;
+  animation: pulse-active-text 2s infinite;
+}
+
+@keyframes pulse-active-text {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+}
+
+/* Arena Node Details */
+.arena-node-icon {
+  font-size: 3rem;
+  margin: 0.5rem 0;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4));
+  transition: transform 0.3s;
+}
+
+.arena-milestone-node:hover .arena-node-icon {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.arena-node-trophies {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fbbf24;
+  margin-top: 0.5rem;
+}
+
+/* Battle Card Deck (Clash Royale Style) */
+.clash-battle-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.clash-battle-card {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 18px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+  border: 2.5px solid #475569;
+}
+
+.clash-battle-card:hover {
+  transform: translateY(-6px) rotate(1deg);
+  box-shadow: 0 16px 28px rgba(0,0,0,0.5);
+}
+
+/* Card Rarities */
+.clash-battle-card.rarity-common {
+  border-color: #94a3b8;
+  background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
+}
+.clash-battle-card.rarity-rare {
+  border-color: #3b82f6;
+  background: linear-gradient(180deg, #1e3a8a 0%, #090d1f 100%);
+}
+.clash-battle-card.rarity-epic {
+  border-color: #a855f7;
+  background: linear-gradient(180deg, #581c87 0%, #0b0518 100%);
+}
+.clash-battle-card.rarity-legendary {
+  border-color: #ffd700;
+  background: linear-gradient(180deg, #78350f 0%, #1c0a00 100%);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.25), 0 8px 16px rgba(0,0,0,0.4);
+}
+
+.clash-battle-card.rarity-legendary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -150%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,215,0,0.25), transparent);
+  transform: skewX(-25deg);
+  animation: gold-shimmer-sweep 3s infinite ease-in-out;
+}
+
+/* Card Level Badge */
+.clash-card-level {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #1e293b;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  z-index: 5;
+}
+
+/* Card Rarity Label */
+.clash-card-rarity-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  z-index: 5;
+  color: #fff;
+}
+.rarity-common .clash-card-rarity-label { background: #64748b; }
+.rarity-rare .clash-card-rarity-label { background: #2563eb; }
+.rarity-epic .clash-card-rarity-label { background: #9333ea; }
+.rarity-legendary .clash-card-rarity-label { background: #d97706; color: #fff; }
+
+.clash-card-title {
+  font-size: 0.95rem;
+  font-weight: 900;
+  margin: 1.8rem 0 0.25rem 0;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.clash-card-difficulty {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.8;
+  margin-bottom: 0.5rem;
+}
+
+.clash-card-stats {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  padding: 0.4rem;
+  margin-bottom: 0.6rem;
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.clash-card-stats span {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+/* Game Shield & Crown Avatar Frame */
+.clash-avatar-shield-frame {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.clash-avatar-shield-frame::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #ffd700, #b45309, #ffd700);
+  border-radius: 14px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  z-index: 1;
+}
+
+.clash-avatar-shield-frame img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  z-index: 2;
+  border: none !important;
+}
+
+.clash-avatar-shield-frame.side-challenger::before {
+  background: linear-gradient(135deg, #22d3ee, #0891b2, #22d3ee);
+}
+
+.clash-avatar-shield-frame.side-opponent::before {
+  background: linear-gradient(135deg, #fb7185, #e11d48, #fb7185);
+}
+
+/* Versus Split Premium Dashboard */
+.clash-versus-card {
+  background: linear-gradient(135deg, #1e1b4b 0%, #110d2c 100%) !important;
+  border: 2px solid rgba(255,255,255,0.08) !important;
+  border-radius: 24px !important;
+  padding: 1.25rem !important;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.45) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.clash-versus-matchup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  position: relative;
+}
+
+.clash-versus-player-panel {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  transition: background 0.2s;
+}
+
+.clash-versus-player-panel:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.clash-versus-player-panel.panel-challenger {
+  border-left: 4px solid var(--cyan);
+}
+
+.clash-versus-player-panel.panel-opponent {
+  border-right: 4px solid var(--fire);
+  flex-direction: row-reverse;
+  text-align: left;
+}
+
+/* Gaming Health Bar for progress */
+.clash-health-bar-container {
+  width: 100%;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.4rem;
+}
+
+.clash-health-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
+}
+
+.clash-health-bar-fill.fill-challenger {
+  background: linear-gradient(90deg, #06b6d4, #22d3ee);
+}
+
+.clash-health-bar-fill.fill-opponent {
+  background: linear-gradient(90deg, #f43f5e, #fda4af);
+}
+
+/* Royal Colosseum AI Referee Button */
+.royal-referee-court-btn {
+  background: linear-gradient(135deg, #ffd700 0%, #d97706 50%, #b45309 100%) !important;
+  color: #000 !important;
+  font-weight: 900 !important;
+  font-size: 0.85rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid #fff !important;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.5), inset 0 2px 4px rgba(255,255,255,0.4) !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
+  border-radius: 14px !important;
+}
+
+.royal-referee-court-btn:hover {
+  transform: scale(1.03) translateY(-2px) !important;
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.8), inset 0 2px 4px rgba(255,255,255,0.4) !important;
+}
+
+
+

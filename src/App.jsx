@@ -26,6 +26,7 @@ import AIRefereeCourt from './AIRefereeCourt';
 import AvatarPodium from './AvatarPodium';
 
 
+
 import { 
   getUsers, 
   updateUser, 
@@ -453,8 +454,31 @@ export default function App() {
   const [doubleTapPostId, setDoubleTapPostId] = useState(null);
   const [commentSheetPostId, setCommentSheetPostId] = useState(null);
   
-  // Current user simulator (רועי כהן)
   const [currentUser, setCurrentUser] = useState(initialUsers[0]);
+
+  const [dicebearStyle, setDicebearStyle] = useState('adventurer');
+  const [dicebearSeed, setDicebearSeed] = useState('Roy');
+
+  useEffect(() => {
+    if (isEditingAvatar && currentUser && currentUser.avatar) {
+      const url = currentUser.avatar;
+      if (url.includes('dicebear.com')) {
+        try {
+          const parts = url.split('/9.x/');
+          if (parts.length > 1) {
+            const subparts = parts[1].split('/svg');
+            const style = subparts[0];
+            const urlObj = new URL(url);
+            const seed = urlObj.searchParams.get('seed') || 'Roy';
+            setDicebearStyle(style);
+            setDicebearSeed(seed);
+          }
+        } catch (e) {
+          console.error("Failed to parse dicebear URL:", e);
+        }
+      }
+    }
+  }, [isEditingAvatar, currentUser]);
 
   // Social & Notifications states
   const [notifications, setNotifications] = useState(() => {
@@ -466,6 +490,13 @@ export default function App() {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteTargetUserId, setInviteTargetUserId] = useState(null);
+
+  useEffect(() => {
+    if (isUserModalOpen && selectedUserForModal && selectedUserForModal.id === currentUser.id) {
+      setIsUserModalOpen(false);
+      setActiveTab('profile');
+    }
+  }, [isUserModalOpen, selectedUserForModal, currentUser.id]);
   
   // Search and Explore States
   const [peopleSearchQuery, setPeopleSearchQuery] = useState('');
@@ -1891,42 +1922,77 @@ export default function App() {
             {challengesViewMode === 'challenges' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', direction: 'rtl', textAlign: 'right' }}>
                 
-                {/* 1. Arena Banner */}
+                {/* 1. Clash-Style Trophy Road */}
                 {(() => {
-                  const arena = getCurrentArena(currentUser.trophies);
-                  const nextArena = arenas[arenas.indexOf(arena) + 1] || null;
-                  const progressPct = nextArena 
-                    ? Math.min(100, Math.max(0, ((currentUser.trophies - arena.minTrophies) / (nextArena.minTrophies - arena.minTrophies)) * 100))
-                    : 100;
-                  
+                  const currentArena = getCurrentArena(currentUser.trophies);
                   return (
-                    <div className="arena-banner" style={{ color: '#fff' }}>
-                      {/* Center divider — subtle split-screen effect */}
-                      <div className="arena-center-divider" />
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                    <div className="trophy-road-wrapper">
+                      <div className="trophy-road-header">
                         <div>
-                          <span style={{ fontSize: '0.8rem', opacity: 0.75, fontWeight: 'bold', letterSpacing: '0.5px', textTransform: 'uppercase' }}>הזירה הנוכחית שלך</span>
-                          <h3 style={{ margin: '0.2rem 0', fontWeight: 900, fontSize: '1.5rem', textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>{arena.name}</h3>
+                          <h3 style={{ margin: 0, fontWeight: 900, color: '#fbbf24', fontSize: '1.2rem', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>🛣️ דרך הגביעים (Trophy Road)</h3>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.8, color: '#fff' }}>התקדמו בארנות על ידי השלמת אתגרים וצבירת גביעים!</span>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
-                          <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }}>🏟️</span>
-                          <span style={{ fontSize: '0.65rem', opacity: 0.7, fontWeight: 'bold', letterSpacing: '0.3px' }}>ARENA</span>
+                        <div style={{ background: 'rgba(0,0,0,0.5)', padding: '0.4rem 0.8rem', borderRadius: '12px', border: '1px solid rgba(251,191,36,0.3)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span style={{ fontSize: '1.1rem' }}>🏆</span>
+                          <strong style={{ fontSize: '0.9rem', color: '#ffd700' }}>{currentUser.trophies || 1000}</strong>
                         </div>
                       </div>
-                      
-                      <div style={{ marginTop: '1rem', position: 'relative', zIndex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem', opacity: 0.9 }}>
-                          <span>🏆 {currentUser.trophies || 1000} גביעים</span>
-                          {nextArena ? (
-                            <span>{nextArena.minTrophies} גביעים לארנה הבאה</span>
-                          ) : (
-                            <span>הגעת לארנה המקסימלית! 👑</span>
-                          )}
-                        </div>
-                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <div style={{ width: `${progressPct}%`, height: '100%', background: 'linear-gradient(90deg, var(--cyan), var(--fire))', borderRadius: '4px', boxShadow: '0 0 10px rgba(255,255,255,0.4)', transition: 'width 1s ease-out' }}></div>
-                        </div>
+
+                      <div className="trophy-road-scroll">
+                        <div className="trophy-road-path-line" />
+                        
+                        {arenas.map((arena, idx) => {
+                          const isActive = currentArena.id === arena.id;
+                          const isPast = currentUser.trophies >= arena.maxTrophies;
+                          const isLocked = currentUser.trophies < arena.minTrophies;
+                          
+                          let nodeClass = 'arena-milestone-node';
+                          let statusText = '🔒 נעול';
+                          let borderAccent = 'rgba(255,255,255,0.1)';
+                          let nodeGlow = 'none';
+
+                          if (isActive) {
+                            nodeClass += ' node-active';
+                            statusText = '⚔️ זירה פעילה';
+                            borderAccent = '#ffd700';
+                            nodeGlow = '0 0 15px rgba(251, 191, 36, 0.3)';
+                          } else if (isPast) {
+                            statusText = '✅ הושלם';
+                            borderAccent = '#10b981';
+                          } else {
+                            nodeClass += ' node-locked';
+                          }
+
+                          let arenaEmoji = '🌳';
+                          if (arena.id === 'arena_2') arenaEmoji = '🏖️';
+                          if (arena.id === 'arena_3') arenaEmoji = '🏔️';
+
+                          return (
+                            <div 
+                              key={arena.id} 
+                              className={nodeClass}
+                              style={{ 
+                                borderColor: borderAccent,
+                                boxShadow: nodeGlow
+                              }}
+                            >
+                              <div className="arena-node-header">
+                                <span>{isActive ? '🌟' : ''}</span>
+                                <span>{arena.id === 'arena_3' ? 'ARENA 3' : arena.id === 'arena_2' ? 'ARENA 2' : 'ARENA 1'}</span>
+                                <span>{isActive ? '🌟' : ''}</span>
+                              </div>
+
+                              <div className="arena-node-icon">{arenaEmoji}</div>
+                              <h4 style={{ margin: '0.2rem 0', fontWeight: 800, fontSize: '1rem', color: '#fff' }}>{arena.name.replace(/🌳|🏖|🏔️|🌴/g, '')}</h4>
+                              <div style={{ fontSize: '0.75rem', opacity: 0.8, color: '#94a3b8', margin: '0.25rem 0' }}>{statusText}</div>
+
+                              <div className="arena-node-trophies">
+                                <span>🏆 {arena.minTrophies}</span>
+                                {arena.maxTrophies < 9000 && <span>- {arena.maxTrophies}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -2003,6 +2069,7 @@ export default function App() {
                     </button>
                   </div>
 
+
                   {currentUser.activeChallenges.length === 0 ? (
                     <div className="glass-card" style={{ padding: '2rem', textAlign: 'center', borderRadius: '16px', border: '1px solid var(--border)' }}>
                       <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem 0', fontSize: '0.9rem' }}>אין לך אתגרים פעילים בחפיסה כרגע.</p>
@@ -2015,29 +2082,58 @@ export default function App() {
                       </button>
                     </div>
                   ) : (
-                    <div className="clash-deck-grid">
+                    <div className="clash-battle-deck">
                       {currentUser.activeChallenges.map(challengeId => {
                         const c = challenges.find(ch => ch.id === challengeId);
                         if (!c) return null;
+
+                        // Determine card rarity based on attributes
+                        let rarity = 'common';
+                        let rarityLabel = 'שכיח';
+                        if (c.isIconic) {
+                          rarity = 'legendary';
+                          rarityLabel = '👑 אגדי';
+                        } else if (c.difficulty === 'קשה' || c.difficulty === 'hard') {
+                          rarity = 'epic';
+                          rarityLabel = '💜 אפי';
+                        } else if (c.difficulty === 'בינוני' || c.difficulty === 'medium') {
+                          rarity = 'rare';
+                          rarityLabel = '💙 נדיר';
+                        } else {
+                          rarityLabel = '💚 נפוץ';
+                        }
+
+                        // Dynamic Level
+                        const level = (c.xpReward % 7) + 1;
+
                         return (
                           <div 
                             key={c.id} 
-                            className={`clash-card ${c.isIconic ? 'clash-card-iconic' : ''}`}
+                            className={`clash-battle-card rarity-${rarity}`}
                             onClick={() => setExpandedChallengeId(c.id)}
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <h4 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--text-primary)' }}>{c.title}</h4>
-                              {c.isIconic && <span style={{ fontSize: '1rem' }}>👑</span>}
-                            </div>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.category} • {c.difficulty}</span>
+                            <div className="clash-card-level">Lvl {level}</div>
+                            <div className="clash-card-rarity-label">{rarityLabel}</div>
                             
-                            <div style={{ marginTop: '0.5rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                                <span>התקדמות</span>
-                                <span>🏆 {c.xpReward} XP</span>
+                            <div>
+                              <h4 className="clash-card-title">{c.title}</h4>
+                              <div className="clash-card-difficulty" style={{ color: rarity === 'legendary' ? '#fbbf24' : rarity === 'epic' ? '#c084fc' : rarity === 'rare' ? '#60a5fa' : '#94a3b8' }}>
+                                {c.category} • {c.difficulty}
                               </div>
-                              <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                                <div style={{ width: '50%', height: '100%', background: 'var(--accent)', borderRadius: '3px' }}></div>
+                            </div>
+
+                            <div>
+                              <div className="clash-card-stats">
+                                <span>🏆 {c.xpReward} XP</span>
+                                <span>⚔️ +{c.xpReward * 2}</span>
+                              </div>
+                              
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#94a3b8', marginBottom: '0.15rem' }}>
+                                <span>התקדמות</span>
+                                <span>50%</span>
+                              </div>
+                              <div style={{ height: '6px', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '3px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ width: '50%', height: '100%', background: rarity === 'legendary' ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : rarity === 'epic' ? '#a855f7' : '#3b82f6', borderRadius: '3px' }}></div>
                               </div>
                             </div>
                           </div>
@@ -2545,69 +2641,69 @@ export default function App() {
                     const opponentUser = users.find(u => u.id === m.opponentId);
                     
                     return (
-                      <div key={m.id} className="duel-card" style={{ padding: '1rem' }}>
+                      <div key={m.id} className="clash-versus-card" style={{ padding: '1rem' }}>
                         {/* Header: challenge title + trophy stake */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.challengeTitle}</span>
-                          <span className="trophy-pill" style={{ background: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.35)', fontWeight: 800 }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{m.challengeTitle}</span>
+                          <span className="trophy-pill" style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', border: '1.5px solid rgba(251, 191, 36, 0.4)', fontWeight: 900, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
                             🏆 {m.trophiesStaked} גביעים
                           </span>
                         </div>
 
                         {/* Split-panel battle view */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.25rem 0 0.75rem' }}>
+                        <div className="clash-versus-matchup">
                           {/* Challenger side — cyan */}
-                          <div className={`duel-side-challenger ${m.winnerId === m.challengerId ? 'duel-side-winner' : ''}`} style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-start', borderRadius: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-                              <img src={challengerUser?.avatar} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--cyan)', objectFit: 'cover', flexShrink: 0 }} />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {challengerUser?.name}
-                                  {m.winnerId === m.challengerId && <span style={{ marginRight: '0.3rem', fontSize: '0.7rem', color: '#ffd700' }}>👑</span>}
-                                </div>
-                                <div style={{ fontSize: '0.68rem', color: m.challengerProof ? 'var(--cyan)' : 'var(--text-muted)', fontWeight: 'bold' }}>
-                                  {m.challengerProof ? '✅ הגיש' : '⏳ ממתין'}
-                                </div>
-                              </div>
+                          <div className={`clash-versus-player-panel panel-challenger ${m.winnerId === m.challengerId ? 'duel-side-winner' : ''}`}>
+                            <div className="clash-avatar-shield-frame side-challenger">
+                              <img src={challengerUser?.avatar} alt="" />
                             </div>
-                            <div className="duel-progress-track" style={{ width: '100%' }}>
-                              <div className="duel-progress-fill-cyan" style={{ width: m.challengerProof ? '100%' : '0%', height: '100%', borderRadius: '3px', transition: 'width 0.8s ease-out' }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {challengerUser?.name}
+                                {m.winnerId === m.challengerId && <span style={{ marginRight: '0.3rem', fontSize: '0.75rem', color: '#ffd700' }}>👑</span>}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: m.challengerProof ? '#22d3ee' : '#94a3b8', fontWeight: 'bold' }}>
+                                {m.challengerProof ? '✅ הגיש תוצאה' : '⏳ ממתין...'}
+                              </div>
+                              <div className="clash-health-bar-container">
+                                <div className="clash-health-bar-fill fill-challenger" style={{ width: m.challengerProof ? '100%' : '0%' }} />
+                              </div>
                             </div>
                           </div>
 
                           {/* VS Badge */}
-                          <div className="duel-vs-badge" style={{ fontStyle: 'italic', flexShrink: 0 }}>VS</div>
+                          <div className="duel-vs-badge" style={{ margin: '0 0.25rem' }}>VS</div>
 
                           {/* Opponent side — fire */}
-                          <div className={`duel-side-opponent ${m.winnerId === m.opponentId ? 'duel-side-winner' : ''}`} style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-end', borderRadius: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'flex-end' }}>
-                              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>
-                                  {m.winnerId === m.opponentId && <span style={{ marginLeft: '0.3rem', fontSize: '0.7rem', color: '#ffd700' }}>👑</span>}
-                                  {opponentUser?.name}
-                                </div>
-                                <div style={{ fontSize: '0.68rem', color: m.opponentProof ? 'var(--fire)' : 'var(--text-muted)', fontWeight: 'bold', direction: 'rtl' }}>
-                                  {m.opponentProof ? '✅ הגיש' : '⏳ ממתין'}
-                                </div>
-                              </div>
-                              <img src={opponentUser?.avatar} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--fire)', objectFit: 'cover', flexShrink: 0 }} />
+                          <div className={`clash-versus-player-panel panel-opponent ${m.winnerId === m.opponentId ? 'duel-side-winner' : ''}`}>
+                            <div className="clash-avatar-shield-frame side-opponent">
+                              <img src={opponentUser?.avatar} alt="" />
                             </div>
-                            <div className="duel-progress-track" style={{ width: '100%' }}>
-                              <div className="duel-progress-fill-fire" style={{ width: m.opponentProof ? '100%' : '0%', height: '100%', borderRadius: '3px', transition: 'width 0.8s ease-out' }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {m.winnerId === m.opponentId && <span style={{ marginLeft: '0.3rem', fontSize: '0.75rem', color: '#ffd700' }}>👑</span>}
+                                {opponentUser?.name}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: m.opponentProof ? '#fb7185' : '#94a3b8', fontWeight: 'bold' }}>
+                                {m.opponentProof ? '✅ הגיש תוצאה' : '⏳ ממתין...'}
+                              </div>
+                              <div className="clash-health-bar-container">
+                                <div className="clash-health-bar-fill fill-opponent" style={{ width: m.opponentProof ? '100%' : '0%' }} />
+                              </div>
                             </div>
                           </div>
                         </div>
 
                         {/* Status Actions */}
                         {m.status === 'referee_court' && (
-                          <div style={{ marginTop: '1rem', background: 'rgba(251, 191, 36, 0.06)', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center' }}>
-                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: '#fbbf24' }}>
-                              ⚖️ הדו-קרב הסתיים! אחד הצדדים הגיש ערעור על רמאות.
+                          <div style={{ marginTop: '1rem', background: 'rgba(251, 191, 36, 0.05)', border: '1px solid rgba(251, 191, 36, 0.2)', padding: '0.75rem', borderRadius: '16px', textAlign: 'center' }}>
+                            <p style={{ margin: '0 0 0.6rem 0', fontSize: '0.8rem', color: '#fbbf24', fontWeight: 'bold' }}>
+                              ⚖️ הדו-קרב הסתיים! הוגש ערעור על מהימנות התוצאות.
                             </p>
                             <button 
                               onClick={() => setActiveJudgeMatchId(m.id)}
-                              className="btn btn-primary" 
-                              style={{ width: '100%', padding: '0.5rem', background: '#fbbf24', color: '#000', fontWeight: 'bold' }}
+                              className="btn royal-referee-court-btn" 
+                              style={{ width: '100%', padding: '0.6rem' }}
                             >
                               כנס אל בית הדין של שופט ה-AI ⚖️
                             </button>
@@ -3419,31 +3515,12 @@ export default function App() {
           <div>
             {/* Redesigned Instagram-style Profile Header */}
             <div className="glass-card game-hud-card" style={{ padding: '1.5rem', marginBottom: '1.5rem', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
-                <AvatarPodium 
-                  avatarConfig={currentUser.avatarConfig || { type: 'runner', shirtColor: '#ef4444', glowColor: '#ffffff' }}
-                  isCustomizable={isEditingAvatar}
-                  onConfigChange={(newConfig) => {
-                    const updated = { ...currentUser, avatarConfig: newConfig };
-                    setCurrentUser(updated);
-                    setUsers(prev => prev.map(u => u.id === currentUser.id ? updated : u));
-                  }}
-                />
-                <button 
-                  onClick={() => setIsEditingAvatar(!isEditingAvatar)} 
-                  className="btn btn-secondary" 
-                  style={{ fontSize: '0.75rem', padding: '0.4rem 1rem', marginTop: '0.5rem', width: '100%', maxWidth: '200px' }}
-                >
-                  {isEditingAvatar ? 'שמור עיצוב אוואטר' : 'ערוך דמות אוואטר 👕'}
-                </button>
-              </div>
-
-              {/* Avatar tier: gold = top, fire = mid, default = base */}
+              {/* 1. Profile Details Header (profile pic, name, stats, XP progress) */}
               {(() => {
                 const avatarTier = currentUser.xp >= 2500 ? 'tier-gold' : currentUser.xp >= 1000 ? 'tier-fire' : '';
                 const userLevel = Math.floor(currentUser.xp / 500) + 1;
                 return (
-                  <div className="game-profile-header" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
+                  <div className="game-profile-header" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.25rem' }}>
                     <div
                       className={`game-avatar-wrapper ${avatarTier}`}
                       style={{ width: '72px', height: '72px' }}
@@ -3499,8 +3576,8 @@ export default function App() {
                 );
               })()}
 
-              {/* Social Stats Row (Followers/Following/Posts count) */}
-              <div className="social-stats-row" style={{ display: 'flex', justifyContent: 'space-around', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '0.75rem', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+              {/* 2. Social Stats Row (Followers/Following/Posts count) */}
+              <div className="social-stats-row" style={{ display: 'flex', justifyContent: 'space-around', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="social-stat-item" style={{ textAlign: 'center' }}>
                   <span className="social-stat-value" style={{ display: 'block', fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{currentUser.followers?.length || 0}</span>
                   <span className="social-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>עוקבים</span>
@@ -3513,6 +3590,117 @@ export default function App() {
                   <span className="social-stat-value" style={{ display: 'block', fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{feed.filter(p => p.userId === currentUser.id).length}</span>
                   <span className="social-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>פוסטים</span>
                 </div>
+              </div>
+
+              {/* 3. 3D Avatar Display & Customizer */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.5rem' }}>
+                {isEditingAvatar ? (
+                  <div className="dicebear-creator-container" style={{ width: '100%', padding: '1.25rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div style={{ position: 'relative', width: '130px', height: '130px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', padding: '8px', border: '3px solid var(--cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img 
+                        src={`https://api.dicebear.com/9.x/${dicebearStyle}/svg?seed=${encodeURIComponent(dicebearSeed)}`} 
+                        alt="Dicebear Preview" 
+                        style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'contain' }} 
+                      />
+                    </div>
+
+                    {/* Randomize button */}
+                    <button 
+                      onClick={() => setDicebearSeed(Math.random().toString(36).substring(2, 9))} 
+                      className="btn btn-secondary" 
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'auto', padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+                    >
+                      🎲 אקראי
+                    </button>
+
+                    {/* Seed Input */}
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.35rem', textAlign: 'right' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600' }}>זרע לעיצוב (Seed):</label>
+                      <input 
+                        type="text" 
+                        value={dicebearSeed} 
+                        onChange={(e) => setDicebearSeed(e.target.value)} 
+                        placeholder="הקלד/י טקסט כלשהו..."
+                        dir="ltr"
+                        style={{
+                          width: '100%',
+                          padding: '0.6rem',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          color: '#fff',
+                          outline: 'none',
+                          fontSize: '0.9rem',
+                        }}
+                      />
+                    </div>
+
+                    {/* Style Selector Grid */}
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.35rem', textAlign: 'right' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600' }}>סגנון אוואטר:</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', width: '100%' }}>
+                        {[
+                          { id: 'adventurer', label: '🦸 הרפתקן' },
+                          { id: 'bottts', label: '🤖 רובוטים' },
+                          { id: 'lorelei', label: '🌸 לורליי' },
+                          { id: 'pixel-art', label: '👾 פיקסל' },
+                          { id: 'avataaars', label: '🧑 דמויות' },
+                          { id: 'open-peeps', label: '👥 אנשים' },
+                          { id: 'micah', label: '🎨 מיקה' },
+                          { id: 'multiavatars', label: '🔮 צבעוני' },
+                          { id: 'shapes', label: '🔷 צורות' }
+                        ].map((styleOpt) => (
+                          <button
+                            key={styleOpt.id}
+                            onClick={() => setDicebearStyle(styleOpt.id)}
+                            style={{
+                              padding: '0.5rem 0.25rem',
+                              fontSize: '0.75rem',
+                              borderRadius: '8px',
+                              border: dicebearStyle === styleOpt.id ? '2px solid var(--cyan)' : '1px solid rgba(255,255,255,0.08)',
+                              background: dicebearStyle === styleOpt.id ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255,255,255,0.02)',
+                              color: dicebearStyle === styleOpt.id ? 'var(--cyan)' : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              fontWeight: dicebearStyle === styleOpt.id ? 'bold' : 'normal',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            {styleOpt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.5rem' }}>
+                      <button
+                        onClick={() => {
+                          const finalUrl = `https://api.dicebear.com/9.x/${dicebearStyle}/svg?seed=${encodeURIComponent(dicebearSeed)}`;
+                          const updated = { ...currentUser, avatar: finalUrl };
+                          setCurrentUser(updated);
+                          setUsers(prev => prev.map(u => u.id === currentUser.id ? updated : u));
+                          setIsEditingAvatar(false);
+                        }}
+                        className="btn btn-primary"
+                        style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }}
+                      >
+                        💾 שמור שינויים
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <AvatarPodium 
+                    avatarConfig={currentUser.avatarConfig || { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }}
+                    isCustomizable={true}
+                  />
+                )}
+                <button 
+                  onClick={() => setIsEditingAvatar(!isEditingAvatar)} 
+                  className="btn btn-secondary" 
+                  style={{ fontSize: '0.75rem', padding: '0.4rem 1rem', marginTop: '0.75rem', width: '100%', maxWidth: '200px' }}
+                >
+                  {isEditingAvatar ? 'ביטול עיצוב' : 'ערוך דמות אוואטר 👕'}
+                </button>
               </div>
             </div>
 
@@ -4031,7 +4219,7 @@ export default function App() {
         </div>
       )}
       {/* USER PROFILE MODAL */}
-      {isUserModalOpen && selectedUserForModal && (
+      {isUserModalOpen && selectedUserForModal && selectedUserForModal.id !== currentUser.id && (
         <div className="user-profile-modal-backdrop" onClick={() => setIsUserModalOpen(false)}>
           <div className="user-profile-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-close">
@@ -4042,14 +4230,8 @@ export default function App() {
             </div>
             
             <div style={{ padding: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-                <AvatarPodium 
-                  avatarConfig={selectedUserForModal.avatarConfig || { type: 'runner', shirtColor: '#ef4444', glowColor: '#ffffff' }}
-                  isCustomizable={false}
-                />
-              </div>
-
-              <div className="game-profile-header" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* 1. Player Details Header */}
+              <div className="game-profile-header" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1rem' }}>
                 <div className="game-avatar-wrapper" style={{ width: 50, height: 50 }}>
                   <img src={selectedUserForModal.avatar} alt="" className="game-avatar-img" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                 </div>
@@ -4067,7 +4249,14 @@ export default function App() {
                     <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>• מקום {selectedUserForModal.rank || '#'}</span>
                   </div>
                 </div>
+              </div>
 
+              {/* 2. 3D Avatar Podium */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <AvatarPodium 
+                  avatarConfig={selectedUserForModal.avatarConfig || { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }}
+                  isCustomizable={false}
+                />
               </div>
 
               {/* Follow / Joint Challenge buttons */}
