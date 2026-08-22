@@ -3690,8 +3690,22 @@ export default function App() {
                   </div>
                 ) : (
                   <AvatarPodium 
-                    avatarConfig={currentUser.avatarConfig || { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }}
+                    avatarConfig={currentUser.avatarConfig || { base: 'cylinder', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#22c55e', id: 'simple_rookie_green' }}
                     isCustomizable={true}
+                    userTrophies={currentUser.trophies || 0}
+                    onAvatarChange={(newPreset) => {
+                      const finalUrl = newPreset.isGlb 
+                        ? `https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(currentUser.id + newPreset.id)}`
+                        : `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(currentUser.id + newPreset.id)}`;
+                      const updatedUser = {
+                        ...currentUser,
+                        avatar: finalUrl,
+                        avatarConfig: newPreset
+                      };
+                      setCurrentUser(updatedUser);
+                      setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+                      updateUser(updatedUser);
+                    }}
                   />
                 )}
                 <button 
@@ -4254,8 +4268,9 @@ export default function App() {
               {/* 2. 3D Avatar Podium */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
                 <AvatarPodium 
-                  avatarConfig={selectedUserForModal.avatarConfig || { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }}
+                  avatarConfig={selectedUserForModal.avatarConfig || { base: 'cylinder', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#22c55e', id: 'simple_rookie_green' }}
                   isCustomizable={false}
+                  userTrophies={selectedUserForModal.trophies || 0}
                 />
               </div>
 
