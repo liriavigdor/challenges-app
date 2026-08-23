@@ -4,7 +4,6 @@ export const initialUsers = [
     name: "רועי כהן",
     avatar: "https://api.dicebear.com/9.x/adventurer/svg?seed=Roy",
     xp: 2450,
-    trophies: 1250,
     rank: 1,
     completedChallengesCount: 18,
     badges: [
@@ -40,7 +39,6 @@ export const initialUsers = [
     name: "יובל לוי",
     avatar: "https://api.dicebear.com/9.x/bottts/svg?seed=Yuval",
     xp: 1980,
-    trophies: 1180,
     rank: 2,
     completedChallengesCount: 14,
     badges: ["💪 איש הברזל", "⚡ זריז במיוחד"],
@@ -59,7 +57,6 @@ export const initialUsers = [
     name: "דניאל מזרחי",
     avatar: "https://api.dicebear.com/9.x/lorelei/svg?seed=Daniel",
     xp: 1620,
-    trophies: 1120,
     rank: 3,
     completedChallengesCount: 11,
     badges: ["🚲 מדווש על", "🏔️ חובב גבהים"],
@@ -78,7 +75,6 @@ export const initialUsers = [
     name: "שירה אלוני",
     avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Shira",
     xp: 1400,
-    trophies: 1050,
     rank: 4,
     completedChallengesCount: 9,
     badges: ["🧘 יוגה מאסטר"],
@@ -97,7 +93,6 @@ export const initialUsers = [
     name: "נטע ברק",
     avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Neta",
     xp: 1250,
-    trophies: 980,
     rank: 5,
     completedChallengesCount: 8,
     badges: ["🏊‍♀️ דולפין", "🌟 כוכב עולה"],
@@ -116,7 +111,6 @@ export const initialUsers = [
     name: "גיא רגב",
     avatar: "https://api.dicebear.com/9.x/open-peeps/svg?seed=Michal",
     xp: 1100,
-    trophies: 950,
     rank: 6,
     completedChallengesCount: 7,
     badges: ["🏋️‍♂️ שור זועם"],
@@ -135,7 +129,6 @@ export const initialUsers = [
     name: "מיכל אשד",
     avatar: "https://api.dicebear.com/9.x/micah/svg?seed=Ofer",
     xp: 950,
-    trophies: 880,
     rank: 7,
     completedChallengesCount: 5,
     badges: ["🧘‍♀️ שקט פנימי"],
@@ -154,7 +147,6 @@ export const initialUsers = [
     name: "אלון גל",
     avatar: "https://api.dicebear.com/9.x/lorelei/svg?seed=Tali",
     xp: 880,
-    trophies: 850,
     rank: 8,
     completedChallengesCount: 4,
     badges: ["🚴‍♂️ רוכב רוח"],
@@ -226,6 +218,25 @@ export const initialNotifications = [
 ];
 
 export const initialChallenges = [
+  {
+    id: "abs_intense",
+    title: "אימון בטן עצים",
+    description: "שורף בבטן! 20 דקות של תרגילים אינטנסיביים לחיזוק שרירי הליבה.",
+    routine: `1. כפיפות בטן קלאסיות - 3 סטים של 20 חזרות
+2. פלאנק - 3 סטים של 60 שניות
+3. אופניים באוויר - 3 סטים של 30 חזרות
+4. הרמות רגליים בשכיבה - 3 סטים של 15 חזרות
+מנוחה של 30 שניות בין סט לסט.`,
+    category: "ליבה",
+    difficulty: "קשה",
+    xpReward: 400,
+    participantsCount: 85,
+    duration: "חד פעמי",
+    creator: "יובל לוי",
+    image: "https://images.unsplash.com/photo-1566241477600-ac026ad43874?w=600&auto=format&fit=crop&q=80",
+    difficultyGrades: [4, 4, 3, 5],
+    isIconic: false
+  },
   {
     id: "run_10k",
     title: "אתגר ריצת 10 קילומטר",
@@ -900,7 +911,7 @@ export const initialMatches = [
     challengeTitle: "ריצת 5 ק\"מ מהירה",
     challengerId: "user_2", // יובל לוי
     opponentId: "user_1", // רועי כהן (המשתמש הנוכחי)
-    trophiesStaked: 30,
+    xpStaked: 30,
     status: "referee_court", // pending, active, referee_court, completed
     challengerProof: {
       duration: "21:45",
@@ -927,7 +938,7 @@ export const initialMatches = [
     challengeTitle: "אתגר פלאנק יומי",
     challengerId: "user_1", // רועי כהן
     opponentId: "user_4", // שירה אלוני
-    trophiesStaked: 25,
+    xpStaked: 25,
     status: "active",
     challengerProof: null,
     opponentProof: {
@@ -945,7 +956,7 @@ export const initialMatches = [
     challengeTitle: "100 שכיבות סמיכה",
     challengerId: "user_1",
     opponentId: "user_3",
-    trophiesStaked: 20,
+    xpStaked: 20,
     status: "completed",
     challengerProof: {
       count: 100,
@@ -974,7 +985,7 @@ export const initialGlobalTournament = {
   title: "גביע סוף השבוע: מרתון הירקון 5K 🏆",
   timeLeft: "⏳ נותרו 14 שעות לסיום",
   participantsCount: 342,
-  description: "הקליטו וסנכרנו ריצת 5 ק\"מ מהירה ביותר בירקון. המקום הראשון יזכה ב-150 גביעים ובתואר אלוף הירקון המיתולוגי!"
+  description: "הקליטו וסנכרנו ריצת 5 ק\"מ מהירה ביותר בירקון. המקום הראשון יזכה ב-150 נקודות דירוג ובתואר אלוף הירקון המיתולוגי!"
 };
 
 
