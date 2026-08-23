@@ -36,7 +36,7 @@ const getColor = (configVal, fallback) => {
 };
 
 // 6 Pre-configured presets (All using the high-quality sci-fi model with different glow tints)
-const AVATAR_PRESETS = [
+export const AVATAR_PRESETS = [
   // --- Simple Series (Cylinder Dolls for Beginners) ---
   {
     id: 'simple_rookie_green',
@@ -128,7 +128,7 @@ const AVATAR_PRESETS = [
 import robotGlbUrl from './assets/models/human_rigged.glb?url';
 import femaleGlbUrl from './assets/models/female_human.glb?url';
 
-export default function AvatarPodium({ avatarConfig, isCustomizable = false, onAvatarChange, userTrophies = 10000 }) {
+export default function AvatarPodium({ avatarConfig, isCustomizable = false, onAvatarChange, userTrophies = 10000, onPodiumClick }) {
   const containerRef = useRef(null);
 
   const availablePresets = AVATAR_PRESETS.filter(p => userTrophies >= (p.reqTrophies || 0));
@@ -247,7 +247,7 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
 
     const ringGeo = new THREE.TorusGeometry(0.74, 0.025, 8, 32);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: glowColor,
+      color: 0xffffff,
       transparent: true,
       opacity: 0.9
     });
@@ -279,7 +279,7 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
     if (currentPreset.isGlb) {
       const loader = new GLTFLoader();
       const glbPath = currentPreset.base === 'female' ? femaleGlbUrl : robotGlbUrl;
-      const scaleVal = currentPreset.base === 'female' ? 0.58 : 0.65; // Increased scale
+      const scaleVal = currentPreset.base === 'female' ? 0.75 : 0.85; // Increased scale
 
       loader.load(
         glbPath,
@@ -388,71 +388,38 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
       // Idle Animation state for the cylinder doll
       cylinderGroup.userData = { isSimple: true };
       
-      cylinderGroup.scale.set(1.3, 1.3, 1.3);
+      cylinderGroup.scale.set(1.6, 1.6, 1.6);
       
       bodyGroup.add(cylinderGroup);
     }
 
-    // --- CAPSULE DOME ---
-    const domeGeo = new THREE.CapsuleGeometry(0.68, 1.18, 32, 32);
-    const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.18,
-      roughness: 0.1,
-      metalness: 0.1,
-      transmission: 0.9,
-      ior: 1.45,
-      thickness: 0.5,
-      depthWrite: false
-    });
-    const aura = new THREE.Mesh(domeGeo, glassMat);
-    aura.position.y = 0.65;
-    avatarGroup.add(aura);
 
-    // --- FLOATING PARTICLES ---
-    const particleCount = 55;
-    const particleGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    
-    for (let i = 0; i < particleCount; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const radius = Math.random() * 0.5;
-      positions[i * 3] = Math.cos(theta) * radius;
-      positions[i * 3 + 1] = Math.random() * 1.5;
-      positions[i * 3 + 2] = Math.sin(theta) * radius;
-    }
-    
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    
-    const particleMat = new THREE.PointsMaterial({
-      color: glowColor,
-      size: 0.025,
-      transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending
-    });
-    
-    const particles = new THREE.Points(particleGeo, particleMat);
-    avatarGroup.add(particles);
+
+
 
     // Drag controls
     let isDragging = false;
     let previousMousePosition = { x: 0 };
+    let dragTotalX = 0;
 
     const handleMouseDown = (e) => {
       isDragging = true;
       previousMousePosition.x = e.clientX;
+      dragTotalX = 0;
     };
 
     const handleMouseMove = (e) => {
       if (!isDragging) return;
       const deltaX = e.clientX - previousMousePosition.x;
+      dragTotalX += Math.abs(deltaX);
       avatarGroup.rotation.y += deltaX * 0.015;
       previousMousePosition.x = e.clientX;
     };
 
     const handleMouseUp = () => {
+      if (isDragging && dragTotalX < 5) {
+        if (onPodiumClick) onPodiumClick();
+      }
       isDragging = false;
     };
 
@@ -460,12 +427,14 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
       if (e.touches.length === 1) {
         isDragging = true;
         previousMousePosition.x = e.touches[0].clientX;
+        dragTotalX = 0;
       }
     };
 
     const handleTouchMove = (e) => {
       if (!isDragging || e.touches.length !== 1) return;
       const deltaX = e.touches[0].clientX - previousMousePosition.x;
+      dragTotalX += Math.abs(deltaX);
       avatarGroup.rotation.y += deltaX * 0.015;
       previousMousePosition.x = e.touches[0].clientX;
     };
@@ -501,20 +470,8 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
       }
 
       // Pulse effects
-      glowRing.scale.setScalar(1 + Math.sin(time * 4) * 0.035);
-      ringMat.opacity = 0.75 + Math.sin(time * 4) * 0.18;
-
-      if (particles) {
-        const positions = particles.geometry.attributes.position.array;
-        const count = positions.length / 3;
-        for (let i = 0; i < count; i++) {
-          positions[i * 3 + 1] += 0.0035;
-          if (positions[i * 3 + 1] > 1.4) {
-            positions[i * 3 + 1] = 0.05;
-          }
-        }
-        particles.geometry.attributes.position.needsUpdate = true;
-      }
+      glowRing.scale.setScalar(1 + Math.sin(time * 1.5) * 0.005);
+      ringMat.opacity = 0.85 + Math.sin(time * 1.5) * 0.02;
 
       renderer.render(scene, camera);
     };
@@ -549,37 +506,8 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
 
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-      {/* 3D Canvas Box & Navigation Arrows */}
+      {/* 3D Canvas Box */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '320px' }}>
-        {/* Left Arrow */}
-        <button
-          onClick={handlePrev}
-          title="הדמות הקודמת"
-          style={{
-            position: 'absolute',
-            left: '-15px',
-            zIndex: 10,
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(9, 9, 11, 0.75)',
-            color: '#fff',
-            fontSize: '1.4rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = glowColor; e.currentTarget.style.color = '#000'; e.currentTarget.style.boxShadow = `0 0 10px ${glowColor}`; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(9, 9, 11, 0.75)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'; }}
-        >
-          ⟨
-        </button>
-
         <div 
           ref={containerRef} 
           className="avatar-figurine-3d"
@@ -588,48 +516,12 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
             height: '280px', 
             background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0) 72%)',
             borderRadius: '24px',
-            cursor: 'grab'
+            cursor: 'pointer'
           }} 
         />
-
-        {/* Right Arrow */}
-        <button
-          onClick={handleNext}
-          title="הדמות הבאה"
-          style={{
-            position: 'absolute',
-            right: '-15px',
-            zIndex: 10,
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(9, 9, 11, 0.75)',
-            color: '#fff',
-            fontSize: '1.4rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = glowColor; e.currentTarget.style.color = '#000'; e.currentTarget.style.boxShadow = `0 0 10px ${glowColor}`; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(9, 9, 11, 0.75)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'; }}
-        >
-          ⟩
-        </button>
       </div>
 
-      <div style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 'bold', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.1rem', textAlign: 'center' }}>
-        <span style={{ color: glowColor }}>{currentPreset.name}</span>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', maxWidth: '240px', lineHeight: '1.2' }}>{currentPreset.desc}</span>
-      </div>
 
-      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: '1rem', userSelect: 'none', pointerEvents: 'none' }}>
-        👆 גרור כדי לסובב את הדמות
-      </div>
     </div>
   );
 }

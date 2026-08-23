@@ -23,9 +23,9 @@ import {
 } from './icons';
 import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications, initialMatches, initialArenas, initialGlobalTournament } from './mockData';
 import AIRefereeCourt from './AIRefereeCourt';
-import AvatarPodium from './AvatarPodium';
-
-
+import AvatarPodium, { AVATAR_PRESETS } from './AvatarPodium';
+import { getUserRank, MILITARY_RANKS } from './ranks';
+import { MilitaryRankIcon } from './MilitaryRankIcon';
 
 import { 
   getUsers, 
@@ -207,13 +207,7 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
   );
 }
 
-const getUserRank = (xp) => {
-  if (xp >= 2200) return { name: 'Generalissimo', icon: '👑', className: 'rank-generalissimo', label: 'גנרליסימו' };
-  if (xp >= 1500) return { name: 'Major', icon: '🌟', className: 'rank-major', label: 'מייג׳ור' };
-  if (xp >= 1100) return { name: 'Sergeant', icon: '⚔️', className: 'rank-sergeant', label: 'סמל' };
-  if (xp >= 900) return { name: 'Private', icon: '🎖️', className: 'rank-private', label: 'טוראי' };
-  return { name: 'Recruit', icon: '🥾', className: 'rank-recruit', label: 'טירון' };
-};
+// getUserRank moved to ranks.js
 
 export default function App() {
 
@@ -224,6 +218,12 @@ export default function App() {
   const [arenas, setArenas] = useState(initialArenas);
   const [globalTournament, setGlobalTournament] = useState(initialGlobalTournament);
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
+  const [showRankHistory, setShowRankHistory] = useState(false);
+  const [showAvatarBank, setShowAvatarBank] = useState(false);
+  const [socialModalType, setSocialModalType] = useState(null);
+  const [socialSearchQuery, setSocialSearchQuery] = useState('');
+  const [feedFilterUserId, setFeedFilterUserId] = useState(null);
 
   const getCurrentArena = (trophies) => {
     return initialArenas.find(a => (trophies || 1000) >= a.minTrophies && (trophies || 1000) < a.maxTrophies) || initialArenas[initialArenas.length - 1];
@@ -1590,8 +1590,19 @@ export default function App() {
             </div>
 
             {/* Reels-style swiping container */}
-            <div className="reels-feed-container" style={{ flex: 1, minHeight: 0 }}>
-              {feed.map(post => {
+            <div className="reels-feed-container" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              {feedFilterUserId && (
+                <div style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 50, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', border: '1px solid var(--cyan)', borderRadius: '20px', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(0,255,255,0.2)' }}>
+                  <span>מציג פוסטים של: {users.find(u => u.id === feedFilterUserId)?.name}</span>
+                  <button onClick={() => setFeedFilterUserId(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>✕</button>
+                </div>
+              )}
+              {(() => {
+                const filteredFeed = feedFilterUserId ? feed.filter(p => p.userId === feedFilterUserId) : feed;
+                if (filteredFeed.length === 0) {
+                  return <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>אין פוסטים להצגה</div>;
+                }
+                return filteredFeed.map(post => {
                 const postAuthor = users.find(u => u.id === post.userId);
                 const isAuthorBlocked = postAuthor ? postAuthor.isBlocked : false;
                 const associatedChallenge = challenges.find(c => c.title === post.challengeTitle);
@@ -1681,7 +1692,8 @@ export default function App() {
                     </div>
                   </div>
                 );
-              })}
+              });
+              })()}
             </div>
           </div>
         )}
@@ -1922,81 +1934,7 @@ export default function App() {
             {challengesViewMode === 'challenges' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', direction: 'rtl', textAlign: 'right' }}>
                 
-                {/* 1. Clash-Style Trophy Road */}
-                {(() => {
-                  const currentArena = getCurrentArena(currentUser.trophies);
-                  return (
-                    <div className="trophy-road-wrapper">
-                      <div className="trophy-road-header">
-                        <div>
-                          <h3 style={{ margin: 0, fontWeight: 900, color: '#fbbf24', fontSize: '1.2rem', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>🛣️ דרך הגביעים (Trophy Road)</h3>
-                          <span style={{ fontSize: '0.75rem', opacity: 0.8, color: '#fff' }}>התקדמו בארנות על ידי השלמת אתגרים וצבירת גביעים!</span>
-                        </div>
-                        <div style={{ background: 'rgba(0,0,0,0.5)', padding: '0.4rem 0.8rem', borderRadius: '12px', border: '1px solid rgba(251,191,36,0.3)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <span style={{ fontSize: '1.1rem' }}>🏆</span>
-                          <strong style={{ fontSize: '0.9rem', color: '#ffd700' }}>{currentUser.trophies || 1000}</strong>
-                        </div>
-                      </div>
 
-                      <div className="trophy-road-scroll">
-                        <div className="trophy-road-path-line" />
-                        
-                        {arenas.map((arena, idx) => {
-                          const isActive = currentArena.id === arena.id;
-                          const isPast = currentUser.trophies >= arena.maxTrophies;
-                          const isLocked = currentUser.trophies < arena.minTrophies;
-                          
-                          let nodeClass = 'arena-milestone-node';
-                          let statusText = '🔒 נעול';
-                          let borderAccent = 'rgba(255,255,255,0.1)';
-                          let nodeGlow = 'none';
-
-                          if (isActive) {
-                            nodeClass += ' node-active';
-                            statusText = '⚔️ זירה פעילה';
-                            borderAccent = '#ffd700';
-                            nodeGlow = '0 0 15px rgba(251, 191, 36, 0.3)';
-                          } else if (isPast) {
-                            statusText = '✅ הושלם';
-                            borderAccent = '#10b981';
-                          } else {
-                            nodeClass += ' node-locked';
-                          }
-
-                          let arenaEmoji = '🌳';
-                          if (arena.id === 'arena_2') arenaEmoji = '🏖️';
-                          if (arena.id === 'arena_3') arenaEmoji = '🏔️';
-
-                          return (
-                            <div 
-                              key={arena.id} 
-                              className={nodeClass}
-                              style={{ 
-                                borderColor: borderAccent,
-                                boxShadow: nodeGlow
-                              }}
-                            >
-                              <div className="arena-node-header">
-                                <span>{isActive ? '🌟' : ''}</span>
-                                <span>{arena.id === 'arena_3' ? 'ARENA 3' : arena.id === 'arena_2' ? 'ARENA 2' : 'ARENA 1'}</span>
-                                <span>{isActive ? '🌟' : ''}</span>
-                              </div>
-
-                              <div className="arena-node-icon">{arenaEmoji}</div>
-                              <h4 style={{ margin: '0.2rem 0', fontWeight: 800, fontSize: '1rem', color: '#fff' }}>{arena.name.replace(/🌳|🏖|🏔️|🌴/g, '')}</h4>
-                              <div style={{ fontSize: '0.75rem', opacity: 0.8, color: '#94a3b8', margin: '0.25rem 0' }}>{statusText}</div>
-
-                              <div className="arena-node-trophies">
-                                <span>🏆 {arena.minTrophies}</span>
-                                {arena.maxTrophies < 9000 && <span>- {arena.maxTrophies}</span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
 
                 {/* 2. Main Game Mode Buttons */}
                 <div style={{ display: 'flex', gap: '1rem' }}>
@@ -3453,7 +3391,9 @@ export default function App() {
                           <div style={{ textAlign: 'right' }}>
                             <h4 style={{ fontWeight: 700, margin: 0, fontSize: '0.85rem' }}>{user.name}</h4>
                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
-                              <span>{getUserRank(user.xp).icon} {getUserRank(user.xp).label}</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <MilitaryRankIcon rankId={getUserRank(user.xp).id} size={16} /> {getUserRank(user.xp).heName}
+                              </span>
                               <span>•</span>
                               <span style={{ color: '#fbbf24' }}>🏆 {user.trophies || 1000}</span>
                             </span>
@@ -3513,6 +3453,200 @@ export default function App() {
         {/* TAB 5: PROFILE */}
         {activeTab === 'profile' && (
           <div>
+            {showAvatarPreview && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+                zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'column'
+              }} onClick={() => setShowAvatarPreview(false)}>
+                <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                  <img src={currentUser.avatar} alt="Avatar" style={{
+                    width: '200px', height: '200px', borderRadius: '50%', border: '4px solid var(--cyan)',
+                    objectFit: 'cover', background: 'rgba(255,255,255,0.05)'
+                  }} />
+                  <div 
+                    onClick={() => {
+                      setShowAvatarPreview(false);
+                      setIsEditingAvatar(true);
+                    }}
+                    style={{
+                      position: 'absolute', bottom: '-15px', left: '50%', transform: 'translateX(-50%)',
+                      background: 'var(--cyan)', color: '#000', width: '48px', height: '48px', borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      boxShadow: '0 4px 15px rgba(0,255,255,0.4)', fontSize: '1.5rem', border: '3px solid #1a1a2e'
+                    }}
+                  >
+                    ✏️
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showRankHistory && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+                zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'column', padding: '1rem'
+              }} onClick={() => setShowRankHistory(false)}>
+                <div className="glass-card" style={{ 
+                  width: '100%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto', 
+                  padding: '1.5rem', borderRadius: '20px', position: 'relative'
+                }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ margin: 0, fontSize: '1.5rem' }}>היסטוריית דרגות</h2>
+                    <button className="icon-btn" onClick={() => setShowRankHistory(false)}><CloseIcon /></button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {MILITARY_RANKS.map((rank) => {
+                      const isPassed = currentUser.xp >= rank.xpRequired;
+                      const isCurrent = getUserRank(currentUser.xp).id === rank.id;
+                      return (
+                        <div key={rank.id} style={{ 
+                          display: 'flex', alignItems: 'center', gap: '1rem', 
+                          padding: '0.8rem', borderRadius: '12px',
+                          background: isCurrent ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                          border: isCurrent ? '1px solid var(--cyan)' : '1px solid transparent',
+                          opacity: isPassed ? 1 : 0.4,
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <MilitaryRankIcon rankId={rank.id} size={48} />
+                          <div style={{ flex: 1, textAlign: 'right' }}>
+                            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: isPassed ? '#fff' : '#aaa' }}>{rank.heName}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              דרישה: {rank.xpRequired.toLocaleString()} XP
+                            </div>
+                          </div>
+                          {isCurrent && <div style={{ fontSize: '1.5rem' }}>🌟</div>}
+                          {isPassed && !isCurrent && <div style={{ fontSize: '1.5rem', color: '#4ade80' }}>✓</div>}
+                          {!isPassed && <div style={{ fontSize: '1.2rem', color: '#666' }}>🔒</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Social List Modal */}
+            {socialModalType && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+                zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'column', padding: '1rem'
+              }} onClick={() => setSocialModalType(null)}>
+                <div style={{
+                  background: 'rgba(30,30,40,0.95)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px', padding: '1.5rem', width: '100%', maxWidth: '400px',
+                  maxHeight: '80vh', display: 'flex', flexDirection: 'column'
+                }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, color: '#fff' }}>{socialModalType === 'followers' ? 'עוקבים' : 'עוקב אחרי'}</h3>
+                    <button onClick={() => setSocialModalType(null)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+                  </div>
+                  
+                  <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                    <SearchIcon style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, width: '16px', height: '16px' }} />
+                    <input 
+                      type="text" 
+                      placeholder="חפש משתמשים..." 
+                      value={socialSearchQuery}
+                      onChange={(e) => setSocialSearchQuery(e.target.value)}
+                      style={{ 
+                        width: '100%', padding: '0.75rem 2.5rem 0.75rem 1rem', 
+                        background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', 
+                        borderRadius: '12px', color: '#fff', outline: 'none' 
+                      }} 
+                    />
+                  </div>
+
+                  <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
+                    {(() => {
+                      const userIds = socialModalType === 'followers' ? currentUser.followers : currentUser.following;
+                      const listUsers = users.filter(u => userIds?.includes(u.id) && u.name.toLowerCase().includes(socialSearchQuery.toLowerCase()));
+                      
+                      if (!listUsers || listUsers.length === 0) {
+                        return <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)' }}>לא נמצאו תוצאות</div>;
+                      }
+                      
+                      return listUsers.map(user => (
+                        <div key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <img src={user.avatar} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#fff' }}>{user.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>דרגה {Math.floor((user.xp || 0) / 500) + 1} • {user.xp || 0} XP</div>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Avatar Bank Modal */}
+            {showAvatarBank && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+                zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'column', padding: '1rem'
+              }} onClick={() => setShowAvatarBank(false)}>
+                <div style={{
+                  background: 'rgba(30,30,40,0.95)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px', padding: '1.5rem', width: '100%', maxWidth: '400px',
+                  maxHeight: '80vh', overflowY: 'auto'
+                }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, color: '#fff' }}>בנק האוואטארים</h3>
+                    <button onClick={() => setShowAvatarBank(false)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                    {AVATAR_PRESETS.map((preset) => {
+                      const isUnlocked = (currentUser.trophies || 0) >= (preset.reqTrophies || 0);
+                      const isCurrent = currentUser.avatarConfig?.id === preset.id || (!currentUser.avatarConfig && preset.id === 'simple_rookie_green');
+                      
+                      return (
+                        <div 
+                          key={preset.id}
+                          onClick={() => {
+                            if (!isUnlocked) return;
+                            const updatedUser = { ...currentUser, avatarConfig: preset };
+                            setCurrentUser(updatedUser);
+                            setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+                            updateUser(updatedUser);
+                            setShowAvatarBank(false);
+                          }}
+                          style={{
+                            background: isCurrent ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${isCurrent ? 'var(--cyan)' : 'rgba(255,255,255,0.08)'}`,
+                            borderRadius: '12px', padding: '1rem', textAlign: 'center',
+                            cursor: isUnlocked ? 'pointer' : 'not-allowed',
+                            opacity: isUnlocked ? 1 : 0.5,
+                            transition: 'all 0.2s',
+                            position: 'relative'
+                          }}
+                        >
+                          <div style={{ width: '48px', height: '48px', margin: '0 auto 0.5rem', borderRadius: '50%', background: preset.glowColor, boxShadow: `0 0 15px ${preset.glowColor}` }}></div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff' }}>{preset.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{preset.desc}</div>
+                          
+                          {!isUnlocked && (
+                            <div style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.6)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.7rem' }}>
+                              🔒 {preset.reqTrophies} 🏆
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Redesigned Instagram-style Profile Header */}
             <div className="glass-card game-hud-card" style={{ padding: '1.5rem', marginBottom: '1.5rem', borderRadius: '16px' }}>
               {/* 1. Profile Details Header (profile pic, name, stats, XP progress) */}
@@ -3523,8 +3657,9 @@ export default function App() {
                   <div className="game-profile-header" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.25rem' }}>
                     <div
                       className={`game-avatar-wrapper ${avatarTier}`}
-                      style={{ width: '72px', height: '72px' }}
-                      title={`${currentUser.name} • דרגה ${userLevel}`}
+                      style={{ width: '72px', height: '72px', cursor: 'pointer' }}
+                      title={`${currentUser.name} • לחץ להגדלה ועריכה`}
+                      onClick={() => setShowAvatarPreview(true)}
                     >
                       <img src={currentUser.avatar} alt={currentUser.name} className="game-avatar-img" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                     </div>
@@ -3541,8 +3676,11 @@ export default function App() {
                         {(() => {
                           const r = getUserRank(currentUser.xp);
                           return (
-                            <span className={`rank-badge ${r.className}`}>
-                              {r.icon} {r.label}
+                            <span 
+                              className="rank-badge" 
+                              onClick={() => setShowRankHistory(true)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.1)', padding: '4px 12px', borderRadius: '12px', cursor: 'pointer' }}>
+                              <MilitaryRankIcon rankId={r.id} size={24} /> {r.heName}
                             </span>
                           );
                         })()}
@@ -3550,26 +3688,40 @@ export default function App() {
 
                       {/* Premium Stat Pills */}
                       <div className="avatar-stats-row" style={{ justifyContent: 'flex-start', marginTop: '0.6rem' }}>
-                        <span className="stat-pill stat-pill-level" style={{ animationDelay: '0s' }}>
-                          ⚡ דרגה {userLevel}
-                        </span>
                         <span className="stat-pill stat-pill-xp" style={{ animationDelay: '0.1s' }}>
-                          💠 {currentUser.xp} XP
-                        </span>
-                        <span className="stat-pill stat-pill-trophies" style={{ animationDelay: '0.2s' }}>
-                          🏆 {currentUser.trophies || 1000}
+                          💠 {currentUser.xp.toLocaleString()} XP
                         </span>
                       </div>
 
-                      {/* Level Progress Bar */}
+                      {/* Rank Progress Bar */}
                       <div style={{ marginTop: '0.65rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                          <span>{currentUser.xp % 500} / 500 XP לדרגה הבאה</span>
-                          <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>דרגה {userLevel + 1}</span>
-                        </div>
-                        <div className="game-stat-bar-bg" style={{ height: '7px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${(currentUser.xp % 500) / 5}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), #a855f7)', borderRadius: '4px', transition: 'width 1s ease-out' }}></div>
-                        </div>
+                        {(() => {
+                          const currentRank = getUserRank(currentUser.xp);
+                          const nextRank = MILITARY_RANKS.find(rank => rank.xpRequired > currentUser.xp);
+                          const isMaxRank = !nextRank;
+                          
+                          const progress = isMaxRank 
+                            ? 100 
+                            : ((currentUser.xp - currentRank.xpRequired) / (nextRank.xpRequired - currentRank.xpRequired)) * 100;
+                            
+                          return (
+                            <>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                                <span>
+                                  {isMaxRank 
+                                    ? 'דרגה מקסימלית' 
+                                    : `${currentUser.xp.toLocaleString()} / ${nextRank.xpRequired.toLocaleString()} XP לדרגה הבאה`}
+                                </span>
+                                {!isMaxRank && (
+                                  <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{nextRank.heName}</span>
+                                )}
+                              </div>
+                              <div className="game-stat-bar-bg" style={{ height: '7px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), #a855f7)', borderRadius: '4px', transition: 'width 1s ease-out' }}></div>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -3578,15 +3730,15 @@ export default function App() {
 
               {/* 2. Social Stats Row (Followers/Following/Posts count) */}
               <div className="social-stats-row" style={{ display: 'flex', justifyContent: 'space-around', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div className="social-stat-item" style={{ textAlign: 'center' }}>
+                <div className="social-stat-item" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => { setSocialModalType('followers'); setSocialSearchQuery(''); }}>
                   <span className="social-stat-value" style={{ display: 'block', fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{currentUser.followers?.length || 0}</span>
                   <span className="social-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>עוקבים</span>
                 </div>
-                <div className="social-stat-item" style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', borderRight: '1px solid rgba(255,255,255,0.1)', padding: '0 1.5rem' }}>
+                <div className="social-stat-item" style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', borderRight: '1px solid rgba(255,255,255,0.1)', padding: '0 1.5rem', cursor: 'pointer' }} onClick={() => { setSocialModalType('following'); setSocialSearchQuery(''); }}>
                   <span className="social-stat-value" style={{ display: 'block', fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{currentUser.following?.length || 0}</span>
                   <span className="social-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>עוקב אחרי</span>
                 </div>
-                <div className="social-stat-item" style={{ textAlign: 'center' }}>
+                <div className="social-stat-item" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => { document.getElementById('my-posts-section')?.scrollIntoView({ behavior: 'smooth' }); }}>
                   <span className="social-stat-value" style={{ display: 'block', fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{feed.filter(p => p.userId === currentUser.id).length}</span>
                   <span className="social-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>פוסטים</span>
                 </div>
@@ -3682,9 +3834,16 @@ export default function App() {
                           setIsEditingAvatar(false);
                         }}
                         className="btn btn-primary"
+                        style={{ flex: 2, padding: '0.5rem', fontSize: '0.85rem' }}
+                      >
+                        💾 שמור
+                      </button>
+                      <button
+                        onClick={() => setIsEditingAvatar(false)}
+                        className="btn btn-secondary"
                         style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }}
                       >
-                        💾 שמור שינויים
+                        ביטול
                       </button>
                     </div>
                   </div>
@@ -3693,28 +3852,9 @@ export default function App() {
                     avatarConfig={currentUser.avatarConfig || { base: 'cylinder', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#22c55e', id: 'simple_rookie_green' }}
                     isCustomizable={true}
                     userTrophies={currentUser.trophies || 0}
-                    onAvatarChange={(newPreset) => {
-                      const finalUrl = newPreset.isGlb 
-                        ? `https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(currentUser.id + newPreset.id)}`
-                        : `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(currentUser.id + newPreset.id)}`;
-                      const updatedUser = {
-                        ...currentUser,
-                        avatar: finalUrl,
-                        avatarConfig: newPreset
-                      };
-                      setCurrentUser(updatedUser);
-                      setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
-                      updateUser(updatedUser);
-                    }}
+                    onPodiumClick={() => setShowAvatarBank(true)}
                   />
                 )}
-                <button 
-                  onClick={() => setIsEditingAvatar(!isEditingAvatar)} 
-                  className="btn btn-secondary" 
-                  style={{ fontSize: '0.75rem', padding: '0.4rem 1rem', marginTop: '0.75rem', width: '100%', maxWidth: '200px' }}
-                >
-                  {isEditingAvatar ? 'ביטול עיצוב' : 'ערוך דמות אוואטר 👕'}
-                </button>
               </div>
             </div>
 
@@ -3806,7 +3946,7 @@ export default function App() {
             </div>
 
             {/* Instagram Style Posts Grid */}
-            <div style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
+            <div id="my-posts-section" style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <span style={{ fontSize: '1.2rem' }}>📸</span>
                 <h3 style={{ fontWeight: 800, margin: 0, fontSize: '1.15rem' }}>הפוסטים שלי</h3>
