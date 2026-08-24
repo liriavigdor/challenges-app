@@ -29,6 +29,13 @@ export const initialUsers = [
     isBlocked: false,
     hardChallengesCompleted: 3,
     streak: 7,
+    aiQuest: {
+      id: "quest_daily_1",
+      title: "אתגר יומי יזום",
+      description: "בצע לפחות אימון אחד היום במשך 20 דקות מינימום.",
+      xpReward: 30,
+      completed: false
+    },
     followers: ["user_2", "user_3", "user_5", "user_7"],
     following: ["user_2", "user_4", "user_6"],
     stats: { strength: 78, stamina: 85, agility: 62, zen: 45 },
