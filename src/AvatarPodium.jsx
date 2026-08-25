@@ -45,7 +45,7 @@ export const AVATAR_PRESETS = [
     isGlb: false,
     glowColor: '#22c55e',
     desc: 'דמות בסיסית לשחקנים מתחילים',
-    reqTrophies: 0
+    reqXp: 0
   },
   {
     id: 'simple_rookie_blue',
@@ -54,7 +54,7 @@ export const AVATAR_PRESETS = [
     isGlb: false,
     glowColor: '#3b82f6',
     desc: 'דמות בסיס משודרגת מעט',
-    reqTrophies: 200
+    reqXp: 200
   },
   {
     id: 'simple_rookie_orange',
@@ -63,7 +63,7 @@ export const AVATAR_PRESETS = [
     isGlb: false,
     glowColor: '#f97316',
     desc: 'דמות בסיס מתקדמת',
-    reqTrophies: 500
+    reqXp: 500
   },
 
   // --- Cyber Series (Requires 1000+ Trophies) ---
@@ -74,7 +74,7 @@ export const AVATAR_PRESETS = [
     isGlb: true,
     glowColor: '#00f0ff',
     desc: 'לוחם סייבר קלאסי עם תאורת נאון תכלת מרוכזת',
-    reqTrophies: 1000
+    reqXp: 1000
   },
   {
     id: 'robot_plasma_red',
@@ -83,7 +83,7 @@ export const AVATAR_PRESETS = [
     isGlb: true,
     glowColor: '#ff2a2a',
     desc: 'חליפת משוריין עמידה לחום עם הילה אדומה ועוצמתית',
-    reqTrophies: 1000
+    reqXp: 1000
   },
   {
     id: 'robot_acid_green',
@@ -92,7 +92,7 @@ export const AVATAR_PRESETS = [
     isGlb: true,
     glowColor: '#39ff14',
     desc: 'חייל ביולוגי משודרג עם הילה ירוקה תעשייתית',
-    reqTrophies: 1000
+    reqXp: 1000
   },
   
   // --- Elite Series (Female Models, Requires 1500+ Trophies) ---
@@ -103,7 +103,7 @@ export const AVATAR_PRESETS = [
     isGlb: true,
     glowColor: '#a855f7',
     desc: 'לוחמת מיומנת למשימות לילה עם הילת אנרגיה סגולה עמוקה',
-    reqTrophies: 1500
+    reqXp: 1500
   },
   {
     id: 'robot_elite_emerald',
@@ -112,7 +112,7 @@ export const AVATAR_PRESETS = [
     isGlb: true,
     glowColor: '#10b981', // emerald
     desc: 'לוחמת התגנבות יוקרתית עם תאורת ברקת זוהרת מבריקה',
-    reqTrophies: 1500
+    reqXp: 1500
   },
   {
     id: 'robot_elite_gold',
@@ -121,17 +121,17 @@ export const AVATAR_PRESETS = [
     isGlb: true,
     glowColor: '#eab308', // gold/yellow
     desc: 'מפקדת חוליית הסייבר עם הילת חלקיקי זהב דומיננטית',
-    reqTrophies: 1500
+    reqXp: 1500
   }
 ];
 
 import robotGlbUrl from './assets/models/human_rigged.glb?url';
 import femaleGlbUrl from './assets/models/female_human.glb?url';
 
-export default function AvatarPodium({ avatarConfig, isCustomizable = false, onAvatarChange, userTrophies = 10000, onPodiumClick }) {
+export default function AvatarPodium({ avatarConfig, isCustomizable = false, onAvatarChange, userXp = 10000, onPodiumClick }) {
   const containerRef = useRef(null);
 
-  const availablePresets = AVATAR_PRESETS.filter(p => userTrophies >= (p.reqTrophies || 0));
+  const availablePresets = AVATAR_PRESETS.filter(p => userXp >= (p.reqXp || 0));
 
   // Match the active preset based on configuration or id
   const getActiveIndex = () => {

@@ -36,7 +36,7 @@ export default function AIRefereeCourt({ match, challenger, opponent, onClose, o
       case 'calculating':
         return `מחשב את מהירות השיא ומשווה את גרף המאמץ לחוקי הפיזיקה${dots}`;
       case 'writing':
-        return `השופט מנסח את פסק הדין הסופי ומעדכן את זירת הגביעים${dots}`;
+        return `השופט בוחן את נתוני הדופק, משווה תוצאות נגד היריב ומחשב מי יזכה ב-XP${dots}`;
       default:
         return '';
     }
@@ -54,7 +54,7 @@ export default function AIRefereeCourt({ match, challenger, opponent, onClose, o
     if (isChallengerCheating && isOpponentCheating) {
       isCheatingDetected = true;
       winnerId = 'draw';
-      verdictText = `⚠️ החלטת שופט ה-AI: שני המשתתפים נפסלו עקב חריגה קיצונית במהירות המותרת ורמת דופק לא מותאמת. לא יחולקו גביעים בסיבוב זה!`;
+      verdictText = `על סמך ניתוח ה-AI: שני המתמודדים הציגו רמת ביצוע קרובה להפליא ונתוני דופק זהים כמעט לחלוטין. אין באפשרותי לקבוע מנצח מובהק. תיקו!`;
     } else if (isChallengerCheating) {
       isCheatingDetected = true;
       winnerId = opponent.id;
@@ -188,10 +188,9 @@ export default function AIRefereeCourt({ match, challenger, opponent, onClose, o
                   borderRadius: '12px',
                   marginTop: '0.25rem'
                 }}>
-                  <span style={{ fontSize: '1.25rem' }}>🏆</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fbbf24' }}>
-                    {winnerId === challenger?.id ? challenger?.name : opponent?.name} זוכה ב-{match.trophiesStaked} גביעים!
-                  </span>
+                  <div style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '8px', textAlign: 'center', fontSize: '1.2rem', fontWeight: 900, color: '#fbbf24', textShadow: '0 2px 8px rgba(251,191,36,0.3)' }}>
+                    {winnerId === challenger?.id ? challenger?.name : opponent?.name} זוכה ב-{match.xpStaked} נקודות XP!
+                  </div>
                 </div>
               )}
 

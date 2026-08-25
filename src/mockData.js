@@ -982,14 +982,8 @@ export const initialMatches = [
   }
 ];
 
-export const initialArenas = [
-  { id: "arena_1", name: "פארק הירקון הירוק 🌳", minTrophies: 0, maxTrophies: 1000, color: "#10b981" },
-  { id: "arena_2", name: "חוף גורדון שטוף השמש 🏖️", minTrophies: 1000, maxTrophies: 1200, color: "#3b82f6" },
-  { id: "arena_3", name: "פסגת החרמון המושלגת 🏔️", minTrophies: 1200, maxTrophies: 9999, color: "#a855f7" }
-];
-
 export const initialGlobalTournament = {
-  title: "גביע סוף השבוע: מרתון הירקון 5K 🏆",
+  title: "גביע סוף השבוע: מרתון הירקון 5K",
   timeLeft: "⏳ נותרו 14 שעות לסיום",
   participantsCount: 342,
   description: "הקליטו וסנכרנו ריצת 5 ק\"מ מהירה ביותר בירקון. המקום הראשון יזכה ב-150 נקודות דירוג ובתואר אלוף הירקון המיתולוגי!"

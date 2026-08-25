@@ -21,12 +21,11 @@ import {
   BellIcon,
   TargetIcon
 } from './icons';
-import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications, initialMatches, initialArenas, initialGlobalTournament } from './mockData';
+import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications, initialMatches, initialGlobalTournament } from './mockData';
 import AIRefereeCourt from './AIRefereeCourt';
 import AIMentor from './AIMentor';
-import AICompanion from './AICompanion';
 import AvatarPodium, { AVATAR_PRESETS } from './AvatarPodium';
-import { getUserRank, MILITARY_RANKS } from './ranks';
+import { getUserRank, getNextRank, MILITARY_RANKS } from './ranks';
 import { MilitaryRankIcon } from './MilitaryRankIcon';
 
 import { 
@@ -217,7 +216,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('feed');
   const [matches, setMatches] = useState(initialMatches);
   const [activeJudgeMatchId, setActiveJudgeMatchId] = useState(null);
-  const [arenas, setArenas] = useState(initialArenas);
+
   const [globalTournament, setGlobalTournament] = useState(initialGlobalTournament);
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
@@ -231,24 +230,12 @@ export default function App() {
   const [isAIMentorOpen, setIsAIMentorOpen] = useState(false);
   const [reportType, setReportType] = useState('ריצה');
   const [reportAmount, setReportAmount] = useState('');
-  
-  // AI Companion States
-  const [isCompanionVisible, setIsCompanionVisible] = useState(false);
-  const [companionMessage, setCompanionMessage] = useState('');
 
-  // Welcome message
-  useEffect(() => {
-    // Show welcome message shortly after load
-    const timer = setTimeout(() => {
-      setCompanionMessage('ברוך הבא חזרה לאימונים! אני כאן כדי לעזור ולעודד אותך. בוא ניתן בראש היום! 💪');
-      setIsCompanionVisible(true);
-      
-      // Auto close after 8 seconds
-      setTimeout(() => setIsCompanionVisible(false), 8000);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
+  const [hasNewDailyChallenge, setHasNewDailyChallenge] = useState(true);
+  const [dailyChallenges, setDailyChallenges] = useState([
+    { id: 'd1', title: '20 שכיבות סמיכה', xp: 20, completed: false },
+    { id: 'd2', title: 'ריצת 2 ק"מ', xp: 50, completed: false }
+  ]);
 
   const handleLogActivity = (e) => {
     e.preventDefault();
@@ -257,13 +244,6 @@ export default function App() {
     setReportData({ type: reportType, duration: Number(reportAmount) });
     setIsReportProgressModalOpen(false);
     setIsAIMentorOpen(true);
-    
-    // Trigger companion encouragement
-    setTimeout(() => {
-      setCompanionMessage(`כל הכבוד על האימון! ${reportAmount} דקות של ${reportType} זה לא צחוק! תמשיך ככה! 🔥`);
-      setIsCompanionVisible(true);
-      setTimeout(() => setIsCompanionVisible(false), 6000);
-    }, 4000);
   };
 
   const handleMentorXpAwarded = async (xp, questCompleted) => {
@@ -277,9 +257,16 @@ export default function App() {
     await updateUser(updatedUser);
   };
 
-  const getCurrentArena = (trophies) => {
-    return initialArenas.find(a => (trophies || 1000) >= a.minTrophies && (trophies || 1000) < a.maxTrophies) || initialArenas[initialArenas.length - 1];
+  const handleCompleteDailyChallenge = async (challengeId, xp) => {
+    setDailyChallenges(prev => prev.map(c => c.id === challengeId ? { ...c, completed: true } : c));
+    let updatedUser = { ...currentUser };
+    updatedUser.xp += xp;
+    setCurrentUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    await updateUser(updatedUser);
   };
+
+
 
 
   const [language, setLanguage] = useState(() => {
@@ -574,15 +561,14 @@ export default function App() {
     setMatches(updatedMatches);
 
     if (winnerId && winnerId !== 'draw') {
-      const staked = match.trophiesStaked;
+      const staked = match.xpStaked;
       const loserId = winnerId === match.challengerId ? match.opponentId : match.challengerId;
 
       setUsers(prevUsers => prevUsers.map(u => {
         if (u.id === winnerId) {
           const updated = { 
             ...u, 
-            trophies: (u.trophies || 1000) + staked, 
-            xp: u.xp + 150 
+            xp: u.xp + staked 
           };
           if (u.id === currentUser.id) {
             setCurrentUser(updated);
@@ -592,8 +578,7 @@ export default function App() {
         if (u.id === loserId) {
           const updated = { 
             ...u, 
-            trophies: Math.max(100, (u.trophies || 1000) - Math.round(staked * 0.7)),
-            xp: Math.max(0, u.xp - 30)
+            xp: Math.max(0, u.xp - Math.round(staked * 0.7))
           };
           if (u.id === currentUser.id) {
             setCurrentUser(updated);
@@ -607,7 +592,7 @@ export default function App() {
     setActiveJudgeMatchId(null);
   };
 
-  const handleCreateDuel = (opponentId, challengeId, trophiesStaked) => {
+  const handleCreateDuel = (opponentId, challengeId, xpStaked) => {
     const ch = challenges.find(c => c.id === challengeId) || { title: "אתגר כושר" };
     const newMatch = {
       id: `match_${Date.now()}`,
@@ -615,7 +600,7 @@ export default function App() {
       challengeTitle: ch.title,
       challengerId: currentUser.id,
       opponentId,
-      trophiesStaked: Number(trophiesStaked),
+      xpStaked: Number(xpStaked),
       status: "active",
       challengerProof: null,
       opponentProof: null,
@@ -631,7 +616,7 @@ export default function App() {
       senderId: currentUser.id,
       senderName: currentUser.name,
       senderAvatar: currentUser.avatar,
-      text: `הזמין אותך לדו-קרב ראש בראש: ${ch.title} על ${trophiesStaked} גביעים! ⚔️`,
+      text: `הזמין אותך לדו-קרב ראש בראש: ${ch.title} על ${xpStaked} נקודות XP! ⚔️`,
       challengeId,
       timestamp: "לפני דקה",
       read: false,
@@ -1772,14 +1757,102 @@ export default function App() {
         )}
 
         {/* TAB 2: CHALLENGES */}
-        {activeTab === 'challenges' && (
+        {activeTab === 'challenges' && (() => {
+          const currentRank = getUserRank(currentUser.xp);
+          const nextRank = getNextRank(currentRank.id);
+          const xpInCurrentRank = currentUser.xp - currentRank.xpRequired;
+          const xpNeededForNextRank = nextRank ? nextRank.xpRequired - currentRank.xpRequired : 1;
+          const progressPercentage = nextRank ? Math.min(100, Math.max(0, (xpInCurrentRank / xpNeededForNextRank) * 100)) : 100;
+          
+          return (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontWeight: 800 }}>אתגרים פתוחים 💪</h2>
+              <h2 style={{ fontWeight: 800 }}>אתגרים פתוחים</h2>
               <button onClick={() => setActiveTab('create')} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
                 <PlusIcon size={18} /> יוזמה חדשה
               </button>
             </div>
+
+            {/* Premium XP Progress Bar */}
+            <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                <div style={{
+                  width: '54px', height: '54px', 
+                  background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                  clipPath: 'polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 15px rgba(14, 165, 233, 0.5)',
+                  border: '2px solid #38bdf8'
+                }}>
+                  <span style={{ color: 'white', fontWeight: 900, fontSize: '1.4rem', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>
+                    {currentRank.id + 1}
+                  </span>
+                </div>
+              </div>
+              
+              <div style={{ flex: 1, position: 'relative', height: '28px', background: '#0f172a', borderRadius: '4px', border: '2px solid #1e293b', overflow: 'hidden', boxShadow: 'inset 0 4px 6px rgba(0,0,0,0.6)' }}>
+                <div style={{ 
+                  width: `${progressPercentage}%`, 
+                  height: '100%', 
+                  background: 'linear-gradient(to right, #0284c7, #38bdf8)', 
+                  transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  boxShadow: 'inset 0 0 8px rgba(255,255,255,0.4)',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+                    animation: 'shine 2s infinite linear'
+                  }}></div>
+                </div>
+                
+                <div style={{ 
+                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  color: 'white', fontWeight: 900, fontSize: '0.9rem', 
+                  textShadow: '1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000',
+                  zIndex: 1, letterSpacing: '1px', fontFamily: 'monospace'
+                }}>
+                  {xpInCurrentRank} / {xpNeededForNextRank}
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>אתגרים יומיים</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {dailyChallenges.map(dc => (
+                  <div key={dc.id} style={{
+                    background: 'var(--glass-bg)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <TargetIcon size={24} color={dc.completed ? 'var(--success)' : 'var(--primary)'} />
+                      <div>
+                        <h4 style={{ margin: 0, fontWeight: 600, textDecoration: dc.completed ? 'line-through' : 'none' }}>{dc.title}</h4>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>+{dc.xp} XP</span>
+                      </div>
+                    </div>
+                    {!dc.completed ? (
+                      <button 
+                        onClick={() => handleCompleteDailyChallenge(dc.id, dc.xp)}
+                        className="btn btn-primary" 
+                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                        דווח ביצוע
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--success)', fontWeight: 600 }}>הושלם!</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
 
             {/* Filters toggle button row */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
@@ -1908,14 +1981,11 @@ export default function App() {
 
             {/* Quick Action Navigation */}
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
-              <button onClick={() => setChallengesViewMode('map')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', borderRadius: '20px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+              <button onClick={() => setChallengesViewMode('map')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', borderRadius: '20px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
                 🗺️ אתגרי מפה
               </button>
-              <button onClick={() => setChallengesViewMode('duels')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', borderRadius: '20px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+              <button onClick={() => setChallengesViewMode('duels')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', borderRadius: '20px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
                 ⚔️ דו-קרב ראש בראש
-              </button>
-              <button onClick={() => alert(`הרשמה לטורניר: "${globalTournament.title}"`)} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', borderRadius: '20px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-                🏆 טורניר שבועי
               </button>
             </div>
 
@@ -1925,7 +1995,7 @@ export default function App() {
                 {/* 1. My Active Challenges */}
                 <section>
                   <h3 style={{ fontWeight: 800, margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>🎯</span> האתגרים שלי
+                    האתגרים שלי
                   </h3>
                   
                   {currentUser.activeChallenges.length === 0 ? (
@@ -1944,7 +2014,7 @@ export default function App() {
                             <div style={{ flex: 1, paddingLeft: '1rem' }}>
                               <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 'bold' }}>{c.title}</h4>
                               <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                <span style={{ color: 'var(--accent)' }}>🏆 {c.xpReward} גביעים</span>
+                                <span style={{ color: 'var(--accent)' }}>{c.xpReward} XP</span>
                                 <span>•</span>
                                 <span>{c.difficulty}</span>
                               </div>
@@ -1969,7 +2039,7 @@ export default function App() {
                 {/* 2. Discover New Challenges */}
                 <section>
                   <h3 style={{ fontWeight: 800, margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>🔎</span> גלה אתגרים חדשים
+                    גלה אתגרים חדשים
                   </h3>
                   
                   <div className="challenges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
@@ -2113,7 +2183,7 @@ export default function App() {
                             <span style={{ fontSize: '1.5rem' }}>🏆</span>
                             <div>
                               <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>פרס על השלמה:</h4>
-                              <strong style={{ color: '#ffd700', fontSize: '1.1rem' }}>{c.xpReward} גביעים</strong>
+                              <strong style={{ color: '#ffd700', fontSize: '1.1rem' }}>{c.xpReward} XP</strong>
                               {c.badgeReward && <div style={{ fontSize: '0.75rem', color: '#ffd700', marginTop: '0.1rem' }}>+ תג: {c.badgeReward}</div>}
                             </div>
                           </div>
@@ -2219,7 +2289,7 @@ export default function App() {
                               <h5 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.9rem' }}>{linkedChallenge.title}</h5>
                               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                                 <span className={`difficulty-tag difficulty-${linkedChallenge.difficulty}`}>{linkedChallenge.difficulty}</span>
-                                <span>🏆 {linkedChallenge.xpReward} גביעים</span>
+                                <span>{linkedChallenge.xpReward} XP</span>
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -2301,7 +2371,7 @@ export default function App() {
                     >
                       <option value="">-- בחר מתוך רשימת המעקב --</option>
                       {users.filter(u => u.id !== currentUser.id).map(u => (
-                        <option key={u.id} value={u.id}>{u.name} (🏆 {u.trophies || 1000})</option>
+                        <option key={u.id} value={u.id}>{u.name} ({u.xp} XP)</option>
                       ))}
                     </select>
                   </div>
@@ -2322,14 +2392,14 @@ export default function App() {
 
                   {/* Stake Selection */}
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>סכום גביעים על הכף:</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>סכום XP על הכף:</label>
                     <select 
-                      id="duel-trophies-select"
+                      id="duel-xp-select"
                       style={{ width: '100%', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '0.5rem', borderRadius: '8px', outline: 'none' }}
                     >
-                      <option value="15">15 גביעים 🏆</option>
-                      <option value="25">25 גביעים 🏆 (מומלץ)</option>
-                      <option value="50">50 גביעים 🏆 (קרב רציני!)</option>
+                      <option value="15">15 XP</option>
+                      <option value="25">25 XP (מומלץ)</option>
+                      <option value="50">50 XP (קרב רציני!)</option>
                     </select>
                   </div>
 
@@ -2337,12 +2407,12 @@ export default function App() {
                     onClick={() => {
                       const oppId = document.getElementById('duel-opponent-select').value;
                       const chId = document.getElementById('duel-challenge-select').value;
-                      const trophies = document.getElementById('duel-trophies-select').value;
+                      const xpStaked = document.getElementById('duel-xp-select').value;
                       if (!oppId || !chId) {
                         alert('אנא בחר חבר ואתגר כדי להתחיל בדו-קרב!');
                         return;
                       }
-                      handleCreateDuel(oppId, chId, trophies);
+                      handleCreateDuel(oppId, chId, xpStaked);
                       alert('דו-קרב חדש נוצר והזמנה נשלחה לחבר!');
                     }}
                     className="btn btn-primary" 
@@ -2366,8 +2436,8 @@ export default function App() {
                         {/* Header: challenge title + trophy stake */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
                           <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{m.challengeTitle}</span>
-                          <span className="trophy-pill" style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', border: '1.5px solid rgba(251, 191, 36, 0.4)', fontWeight: 900, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
-                            🏆 {m.trophiesStaked} גביעים
+                          <span className="trophy-pill" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', border: '1.5px solid rgba(168, 85, 247, 0.4)', fontWeight: 900, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                            {m.xpStaked} XP
                           </span>
                         </div>
 
@@ -2495,7 +2565,8 @@ export default function App() {
             </div>
           )}
         </div>
-      )}
+      );
+    })()}
 
 
         {/* TAB 3: CREATE CHALLENGE (INSTAGRAM / TIKTOK POST STYLE WIZARD) */}
@@ -3178,7 +3249,7 @@ export default function App() {
                                 <MilitaryRankIcon rankId={getUserRank(user.xp).id} size={16} /> {getUserRank(user.xp).heName}
                               </span>
                               <span>•</span>
-                              <span style={{ color: '#fbbf24' }}>🏆 {user.trophies || 1000}</span>
+                              <span style={{ color: '#fbbf24' }}>{user.xp} XP</span>
                             </span>
                           </div>
                         </div>
@@ -3389,7 +3460,7 @@ export default function App() {
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                     {AVATAR_PRESETS.map((preset) => {
-                      const isUnlocked = (currentUser.trophies || 0) >= (preset.reqTrophies || 0);
+                      const isUnlocked = (currentUser.xp || 0) >= (preset.reqXp || 0);
                       const isCurrent = currentUser.avatarConfig?.id === preset.id || (!currentUser.avatarConfig && preset.id === 'simple_rookie_green');
                       
                       return (
@@ -3419,7 +3490,7 @@ export default function App() {
                           
                           {!isUnlocked && (
                             <div style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.6)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.7rem' }}>
-                              🔒 {preset.reqTrophies} 🏆
+                              🔒 {preset.reqXp} XP
                             </div>
                           )}
                         </div>
@@ -3587,7 +3658,7 @@ export default function App() {
                     <div key={c.id} className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <h4 style={{ fontWeight: 700 }}>{c.title}</h4>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>פרס: {c.xpReward} גביעים 🏆</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>פרס: {c.xpReward} XP</span>
                       </div>
                       <button 
                         onClick={() => {
@@ -3615,8 +3686,26 @@ export default function App() {
           <ActivityIcon size={20} />
         </button>
         
-        <button className={`tab-btn ${activeTab === 'challenges' ? 'active' : ''}`} onClick={() => setActiveTab('challenges')}>
+        <button 
+          className={`tab-btn ${activeTab === 'challenges' ? 'active' : ''}`} 
+          style={{ position: 'relative' }}
+          onClick={() => {
+            setActiveTab('challenges');
+            setHasNewDailyChallenge(false);
+          }}>
           <SwordsIcon size={20} />
+          {hasNewDailyChallenge && (
+            <div style={{
+              position: 'absolute',
+              top: '8px',
+              right: '25%',
+              width: '8px',
+              height: '8px',
+              backgroundColor: 'var(--danger, #ff4d4f)',
+              borderRadius: '50%',
+              border: '2px solid var(--bg)'
+            }} />
+          )}
         </button>
 
         <button className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`} onClick={() => setActiveTab('chats')}>
@@ -3975,7 +4064,7 @@ export default function App() {
                 <AvatarPodium 
                   avatarConfig={selectedUserForModal.avatarConfig || { base: 'cylinder', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#22c55e', id: 'simple_rookie_green' }}
                   isCustomizable={false}
-                  userTrophies={selectedUserForModal.trophies || 0}
+                  userXp={selectedUserForModal.xp || 0}
                 />
               </div>
 
@@ -4121,7 +4210,7 @@ export default function App() {
                 >
                   <div>
                     <h4 style={{ fontWeight: 700, margin: 0, fontSize: '0.95rem' }}>{c.title}</h4>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>פרס: {c.xpReward} גביעים 🏆</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>פרס: {c.xpReward} XP</span>
                   </div>
                   <button 
                     className="btn btn-primary" 
@@ -4438,12 +4527,6 @@ export default function App() {
           />
         );
       })()}
-
-      <AICompanion 
-        isVisible={isCompanionVisible} 
-        message={companionMessage} 
-        onClose={() => setIsCompanionVisible(false)} 
-      />
     </div>
 
   );
