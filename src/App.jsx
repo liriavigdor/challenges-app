@@ -19,7 +19,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   BellIcon,
-  TargetIcon
+  TargetIcon,
+  MapIcon
 } from './icons';
 import { initialUsers, initialChallenges, initialFeed, initialStories, initialNotifications, initialMatches, initialGlobalTournament } from './mockData';
 import AIRefereeCourt from './AIRefereeCourt';
@@ -124,15 +125,12 @@ function ChallengeMap({ userCoords, mapLocations, wildChallenges = [], selectedL
       map.removeLayer(tileLayerRef.current);
     }
 
-    // CARTO Voyager for Light mode, Dark Matter for Dark mode
-    const tileUrl = theme === 'dark'
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    // Use OpenStreetMap standard tiles (Dark mode is handled via CSS filter on [data-theme="dark"] .leaflet-layer)
+    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     tileLayerRef.current = L.tileLayer(tileUrl, {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 20
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
     }).addTo(map);
   }, [theme]);
 
@@ -170,8 +168,8 @@ function ChallengeMap({ userCoords, mapLocations, wildChallenges = [], selectedL
       const isUserGen = isUserGeneratedChallenge(challengeObj);
       
       const pinIcon = L.divIcon({
-        className: `custom-map-pin ${isSelected ? 'selected' : ''} ${isUserGen ? 'user-gen-pin' : ''}`,
-        html: `<div class="pin-inner" style="font-size: ${isUserGen ? '18px' : '15px'}; display: flex; align-items: center; justify-content: center; height: 100%; width: 100%;">${isUserGen ? '⚔️' : '📍'}</div>`,
+        className: `custom-map-pin ${isSelected ? 'selected' : ''}`,
+        html: `<div class="pin-inner" style="font-size: 15px; display: flex; align-items: center; justify-content: center; height: 100%; width: 100%;">📍</div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 32]
       });
@@ -353,12 +351,13 @@ export default function App() {
 
   // Map & location challenges states
   const [challengesViewMode, setChallengesViewMode] = useState('challenges');
+  const [mapFilters, setMapFilters] = useState({ iconic: false, public: false, completed: false });
   const [selectedMapLocation, setSelectedMapLocation] = useState(null);
   const [wildChallenges, setWildChallenges] = useState([]);
   const [userCoords, setUserCoords] = useState([32.0853, 34.7818]); // Default Tel Aviv
 
   useEffect(() => {
-    if (navigator.geolocation) {
+    if (activeTab === 'map' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setUserCoords([position.coords.latitude, position.coords.longitude]);
@@ -369,11 +368,11 @@ export default function App() {
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
-  }, []);
+  }, [activeTab]);
 
   // Wild challenges generator logic
   useEffect(() => {
-    if (challengesViewMode !== 'map') return; // Only spawn when viewing map
+    if (activeTab !== 'map') return; // Only spawn when viewing map
 
     const interval = setInterval(() => {
       setWildChallenges(prev => {
@@ -419,7 +418,7 @@ export default function App() {
     }, 20000); // Check every 20 seconds
 
     return () => clearInterval(interval);
-  }, [userCoords, challengesViewMode]);
+  }, [userCoords, activeTab]);
 
   const handleCompleteWildChallenge = (wildId, xp) => {
     // Add XP
@@ -1854,11 +1853,29 @@ export default function App() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontWeight: 800 }}>אתגרים פתוחים</h2>
+              
+              <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: '24px', padding: '0.25rem', border: '1px solid var(--border)' }}>
+                <button 
+                  onClick={() => setChallengesViewMode('map')} 
+                  style={{ padding: '0.4rem 1.25rem', borderRadius: '20px', border: 'none', background: challengesViewMode === 'map' ? 'rgba(34, 197, 94, 0.15)' : 'transparent', color: challengesViewMode === 'map' ? '#22c55e' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  <MapIcon size={20} />
+                </button>
+                <button 
+                  onClick={() => setChallengesViewMode('challenges')} 
+                  style={{ padding: '0.4rem 1.25rem', borderRadius: '20px', border: 'none', background: challengesViewMode === 'challenges' ? 'rgba(34, 197, 94, 0.15)' : 'transparent', color: challengesViewMode === 'challenges' ? '#22c55e' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  <SwordsIcon size={20} />
+                </button>
+              </div>
+
               <button onClick={() => setActiveTab('create')} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
                 <PlusIcon size={18} /> יוזמה חדשה
               </button>
             </div>
 
+            {challengesViewMode === 'challenges' && (
+              <>
             {/* Premium XP Progress Bar */}
             <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
               <div 
@@ -2067,16 +2084,8 @@ export default function App() {
                 </div>
               </div>
             )}
-
-            {/* Quick Action Navigation */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
-              <button onClick={() => setChallengesViewMode('map')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', borderRadius: '20px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-                🗺️ אתגרי מפה
-              </button>
-              <button onClick={() => setChallengesViewMode('duels')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', borderRadius: '20px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-                ⚔️ דו-קרב ראש בראש
-              </button>
-            </div>
+            </>
+            )}
 
             {challengesViewMode === 'challenges' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', direction: 'rtl', textAlign: 'right' }}>
@@ -2296,12 +2305,58 @@ export default function App() {
               </div>
             )}
 
-            {challengesViewMode === 'map' && (
+            {challengesViewMode === 'map' && (() => {
+              const filteredMapLocations = mapLocations.filter(loc => {
+                const ch = challenges.find(c => c.id === loc.challengeId);
+                if (!ch) return false;
+                
+                if (mapFilters.iconic && !ch.isIconic) return false;
+                if (mapFilters.public && !isUserGeneratedChallenge(ch)) return false;
+                if (mapFilters.completed && !currentUser.activeChallenges.includes(ch.id) && ch.xpReward > 200) return false; // mock check for completed
+                
+                return true;
+              });
+
+              return (
               /* INTERACTIVE MAP VIEW */
               <div className="interactive-map-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                   לחצו על הסימונים במפה כדי לגלות אתגרים בלעדיים שזמינים לביצוע במיקום זה בלבד! 📍
                 </p>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                  <button 
+                    onClick={() => setMapFilters(prev => ({ ...prev, iconic: !prev.iconic }))}
+                    style={{ background: mapFilters.iconic ? 'var(--accent)' : 'var(--bg-secondary)', color: mapFilters.iconic ? '#000' : 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '20px', padding: '0.4rem 0.75rem', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: mapFilters.iconic ? '0 0 10px rgba(0,255,255,0.4)' : 'none' }}
+                  >
+                    ⭐ כוכב
+                  </button>
+                  <button 
+                    onClick={() => setMapFilters(prev => ({ ...prev, public: !prev.public }))}
+                    style={{ background: mapFilters.public ? 'var(--accent)' : 'var(--bg-secondary)', color: mapFilters.public ? '#000' : 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '20px', padding: '0.4rem 0.75rem', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: mapFilters.public ? '0 0 10px rgba(0,255,255,0.4)' : 'none' }}
+                  >
+                    👥 ציבורי
+                  </button>
+                  <button 
+                    onClick={() => setMapFilters(prev => ({ ...prev, completed: !prev.completed }))}
+                    style={{ background: mapFilters.completed ? 'var(--success)' : 'var(--bg-secondary)', color: mapFilters.completed ? '#fff' : 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '20px', padding: '0.4rem 0.75rem', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: mapFilters.completed ? '0 0 10px rgba(34,197,94,0.4)' : 'none' }}
+                  >
+                    ✅ וי
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                          setUserCoords([pos.coords.latitude, pos.coords.longitude]);
+                        });
+                      }
+                    }}
+                    style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '20px', padding: '0.4rem 0.75rem', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', boxShadow: '0 0 10px rgba(0,255,255,0.4)', marginLeft: 'auto' }}
+                    title="מצא את המיקום שלי"
+                  >
+                    📍 המיקום שלי
+                  </button>
+                </div>
 
                 <div 
                   className="real-map-canvas" 
@@ -2318,7 +2373,7 @@ export default function App() {
                 >
                   <ChallengeMap 
                     userCoords={userCoords}
-                    mapLocations={mapLocations}
+                    mapLocations={filteredMapLocations}
                     wildChallenges={wildChallenges}
                     selectedLocation={selectedMapLocation}
                     onSelectLocation={setSelectedMapLocation}
@@ -2382,7 +2437,7 @@ export default function App() {
                               ביצעתי! קבל פרס
                             </button>
                           </div>
-                        ) : linkedChallenge && (
+                        ) : linkedChallenge ? (
                           <div 
                             style={{ 
                               background: 'var(--bg-secondary)', 
@@ -2423,7 +2478,7 @@ export default function App() {
                               )}
                             </div>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     );
                   })()}
@@ -2461,8 +2516,9 @@ export default function App() {
                   <PlusIcon size={28} />
                 </button>
               </div>
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {challengesViewMode === 'duels' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -3843,6 +3899,10 @@ export default function App() {
         <button className={`tab-btn ${activeTab === 'feed' ? 'active' : ''}`} onClick={() => setActiveTab('feed')}>
           <ActivityIcon size={20} />
         </button>
+
+        <button className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`} onClick={() => setActiveTab('chats')}>
+          <CommentIcon size={20} />
+        </button>
         
         <button 
           className={`tab-btn ${activeTab === 'challenges' ? 'active' : ''}`} 
@@ -3864,10 +3924,6 @@ export default function App() {
               border: '2px solid var(--bg)'
             }} />
           )}
-        </button>
-
-        <button className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`} onClick={() => setActiveTab('chats')}>
-          <CommentIcon size={20} />
         </button>
         
         <button className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>

@@ -4278,3 +4278,11 @@ body {
   70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
 }
+
+/* Leaflet dark mode filter */
+[data-theme="dark"] .leaflet-layer,
+[data-theme="dark"] .leaflet-control-zoom-in,
+[data-theme="dark"] .leaflet-control-zoom-out,
+[data-theme="dark"] .leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
