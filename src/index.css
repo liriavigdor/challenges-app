@@ -1108,15 +1108,17 @@ body {
 }
 
 .reel-streak-tag {
-  background: linear-gradient(135deg, #ff4500, #ff8c00);
+  background: linear-gradient(135deg, #FFB300 0%, #FF3B30 100%);
   color: #fff;
-  font-size: 0.7rem;
-  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 12px;
-  font-weight: bold;
+  font-weight: 800;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4);
+  letter-spacing: 0.5px;
 }
 
 .reel-challenge-tag {
@@ -1935,9 +1937,9 @@ body {
 
 /* Micro-interaction Additive Animations */
 @keyframes streak-pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.4); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(255, 69, 0, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 0, 0); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.5); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(255, 59, 48, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
 }
 
 .reel-streak-tag {
@@ -4260,4 +4262,19 @@ body {
 @keyframes shine {
   from { transform: translateX(-100%); }
   to { transform: translateX(200%); }
+}
+
+/* Wild Challenge Pins */
+.wild-map-pin .wild-pin-inner {
+  background: linear-gradient(45deg, #f59e0b, #eab308);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.5);
+  animation: pulse-wild 1.5s infinite;
+}
+
+@keyframes pulse-wild {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
 }

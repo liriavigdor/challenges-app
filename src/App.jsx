@@ -73,7 +73,7 @@ const isUserGeneratedChallenge = (challenge) => {
   return !systemCreators.includes(challenge.creator);
 };
 
-function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLocation, filteredChallenges, theme }) {
+function ChallengeMap({ userCoords, mapLocations, wildChallenges = [], selectedLocation, onSelectLocation, filteredChallenges, theme }) {
   const mapRef = React.useRef(null);
   const mapInstanceRef = React.useRef(null);
   const markersRef = React.useRef([]);
@@ -161,7 +161,7 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
 
     const bounds = [userCoords];
 
-    // Add pins for challenges
+    // Add pins for regular challenges
     mapLocations.forEach((loc) => {
       const challengeObj = filteredChallenges.find(ch => ch.id === loc.challengeId);
       if (!challengeObj) return;
@@ -186,13 +186,34 @@ function ChallengeMap({ userCoords, mapLocations, selectedLocation, onSelectLoca
       });
     });
 
+    // Add pins for wild challenges
+    wildChallenges.forEach((wild) => {
+      const isSelected = selectedLocation?.id === wild.id;
+      
+      const wildIcon = L.divIcon({
+        className: `custom-map-pin wild-map-pin ${isSelected ? 'selected' : ''}`,
+        html: `<div class="pin-inner wild-pin-inner" style="font-size: 18px; display: flex; align-items: center; justify-content: center; height: 100%; width: 100%;">${wild.icon}</div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
+      });
+
+      const marker = L.marker([wild.lat, wild.lng], { icon: wildIcon }).addTo(map);
+      markersRef.current.push(marker);
+      bounds.push([wild.lat, wild.lng]);
+
+      marker.on('click', () => {
+        onSelectLocation(wild);
+        map.setView([wild.lat, wild.lng], 14, { animate: true, duration: 0.8 });
+      });
+    });
+
     // Handle center/zoom view changes
     if (selectedLocation) {
       map.setView([selectedLocation.lat, selectedLocation.lng], 13, { animate: true });
     } else if (bounds.length > 1) {
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [mapLocations, filteredChallenges, selectedLocation]);
+  }, [mapLocations, wildChallenges, filteredChallenges, selectedLocation]);
 
   return (
     <div 
@@ -333,6 +354,7 @@ export default function App() {
   // Map & location challenges states
   const [challengesViewMode, setChallengesViewMode] = useState('challenges');
   const [selectedMapLocation, setSelectedMapLocation] = useState(null);
+  const [wildChallenges, setWildChallenges] = useState([]);
   const [userCoords, setUserCoords] = useState([32.0853, 34.7818]); // Default Tel Aviv
 
   useEffect(() => {
@@ -348,6 +370,70 @@ export default function App() {
       );
     }
   }, []);
+
+  // Wild challenges generator logic
+  useEffect(() => {
+    if (challengesViewMode !== 'map') return; // Only spawn when viewing map
+
+    const interval = setInterval(() => {
+      setWildChallenges(prev => {
+        const now = Date.now();
+        // Cleanup expired
+        const activeWild = prev.filter(wc => now - wc.createdAt < wc.expiresIn);
+
+        // Limit to 3 concurrent
+        if (activeWild.length >= 3) return activeWild;
+
+        // 30% chance to spawn nothing this tick if not empty to make it more random
+        if (activeWild.length > 0 && Math.random() < 0.3) return activeWild;
+
+        const wildTypes = [
+          { title: "20 קפיצות ג'ק", xp: 50, icon: "⚡" },
+          { title: "דקה סמוך קום", xp: 100, icon: "🔥" },
+          { title: "30 שניות פלאנק", xp: 75, icon: "🛡️" },
+          { title: "10 שכיבות סמיכה", xp: 60, icon: "💪" },
+          { title: "ספרינט קצר במקום", xp: 80, icon: "🏃" }
+        ];
+        const randomType = wildTypes[Math.floor(Math.random() * wildTypes.length)];
+        
+        // Random offset: roughly up to 500m radius
+        const latOffset = (Math.random() - 0.5) * 0.008;
+        const lngOffset = (Math.random() - 0.5) * 0.008;
+
+        const newWild = {
+          id: `wild_${Date.now()}`,
+          isWild: true,
+          name: "אתגר פראי!",
+          title: randomType.title,
+          xpReward: randomType.xp,
+          icon: randomType.icon,
+          lat: userCoords[0] + latOffset,
+          lng: userCoords[1] + lngOffset,
+          createdAt: Date.now(),
+          expiresIn: 5 * 60 * 1000, // 5 minutes
+          description: "אתגר פראי קצר לביצוע מיידי. האם אתה מוכן?"
+        };
+
+        return [...activeWild, newWild];
+      });
+    }, 20000); // Check every 20 seconds
+
+    return () => clearInterval(interval);
+  }, [userCoords, challengesViewMode]);
+
+  const handleCompleteWildChallenge = (wildId, xp) => {
+    // Add XP
+    const updatedUser = { ...currentUser, xp: currentUser.xp + xp };
+    setCurrentUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+
+    // Remove from map
+    setWildChallenges(prev => prev.filter(wc => wc.id !== wildId));
+    setSelectedMapLocation(null);
+
+    // Show toast or alert
+    alert(`כל הכבוד! השלמת אתגר פראי והרווחת ${xp} XP!`);
+  };
 
   const baseMapLocations = [
     {
@@ -1775,7 +1861,10 @@ export default function App() {
 
             {/* Premium XP Progress Bar */}
             <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+              <div 
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, cursor: 'pointer' }}
+                onClick={() => setShowRankHistory(true)}
+              >
                 <div style={{
                   width: '54px', height: '54px', 
                   background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
@@ -2230,6 +2319,7 @@ export default function App() {
                   <ChallengeMap 
                     userCoords={userCoords}
                     mapLocations={mapLocations}
+                    wildChallenges={wildChallenges}
                     selectedLocation={selectedMapLocation}
                     onSelectLocation={setSelectedMapLocation}
                     filteredChallenges={filteredChallenges}
@@ -2238,8 +2328,10 @@ export default function App() {
 
                   {/* Location quick summary drawer placed inside map absolute container to prevent component recreation */}
                   {selectedMapLocation && (() => {
-                    const linkedChallenge = challenges.find(ch => ch.id === selectedMapLocation.challengeId);
+                    const isWild = selectedMapLocation.isWild;
+                    const linkedChallenge = !isWild ? challenges.find(ch => ch.id === selectedMapLocation.challengeId) : null;
                     const isJoined = linkedChallenge ? currentUser.activeChallenges.includes(linkedChallenge.id) : false;
+                    
                     return (
                       <div 
                         className="location-summary-drawer" 
@@ -2248,22 +2340,25 @@ export default function App() {
                           bottom: 0,
                           left: 0,
                           right: 0,
-                          background: 'var(--bg-tertiary)',
-                          borderTop: '2px solid var(--border)',
+                          background: isWild ? 'linear-gradient(to top, rgba(20,20,20,0.95), var(--bg-tertiary))' : 'var(--bg-tertiary)',
+                          borderTop: isWild ? '2px solid #ffd700' : '2px solid var(--border)',
                           padding: '1rem',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '0.75rem',
                           borderTopLeftRadius: '16px',
                           borderTopRightRadius: '16px',
-                          boxShadow: '0 -4px 15px rgba(0,0,0,0.3)',
+                          boxShadow: isWild ? '0 -4px 20px rgba(255,215,0,0.2)' : '0 -4px 15px rgba(0,0,0,0.3)',
                           direction: 'rtl',
                           textAlign: 'right',
                           zIndex: 1000
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h4 style={{ fontWeight: 800, fontSize: '1.05rem', margin: 0, color: 'var(--accent)' }}>{selectedMapLocation.name}</h4>
+                          <h4 style={{ fontWeight: 800, fontSize: '1.05rem', margin: 0, color: isWild ? '#ffd700' : 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            {isWild && <span style={{ fontSize: '1.2rem' }}>⭐</span>}
+                            {selectedMapLocation.name}
+                          </h4>
                           <button 
                             onClick={() => setSelectedMapLocation(null)}
                             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.1rem', cursor: 'pointer' }}
@@ -2273,7 +2368,21 @@ export default function App() {
                         </div>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{selectedMapLocation.description}</p>
                         
-                        {linkedChallenge && (
+                        {isWild ? (
+                          <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ffd70033', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <h5 style={{ margin: 0, fontWeight: 'bold', fontSize: '1rem' }}>{selectedMapLocation.icon} {selectedMapLocation.title}</h5>
+                              <div style={{ color: '#ffd700', fontWeight: 'bold' }}>+{selectedMapLocation.xpReward} XP</div>
+                            </div>
+                            <button 
+                              onClick={() => handleCompleteWildChallenge(selectedMapLocation.id, selectedMapLocation.xpReward)}
+                              className="btn btn-primary"
+                              style={{ width: '100%', padding: '0.6rem', fontSize: '0.9rem', fontWeight: 'bold', marginTop: '0.5rem', background: 'linear-gradient(45deg, #f59e0b, #eab308)', color: '#000' }}
+                            >
+                              ביצעתי! קבל פרס
+                            </button>
+                          </div>
+                        ) : linkedChallenge && (
                           <div 
                             style={{ 
                               background: 'var(--bg-secondary)', 
@@ -3337,52 +3446,6 @@ export default function App() {
               </div>
             )}
 
-            {showRankHistory && (
-              <div style={{
-                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
-                zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexDirection: 'column', padding: '1rem'
-              }} onClick={() => setShowRankHistory(false)}>
-                <div className="glass-card" style={{ 
-                  width: '100%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto', 
-                  padding: '1.5rem', borderRadius: '20px', position: 'relative'
-                }} onClick={e => e.stopPropagation()}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ margin: 0, fontSize: '1.5rem' }}>היסטוריית דרגות</h2>
-                    <button className="icon-btn" onClick={() => setShowRankHistory(false)}><CloseIcon /></button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {MILITARY_RANKS.map((rank) => {
-                      const isPassed = currentUser.xp >= rank.xpRequired;
-                      const isCurrent = getUserRank(currentUser.xp).id === rank.id;
-                      return (
-                        <div key={rank.id} style={{ 
-                          display: 'flex', alignItems: 'center', gap: '1rem', 
-                          padding: '0.8rem', borderRadius: '12px',
-                          background: isCurrent ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                          border: isCurrent ? '1px solid var(--cyan)' : '1px solid transparent',
-                          opacity: isPassed ? 1 : 0.4,
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <MilitaryRankIcon rankId={rank.id} size={48} />
-                          <div style={{ flex: 1, textAlign: 'right' }}>
-                            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: isPassed ? '#fff' : '#aaa' }}>{rank.heName}</div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                              דרישה: {rank.xpRequired.toLocaleString()} XP
-                            </div>
-                          </div>
-                          {isCurrent && <div style={{ fontSize: '1.5rem' }}>🌟</div>}
-                          {isPassed && !isCurrent && <div style={{ fontSize: '1.5rem', color: '#4ade80' }}>✓</div>}
-                          {!isPassed && <div style={{ fontSize: '1.2rem', color: '#666' }}>🔒</div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Social List Modal */}
             {socialModalType && (
               <div style={{
@@ -3554,9 +3617,31 @@ export default function App() {
                   <span className="social-stat-label" style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>דרגה</span>
                 </div>
                 {/* Gamification: Streak */}
-                <div className="social-stat-item" style={{ textAlign: 'center' }}>
-                  <span className="social-stat-value" style={{ display: 'block', fontSize: '1.1rem', fontWeight: '800', color: '#ff9800' }}>🔥 14</span>
-                  <span className="social-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>רצף ימים</span>
+                <div className="social-stat-item" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <div style={{
+                    width: '46px', height: '46px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #FFB300 0%, #FF3B30 100%)',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    boxShadow: '0 4px 12px rgba(255, 59, 48, 0.4)',
+                    position: 'relative'
+                  }}>
+                    <span style={{ position: 'relative', zIndex: 2, fontSize: '1.5rem', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.3))' }}>🔥</span>
+                    <div style={{
+                      position: 'absolute', bottom: '-6px', right: '-6px',
+                      background: 'var(--bg-card)', borderRadius: '50%', padding: '2px',
+                      display: 'flex', justifyContent: 'center', alignItems: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                    }}>
+                      <span style={{
+                        background: '#fff', color: '#FF3B30', fontSize: '0.75rem',
+                        fontWeight: 800, borderRadius: '50%', width: '22px', height: '22px',
+                        display: 'flex', justifyContent: 'center', alignItems: 'center',
+                        border: '1px solid #FF3B30'
+                      }}>{currentUser.streak || 14}</span>
+                    </div>
+                  </div>
+                  <span className="social-stat-label" style={{ fontSize: '0.65rem', color: '#FFB300', fontWeight: 700, letterSpacing: '0.5px', marginTop: '6px' }}>FIRE STREAK</span>
                 </div>
               </div>
 
@@ -3610,16 +3695,36 @@ export default function App() {
 
             {/* Elegant Trophies/Badges Section */}
             {currentUser.badges && currentUser.badges.length > 0 && (
-              <div style={{ marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <h4 style={{ fontSize: '0.9rem', margin: 0, fontWeight: 600, color: 'var(--text-muted)' }}>ארון גביעים ({currentUser.badges.length})</h4>
+              <div style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', padding: '0 0.5rem' }}>
+                  <h4 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.2rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }}>🏆</span> ארון התגים
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', color: '#ffb703', fontWeight: 600, background: 'rgba(255, 183, 3, 0.15)', padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid rgba(255, 183, 3, 0.3)' }}>
+                    {currentUser.badges.length} הישגים
+                  </span>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'thin' }}>
+                
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(75px, 1fr))', 
+                  gap: '1.2rem 0.5rem',
+                  padding: '1.5rem 1rem',
+                  background: 'linear-gradient(145deg, rgba(20,20,30,0.7) 0%, rgba(10,10,15,0.9) 100%)',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: 'inset 0 0 30px rgba(0,0,0,0.6), 0 10px 20px rgba(0,0,0,0.2)'
+                }}>
                   {currentUser.badges.map((b, idx) => {
                     const parts = b.split(' ');
                     const emoji = parts[0] || '🏅';
                     const title = parts.slice(1).join(' ') || b;
                     
+                    // Generate a dynamic gradient based on the index to make each badge feel unique and premium
+                    const hue = (idx * 45) % 360;
+                    const gradient = `linear-gradient(135deg, hsl(${hue}, 80%, 65%), hsl(${(hue + 30) % 360}, 90%, 40%))`;
+                    const shadowColor = `hsla(${hue}, 80%, 60%, 0.5)`;
+
                     return (
                       <div 
                         key={b} 
@@ -3628,16 +3733,69 @@ export default function App() {
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
-                          gap: '4px',
-                          minWidth: '60px',
-                          cursor: 'pointer'
+                          gap: '8px',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                         }}
-                        onClick={() => setActiveBadgeDetail({ title, emoji, desc: 'תג הישג מיוחד באפליקציה', colorConfig: { bg: '#1f1f2e', border: '#8ecae6' }, shape: 'circle', size: 'sm' })}
+                        className="premium-badge-item"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-6px) scale(1.08)';
+                          e.currentTarget.querySelector('.badge-icon-wrapper').style.boxShadow = `0 12px 24px ${shadowColor}, inset 0 2px 5px rgba(255,255,255,0.6)`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                          e.currentTarget.querySelector('.badge-icon-wrapper').style.boxShadow = `0 4px 12px rgba(0,0,0,0.4), inset 0 2px 5px rgba(255,255,255,0.3)`;
+                        }}
+                        onClick={() => setActiveBadgeDetail({ 
+                          title, 
+                          emoji, 
+                          desc: 'תג הישג מיוחד שהושג במאמץ רב! המשך כך כדי להשיג תגים נוספים בדרגת יוקרה גבוהה יותר.', 
+                          colorConfig: { bg: `hsl(${hue}, 30%, 15%)`, border: `hsl(${hue}, 80%, 60%)` }, 
+                          shape: 'hexagon', 
+                          size: 'lg' 
+                        })}
                       >
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.2rem' }}>
-                          {emoji}
+                        <div 
+                          className="badge-icon-wrapper"
+                          style={{ 
+                            width: '56px', 
+                            height: '56px', 
+                            borderRadius: '16px', 
+                            background: gradient,
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center', 
+                            fontSize: '1.8rem',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.4), inset 0 2px 5px rgba(255,255,255,0.3)',
+                            border: '1px solid rgba(255,255,255,0.4)',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            transition: 'all 0.3s ease'
+                          }}
+                        >
+                          {/* Inner glass highlight */}
+                          <div style={{
+                            position: 'absolute',
+                            top: 0, left: 0, right: 0, height: '50%',
+                            background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%)',
+                            pointerEvents: 'none'
+                          }} />
+                          <span style={{ position: 'relative', zIndex: 2, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>{emoji}</span>
                         </div>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ 
+                          fontSize: '0.65rem', 
+                          color: 'rgba(255,255,255,0.85)', 
+                          textAlign: 'center', 
+                          fontWeight: 500,
+                          lineHeight: 1.2,
+                          maxWidth: '100%',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          padding: '0 2px'
+                        }}>
                           {title}
                         </span>
                       </div>
@@ -4498,6 +4656,94 @@ export default function App() {
                 עדכן התקדמות
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showRankHistory && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexDirection: 'column', padding: '1rem'
+        }} onClick={() => setShowRankHistory(false)}>
+          <div className="glass-card" style={{ 
+            width: '100%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto', 
+            padding: '1.5rem', borderRadius: '20px', position: 'relative'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>היסטוריית דרגות</h2>
+              <button className="icon-btn" onClick={() => setShowRankHistory(false)}><CloseIcon /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', padding: '1rem 0', position: 'relative' }}>
+              {/* The vertical line path */}
+              <div style={{ position: 'absolute', top: '2rem', bottom: '2rem', right: '34px', width: '0px', zIndex: 0, borderRight: '4px dashed var(--border)' }}></div>
+              
+              {MILITARY_RANKS.slice().reverse().map((rank, idx) => {
+                const isPassed = currentUser.xp >= rank.xpRequired;
+                const isCurrent = getUserRank(currentUser.xp).id === rank.id;
+                
+                return (
+                  <div key={rank.id} style={{ 
+                    display: 'flex', alignItems: 'center', gap: '1.5rem', 
+                    marginBottom: '2rem', position: 'relative', zIndex: 1
+                  }}>
+                    {/* Node Icon */}
+                    <div style={{ width: '70px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <div style={{
+                        background: isCurrent ? 'var(--primary)' : (isPassed ? '#374151' : '#1f2937'),
+                        padding: '10px', borderRadius: '50%',
+                        boxShadow: isCurrent ? '0 0 15px var(--primary)' : 'none',
+                        border: isCurrent ? '3px solid #fff' : '2px solid var(--border)',
+                        opacity: isPassed ? 1 : 0.6,
+                        transition: 'all 0.3s'
+                      }}>
+                        <MilitaryRankIcon rankId={rank.id} size={40} />
+                      </div>
+                    </div>
+                    
+                    {/* Node Content */}
+                    <div style={{ 
+                      flex: 1, 
+                      background: isCurrent ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(2, 132, 199, 0.15))' : 'var(--glass-bg)',
+                      border: isCurrent ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      borderRadius: '16px', padding: '1.2rem',
+                      opacity: isPassed ? 1 : 0.6,
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: isPassed ? '#fff' : '#9ca3af' }}>{rank.heName}</h3>
+                        {!isPassed && <div style={{ fontSize: '1.2rem', color: '#6b7280' }}>🔒</div>}
+                        {isCurrent && <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.8))' }}>🎯</div>}
+                        {isPassed && !isCurrent && <div style={{ fontSize: '1.2rem', color: '#34d399' }}>✓</div>}
+                      </div>
+                      
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                        {rank.xpRequired.toLocaleString()} XP
+                      </div>
+                      
+                      {/* Reward section for every 3 ranks */}
+                      {rank.id % 3 === 0 && rank.id > 0 && (
+                        <div style={{ 
+                          marginTop: '1rem', 
+                          background: 'rgba(0,0,0,0.3)', 
+                          padding: '0.75rem', 
+                          borderRadius: '12px', 
+                          display: 'flex', alignItems: 'center', gap: '0.75rem',
+                          border: '1px solid rgba(255,255,255,0.05)'
+                        }}>
+                          <div style={{ fontSize: '2rem', filter: isPassed ? 'drop-shadow(0 0 10px rgba(252,211,77,0.5))' : 'grayscale(100%) opacity(40%)' }}>🎁</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: isPassed ? '#fcd34d' : '#9ca3af' }}>{isPassed ? 'תיבת אוואטר נפתחה!' : 'תיבת פרסים לאוואטר'}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{isPassed ? 'קבל פריטי לבוש ועיצובים חדשים.' : 'הגע לדרגה כדי לפתוח תיבה.'}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
