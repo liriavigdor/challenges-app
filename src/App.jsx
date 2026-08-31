@@ -256,6 +256,10 @@ export default function App() {
     { id: 'd2', title: 'ריצת 2 ק"מ', xp: 50, completed: false }
   ]);
 
+  const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
+  const [isMyChallengesModalOpen, setIsMyChallengesModalOpen] = useState(false);
+  const [isDiscoverModalOpen, setIsDiscoverModalOpen] = useState(false);
+
   const handleLogActivity = (e) => {
     e.preventDefault();
     if (!reportAmount || isNaN(reportAmount)) return;
@@ -932,9 +936,9 @@ export default function App() {
   const [newChallengeDesc, setNewChallengeDesc] = useState('');
   const [newChallengeCategory, setNewChallengeCategory] = useState('כוח');
   const [newChallengeDifficulty, setNewChallengeDifficulty] = useState('קל');
-  const [newChallengeXp, setNewChallengeXp] = useState(200);
   const [newChallengeProofText, setNewChallengeProofText] = useState('');
-  const [newChallengeProofImage, setNewChallengeProofImage] = useState('');
+  const [newChallengeImages, setNewChallengeImages] = useState([]);
+  const [newChallengeSoundtrack, setNewChallengeSoundtrack] = useState('');
   const [newChallengePinLocation, setNewChallengePinLocation] = useState(false);
   const [newChallengeLocationName, setNewChallengeLocationName] = useState('');
   const [newChallengeLat, setNewChallengeLat] = useState('');
@@ -1284,113 +1288,129 @@ export default function App() {
   // Create a new Challenge
   const handleCreateChallenge = async (e) => {
     e.preventDefault();
-    if (currentUser.isBlocked) {
-      alert("חשבונך חסום. אינך יכול ליצור אתגרים חדשים.");
-      return;
+    if (window.isCreatingChallengeInProgress) return;
+    window.isCreatingChallengeInProgress = true;
+    try {
+      if (currentUser.isBlocked) {
+        alert("חשבונך חסום. אינך יכול ליצור אתגרים חדשים.");
+        return;
+      }
+      if (newChallengeImages.length === 0) {
+        alert("יש לבחור לפחות תמונה אחת לאתגר.");
+        return;
+      }
+
+      if (!newChallengeTitle.trim() || !newChallengeProofText.trim()) {
+        alert("יש למלא את פרטי האתגר ואת הוכחת הביצוע שלך.");
+        return;
+      }
+
+      // Auto-calculate XP base on difficulty
+      const diff = newChallengeDifficulty;
+      const baseXP = diff === 'בינוני' ? 100 : diff === 'קשה' ? 150 : diff === 'קשה מאוד' ? 250 : 50;
+      const finalXpReward = baseXP;
+
+      const challengeId = `challenge_${Date.now()}`;
+      const newChallenge = {
+        id: challengeId,
+        title: newChallengeTitle,
+        description: newChallengeDesc,
+        category: newChallengeCategory,
+        difficulty: newChallengeDifficulty,
+        xpReward: finalXpReward,
+        participantsCount: 1,
+        duration: "חד פעמי",
+        creator: currentUser.name,
+        isUserGenerated: true,
+        image: newChallengeImages[0],
+        images: newChallengeImages,
+        soundtrack: newChallengeSoundtrack || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        difficultyGrades: [newChallengeDifficulty === 'קל' ? 1 : newChallengeDifficulty === 'בינוני' ? 3 : newChallengeDifficulty === 'קשה' ? 4 : 5],
+        isIconic: false,
+        ...(newChallengePinLocation && newChallengeLat && newChallengeLng ? {
+          lat: Number(newChallengeLat),
+          lng: Number(newChallengeLng),
+          locationName: newChallengeLocationName || `מיקום: ${newChallengeTitle}`,
+          locationDescription: newChallengeLocationDesc || newChallengeDesc
+        } : {})
+      };
+
+      // Auto-completion feed post (since they must complete it to share it)
+      const newFeedItem = {
+        id: `feed_${Date.now()}`,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userAvatar: currentUser.avatar,
+        challengeTitle: newChallengeTitle,
+        achievementDetail: newChallengeProofText,
+        proofImage: newChallengeImages[0],
+        images: newChallengeImages,
+        soundtrack: newChallengeSoundtrack || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        likes: 0,
+        claps: 0,
+        hasLiked: false,
+        hasClapped: false,
+        timestamp: "כרגע",
+        comments: [],
+        reports: []
+      };
+
+      const isHard = ['קשה', 'קשה מאוד'].includes(newChallengeDifficulty);
+
+      const updatedXp = currentUser.xp + finalXpReward;
+      const updatedCompletedCount = currentUser.completedChallengesCount + 1;
+      const updatedHardCount = isHard ? (currentUser.hardChallengesCompleted || 0) + 1 : (currentUser.hardChallengesCompleted || 0);
+
+      const updatedUser = {
+        ...currentUser,
+        xp: updatedXp,
+        completedChallengesCount: updatedCompletedCount,
+        hardChallengesCompleted: updatedHardCount
+      };
+
+      setChallenges(prev => [newChallenge, ...prev]);
+      await saveChallenge(newChallenge);
+
+      setFeed(prev => [newFeedItem, ...prev]);
+      await addFeedPost(newFeedItem);
+
+      setCurrentUser(updatedUser);
+      setUsers(prev => {
+        const unsorted = prev.map(u => u.id === currentUser.id ? updatedUser : u);
+        return unsorted.sort((a, b) => b.xp - a.xp).map((u, index) => ({ ...u, rank: index + 1 }));
+      });
+      await updateUser(updatedUser);
+
+      // Notify followers
+      const newNotif = {
+        id: `notif_${Date.now()}`,
+        type: "new_challenge",
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderAvatar: currentUser.avatar,
+        text: `העלה אתגר חדש: ${newChallengeTitle}`,
+        challengeId: challengeId,
+        timestamp: "כרגע",
+        read: false
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+
+      // Reset inputs & Go to Challenges Tab
+      setNewChallengeTitle('');
+      setNewChallengeDesc('');
+      setNewChallengeProofText('');
+      setNewChallengeImages([]);
+      setNewChallengeSoundtrack('');
+      setNewChallengePinLocation(false);
+      setNewChallengeLocationName('');
+      setNewChallengeLat('');
+      setNewChallengeLng('');
+      setNewChallengeLocationDesc('');
+      setCreationStep(1);
+      setActiveTab('challenges');
+    } finally {
+      window.isCreatingChallengeInProgress = false;
     }
-    if (!newChallengeTitle.trim() || !newChallengeProofText.trim()) {
-      alert("יש למלא את פרטי האתגר ואת הוכחת הביצוע שלך.");
-      return;
-    }
-
-    const challengeId = `challenge_${Date.now()}`;
-    const newChallenge = {
-      id: challengeId,
-      title: newChallengeTitle,
-      description: newChallengeDesc,
-      category: newChallengeCategory,
-      difficulty: newChallengeDifficulty,
-      xpReward: Number(newChallengeXp),
-      participantsCount: 1,
-      duration: "חד פעמי",
-      creator: currentUser.name,
-      isUserGenerated: true,
-      image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80",
-      difficultyGrades: [newChallengeDifficulty === 'קל' ? 1 : newChallengeDifficulty === 'בינוני' ? 3 : newChallengeDifficulty === 'קשה' ? 4 : 5],
-      isIconic: false,
-      ...(newChallengePinLocation && newChallengeLat && newChallengeLng ? {
-        lat: Number(newChallengeLat),
-        lng: Number(newChallengeLng),
-        locationName: newChallengeLocationName || `מיקום: ${newChallengeTitle}`,
-        locationDescription: newChallengeLocationDesc || newChallengeDesc
-      } : {})
-    };
-
-    // Auto-completion feed post (since they must complete it to share it)
-    const newFeedItem = {
-      id: `feed_${Date.now()}`,
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userAvatar: currentUser.avatar,
-      challengeTitle: newChallengeTitle,
-      achievementDetail: newChallengeProofText,
-      proofImage: newChallengeProofImage || "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=80",
-      likes: 0,
-      claps: 0,
-      hasLiked: false,
-      hasClapped: false,
-      timestamp: "כרגע",
-      comments: [],
-      reports: []
-    };
-
-    // Calculate dynamic XP reward with multiplier
-    const diff = newChallengeDifficulty;
-    const multiplier = diff === 'בינוני' ? 1.2 : diff === 'קשה' ? 1.5 : diff === 'קשה מאוד' ? 2.0 : 1.0;
-    const finalXpReward = Math.round(Number(newChallengeXp) * multiplier);
-
-    const isHard = ['קשה', 'קשה מאוד'].includes(newChallengeDifficulty);
-
-    const updatedXp = currentUser.xp + finalXpReward;
-    const updatedCompletedCount = currentUser.completedChallengesCount + 1;
-    const updatedHardCount = isHard ? (currentUser.hardChallengesCompleted || 0) + 1 : (currentUser.hardChallengesCompleted || 0);
-
-    const updatedUser = {
-      ...currentUser,
-      xp: updatedXp,
-      completedChallengesCount: updatedCompletedCount,
-      hardChallengesCompleted: updatedHardCount
-    };
-
-    setChallenges(prev => [newChallenge, ...prev]);
-    await saveChallenge(newChallenge);
-
-    setFeed(prev => [newFeedItem, ...prev]);
-    await addFeedPost(newFeedItem);
-
-    setCurrentUser(updatedUser);
-    setUsers(prev => {
-      const unsorted = prev.map(u => u.id === currentUser.id ? updatedUser : u);
-      return unsorted.sort((a, b) => b.xp - a.xp).map((u, index) => ({ ...u, rank: index + 1 }));
-    });
-    await updateUser(updatedUser);
-
-    // Notify followers
-    const newNotif = {
-      id: `notif_${Date.now()}`,
-      type: "new_challenge",
-      senderId: currentUser.id,
-      senderName: currentUser.name,
-      senderAvatar: currentUser.avatar,
-      text: `העלה אתגר חדש: ${newChallengeTitle}`,
-      challengeId: challengeId,
-      timestamp: "כרגע",
-      read: false
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-
-    // Reset inputs & Go to Challenges Tab
-    setNewChallengeTitle('');
-    setNewChallengeDesc('');
-    setNewChallengeProofText('');
-    setNewChallengeProofImage('');
-    setNewChallengePinLocation(false);
-    setNewChallengeLocationName('');
-    setNewChallengeLat('');
-    setNewChallengeLng('');
-    setNewChallengeLocationDesc('');
-    setCreationStep(1);
-    setActiveTab('challenges');
   };
 
   // Submit proof and complete a challenge
@@ -1424,6 +1444,7 @@ export default function App() {
       challengeTitle: challenge.title,
       achievementDetail: proofText || `השלמתי את האתגר "${challenge.title}" בהצלחה! 💪`,
       proofImage: proofImage || "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=80",
+      soundtrack: challenge.soundtrack || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
       likes: 0,
       claps: 0,
       hasLiked: false,
@@ -1850,458 +1871,192 @@ export default function App() {
           const progressPercentage = nextRank ? Math.min(100, Math.max(0, (xpInCurrentRank / xpNeededForNextRank) * 100)) : 100;
           
           return (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontWeight: 800 }}>אתגרים פתוחים</h2>
-              
-              <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: '24px', padding: '0.25rem', border: '1px solid var(--border)' }}>
-                <button 
-                  onClick={() => setChallengesViewMode('map')} 
-                  style={{ padding: '0.4rem 1.25rem', borderRadius: '20px', border: 'none', background: challengesViewMode === 'map' ? 'rgba(34, 197, 94, 0.15)' : 'transparent', color: challengesViewMode === 'map' ? '#22c55e' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                >
-                  <MapIcon size={20} />
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            {challengesViewMode === 'map' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0 1rem' }}>
+                <button onClick={() => setChallengesViewMode('challenges')} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '20px', padding: '0.4rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>
+                  ← חזרה ללובי
                 </button>
-                <button 
-                  onClick={() => setChallengesViewMode('challenges')} 
-                  style={{ padding: '0.4rem 1.25rem', borderRadius: '20px', border: 'none', background: challengesViewMode === 'challenges' ? 'rgba(34, 197, 94, 0.15)' : 'transparent', color: challengesViewMode === 'challenges' ? '#22c55e' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                >
-                  <SwordsIcon size={20} />
-                </button>
+                <h2 style={{ fontWeight: 800, margin: 0 }}>מפת האתגרים</h2>
               </div>
-
-              <button onClick={() => setActiveTab('create')} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                <PlusIcon size={18} /> יוזמה חדשה
-              </button>
-            </div>
+            )}
 
             {challengesViewMode === 'challenges' && (
-              <>
-            {/* Premium XP Progress Bar */}
-            <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
-              <div 
-                style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, cursor: 'pointer' }}
-                onClick={() => setShowRankHistory(true)}
-              >
-                <div style={{
-                  width: '54px', height: '54px', 
-                  background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-                  clipPath: 'polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 15px rgba(14, 165, 233, 0.5)',
-                  border: '2px solid #38bdf8'
-                }}>
-                  <span style={{ color: 'white', fontWeight: 900, fontSize: '1.4rem', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>
-                    {currentRank.id + 1}
-                  </span>
-                </div>
-              </div>
-              
-              <div style={{ flex: 1, position: 'relative', height: '28px', background: '#0f172a', borderRadius: '4px', border: '2px solid #1e293b', overflow: 'hidden', boxShadow: 'inset 0 4px 6px rgba(0,0,0,0.6)' }}>
-                <div style={{ 
-                  width: `${progressPercentage}%`, 
-                  height: '100%', 
-                  background: 'linear-gradient(to right, #0284c7, #38bdf8)', 
-                  transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  boxShadow: 'inset 0 0 8px rgba(255,255,255,0.4)',
-                  position: 'relative'
-                }}>
-                  <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
-                    animation: 'shine 2s infinite linear'
-                  }}></div>
-                </div>
-                
-                <div style={{ 
-                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  color: 'white', fontWeight: 900, fontSize: '0.9rem', 
-                  textShadow: '1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000',
-                  zIndex: 1, letterSpacing: '1px', fontFamily: 'monospace'
-                }}>
-                  {xpInCurrentRank} / {xpNeededForNextRank}
-                </div>
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '2rem' }}>
-              <h3 style={{ fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>אתגרים יומיים</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {dailyChallenges.map(dc => (
-                  <div key={dc.id} style={{
-                    background: 'var(--glass-bg)',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    border: '1px solid var(--border)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <TargetIcon size={24} color={dc.completed ? 'var(--success)' : 'var(--primary)'} />
-                      <div>
-                        <h4 style={{ margin: 0, fontWeight: 600, textDecoration: dc.completed ? 'line-through' : 'none' }}>{dc.title}</h4>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>+{dc.xp} XP</span>
+              <div className="game-lobby-container" style={{ flex: 1, borderRadius: '16px', overflow: 'hidden' }}>
+                {/* Top Info Bar */}
+                <div style={{ position: 'absolute', top: '15px', left: '15px', right: '15px', display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem', borderRadius: '30px', border: '2px solid var(--border)', backdropFilter: 'blur(5px)' }}>
+                    <div style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #38bdf8', fontWeight: 900, fontSize: '1.2rem', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                      {currentRank.id + 1}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 'bold' }}>רמה {currentRank.name}</span>
+                      <div style={{ width: '100px', height: '8px', background: '#0f172a', borderRadius: '10px', overflow: 'hidden', position: 'relative', marginTop: '2px' }}>
+                        <div style={{ width: `${progressPercentage}%`, height: '100%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', transition: 'width 0.5s' }}></div>
                       </div>
                     </div>
-                    {!dc.completed ? (
-                      <button 
-                        onClick={() => handleCompleteDailyChallenge(dc.id, dc.xp)}
-                        className="btn btn-primary" 
-                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-                        דווח ביצוע
-                      </button>
-                    ) : (
-                      <span style={{ color: 'var(--success)', fontWeight: 600 }}>הושלם!</span>
-                    )}
                   </div>
-                ))}
-              </div>
-            </div>
+                  <button onClick={() => setActiveTab('create')} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '30px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
+                    <PlusIcon size={18} /> יוזמה
+                  </button>
+                </div>
 
+                {/* Center Stage Avatar */}
+                <div className="lobby-avatar-stage" style={{ marginTop: '2.5rem' }}>
+                  <AvatarPodium avatarConfig={currentUser.avatarConfig} userXp={currentUser.xp} />
+                </div>
 
-            {/* Filters toggle button row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
-              <button 
-                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                style={{
-                  background: isFiltersOpen ? 'var(--accent)' : 'var(--bg-secondary)',
-                  color: isFiltersOpen ? '#000' : 'var(--text-primary)',
-                  border: '1.5px solid var(--border)',
-                  borderRadius: '24px',
-                  padding: '0.5rem 1.25rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  transition: 'all 0.25s ease',
-                  boxShadow: isFiltersOpen ? '0 4px 12px var(--accent-glow)' : 'var(--shadow-sm)'
-                }}
-              >
-                <span>🔍 מסננים</span>
-                <span style={{ fontSize: '0.75rem' }}>{isFiltersOpen ? '▲' : '▼'}</span>
-              </button>
-
-              {(selectedCategory !== 'הכל' || searchQuery !== '') && (
-                <button
-                  onClick={() => {
-                    setSelectedCategory('הכל');
-                    setSearchQuery('');
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--accent)',
-                    fontSize: '0.85rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    padding: '0.25rem 0.5rem'
-                  }}
-                >
-                  נקה הכל ✕
+                {/* Action Buttons */}
+                <button className="game-btn game-btn-my-challenges" onClick={() => setIsMyChallengesModalOpen(true)}>
+                  <span className="game-btn-icon">⚔️</span>
+                  <span className="game-btn-text">האתגרים שלי</span>
                 </button>
-              )}
-            </div>
 
-            {/* Dropdown Filter Panel */}
-            {isFiltersOpen && (
-              <div 
-                className="filters-glass-panel"
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1.5px solid var(--border)',
-                  borderRadius: '16px',
-                  padding: '1rem',
-                  marginBottom: '1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem',
-                  animation: 'modal-pop-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                  boxShadow: 'var(--shadow-md)'
-                }}
-              >
-                {/* Search Bar */}
-                <div className="search-bar-wrapper" style={{ display: 'flex', gap: '0.5rem' }}>
-                  <div className="search-input-container" style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', background: 'var(--bg-tertiary)', borderRadius: '30px', padding: '0.25rem 0.75rem', border: '1px solid var(--border)' }}>
-                    <SearchIcon size={18} style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', marginRight: '0.25rem' }} />
-                    <input 
-                      type="text" 
-                      className="search-input-clean" 
-                      placeholder="חפשו לפי שם, קושי או תיאור..." 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        flex: 1,
-                        background: 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.9rem',
-                        padding: '0.4rem 0.25rem',
-                        direction: 'rtl'
-                      }}
-                    />
-                  </div>
-                </div>
+                <button className="game-btn game-btn-daily" onClick={() => setIsDailyModalOpen(true)}>
+                  <span className="game-btn-icon">🔥</span>
+                  <span className="game-btn-text">משימות יומיות</span>
+                </button>
 
-                {/* Categories */}
-                <div className="category-filter" style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
-                  {categories.map(cat => {
-                    let emoji = '';
-                    if (cat === 'הכל') emoji = '🌟';
-                    if (cat === 'כוח') emoji = '💪';
-                    if (cat === 'אירובי') emoji = '🏃‍♂️';
-                    if (cat === 'שטח') emoji = '🏕️';
-                    if (cat === 'ליבה') emoji = '🧘';
-                    
-                    return (
-                      <button 
-                        key={cat} 
-                        className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
-                        onClick={() => setSelectedCategory(cat)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          padding: '0.4rem 1rem',
-                          borderRadius: '30px',
-                          border: selectedCategory === cat ? 'none' : '1px solid var(--border)',
-                          background: selectedCategory === cat ? 'var(--accent)' : 'var(--bg-tertiary)',
-                          color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)',
-                          fontSize: '0.85rem',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <span>{emoji}</span> {cat}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            </>
-            )}
-
-            {challengesViewMode === 'challenges' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', direction: 'rtl', textAlign: 'right' }}>
+                <button className="game-btn game-btn-discover" onClick={() => { setIsDiscoverModalOpen(true); setExpandedChallengeId(null); }}>
+                  <span className="game-btn-icon">🏆</span>
+                  <span className="game-btn-text">גלה אתגרים</span>
+                </button>
                 
-                {/* 1. My Active Challenges */}
-                <section>
-                  <h3 style={{ fontWeight: 800, margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    האתגרים שלי
-                  </h3>
-                  
-                  {currentUser.activeChallenges.length === 0 ? (
-                    <div className="glass-card" style={{ padding: '2rem', textAlign: 'center', borderRadius: '16px', border: '1px dashed var(--border)', background: 'rgba(255,255,255,0.02)' }}>
-                      <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem 0', fontSize: '0.95rem' }}>אין לך אתגרים פעילים כרגע.</p>
-                      <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.85rem' }}>גלול למטה ומצא אתגר שמתאים לך כדי להתחיל להרוויח גביעים!</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {currentUser.activeChallenges.map(challengeId => {
-                        const c = challenges.find(ch => ch.id === challengeId);
-                        if (!c) return null;
+                <button 
+                  style={{ position: 'absolute', bottom: '20px', left: '20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem', borderRadius: '50%', color: '#fff', cursor: 'pointer', zIndex: 20 }}
+                  onClick={() => setChallengesViewMode('map')}
+                  title="מפת האתגרים"
+                >
+                  <MapIcon size={24} />
+                </button>
 
-                        return (
-                          <div key={c.id} className="glass-card" style={{ padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)' }}>
-                            <div style={{ flex: 1, paddingLeft: '1rem' }}>
-                              <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 'bold' }}>{c.title}</h4>
-                              <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                <span style={{ color: 'var(--accent)' }}>{c.xpReward} XP</span>
-                                <span>•</span>
-                                <span>{c.difficulty}</span>
+                {/* Modals */}
+                {isDailyModalOpen && (
+                  <div className="game-modal-overlay" onClick={() => setIsDailyModalOpen(false)}>
+                    <div className="game-modal-content" onClick={e => e.stopPropagation()}>
+                      <div className="game-modal-header">
+                        <h3 className="game-modal-title">משימות יומיות</h3>
+                        <button className="game-modal-close" onClick={() => setIsDailyModalOpen(false)}>✕</button>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {dailyChallenges.map(dc => (
+                          <div key={dc.id} style={{ background: 'var(--bg-tertiary)', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <TargetIcon size={24} color={dc.completed ? 'var(--success)' : 'var(--primary)'} />
+                              <div>
+                                <h4 style={{ margin: 0, fontWeight: 600, textDecoration: dc.completed ? 'line-through' : 'none' }}>{dc.title}</h4>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>+{dc.xp} XP</span>
                               </div>
                             </div>
-                            <button 
-                              onClick={() => {
-                                setProofChallengeId(c.id);
-                                setActiveTab('complete-challenge');
-                              }} 
-                              className="btn btn-primary" 
-                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--success)', whiteSpace: 'nowrap' }}
-                            >
-                              העלה הוכחה 📷
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-
-                {/* 2. Discover New Challenges */}
-                <section>
-                  <h3 style={{ fontWeight: 800, margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    גלה אתגרים חדשים
-                  </h3>
-                  
-                  <div className="challenges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                    {filteredChallenges.filter(c => !currentUser.activeChallenges.includes(c.id)).map(c => {
-                      return (
-                        <div 
-                          key={c.id} 
-                          className="challenge-grid-card"
-                          onClick={() => setExpandedChallengeId(c.id)}
-                          style={{
-                            cursor: 'pointer',
-                            position: 'relative',
-                            borderRadius: '16px',
-                            overflow: 'hidden',
-                            background: c.isIconic ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(212, 175, 55, 0.03))' : 'var(--bg-secondary)',
-                            border: c.isIconic ? '1.5px solid #ffd700' : '1px solid var(--border)',
-                            boxShadow: 'var(--shadow)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          {/* Image banner */}
-                          <div style={{ position: 'relative', height: '110px', width: '100%', overflow: 'hidden' }}>
-                            <img 
-                              src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80'} 
-                              alt={c.title} 
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 70%)' }}></div>
-                            
-                            {c.isIconic && (
-                              <span style={{ position: 'absolute', top: '8px', left: '8px', background: '#ffd700', color: '#000', padding: '0.15rem 0.4rem', borderRadius: '12px', fontSize: '0.65rem', fontWeight: '900', boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
-                                ★ אייקוני
-                              </span>
+                            {!dc.completed ? (
+                              <button onClick={() => handleCompleteDailyChallenge(dc.id, dc.xp)} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>דווח ביצוע</button>
+                            ) : (
+                              <span style={{ color: 'var(--success)', fontWeight: 600 }}>הושלם!</span>
                             )}
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                          {/* Card Info */}
-                          <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
-                            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: 'var(--text-primary)', lineHeight: 1.2 }}>{c.title}</h4>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                              <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>{c.difficulty}</span>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 'bold' }}>🏆 {c.xpReward}</span>
+                {isMyChallengesModalOpen && (
+                  <div className="game-modal-overlay" onClick={() => setIsMyChallengesModalOpen(false)}>
+                    <div className="game-modal-content" onClick={e => e.stopPropagation()}>
+                      <div className="game-modal-header">
+                        <h3 className="game-modal-title">האתגרים שלי</h3>
+                        <button className="game-modal-close" onClick={() => setIsMyChallengesModalOpen(false)}>✕</button>
+                      </div>
+                      {currentUser.activeChallenges.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>אין לך אתגרים פעילים כרגע.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {currentUser.activeChallenges.map(challengeId => {
+                            const c = challenges.find(ch => ch.id === challengeId);
+                            if (!c) return null;
+                            return (
+                              <div key={c.id} style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ flex: 1, paddingLeft: '1rem' }}>
+                                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 'bold' }}>{c.title}</h4>
+                                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                    <span style={{ color: 'var(--accent)' }}>{c.xpReward} XP</span>
+                                    <span>•</span>
+                                    <span>{c.difficulty}</span>
+                                  </div>
+                                </div>
+                                <button onClick={() => { setProofChallengeId(c.id); setActiveTab('complete-challenge'); setIsMyChallengesModalOpen(false); }} className="btn btn-primary" style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem', background: 'var(--success)' }}>העלה הוכחה 📷</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {isDiscoverModalOpen && (
+                  <div className="game-modal-overlay" onClick={() => setIsDiscoverModalOpen(false)}>
+                    <div className="game-modal-content" onClick={e => e.stopPropagation()}>
+                      <div className="game-modal-header">
+                        <h3 className="game-modal-title">גלה אתגרים חדשים</h3>
+                        <button className="game-modal-close" onClick={() => setIsDiscoverModalOpen(false)}>✕</button>
+                      </div>
+                      <div className="challenges-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                        {filteredChallenges.filter(c => !currentUser.activeChallenges.includes(c.id)).map(c => (
+                          <div key={c.id} onClick={() => setExpandedChallengeId(c.id)} style={{ cursor: 'pointer', position: 'relative', borderRadius: '16px', overflow: 'hidden', background: c.isIconic ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(212, 175, 55, 0.03))' : 'var(--bg-tertiary)', border: c.isIconic ? '1.5px solid #ffd700' : '1px solid var(--border)', display: 'flex', transition: 'all 0.2s ease', padding: '0.5rem' }}>
+                            <img src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80'} alt={c.title} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '12px' }} />
+                            <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', flex: 1, gap: '0.35rem' }}>
+                              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>{c.title}</h4>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                                <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>{c.difficulty}</span>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 'bold' }}>🏆 {c.xpReward}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </section>
-
-                {/* Modal Detail Popup Overlay */}
+                )}
+                
+                {/* Modal Detail Popup Overlay for Discover */}
                 {expandedChallengeId && (() => {
                   const c = challenges.find(ch => ch.id === expandedChallengeId);
                   if (!c) return null;
-                  
                   return (
-                    <div 
-                      className="challenge-detail-backdrop" 
-                      onClick={() => setExpandedChallengeId(null)}
-                      style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0, 0, 0, 0.75)',
-                        zIndex: 1200,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backdropFilter: 'blur(8px)',
-                        padding: '1rem'
-                      }}
-                    >
-                      <div 
-                        className="challenge-detail-modal" 
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          width: '100%',
-                          maxWidth: '380px',
-                          background: 'var(--bg-secondary)',
-                          border: '1.5px solid var(--border)',
-                          borderRadius: '24px',
-                          boxShadow: 'var(--shadow-lg)',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          direction: 'rtl',
-                          textAlign: 'right'
-                        }}
-                      >
-                        {/* Header Image banner */}
+                    <div className="game-modal-overlay" style={{ zIndex: 3000 }} onClick={() => setExpandedChallengeId(null)}>
+                      <div className="game-modal-content" style={{ padding: 0 }} onClick={e => e.stopPropagation()}>
                         <div style={{ position: 'relative', height: '160px', width: '100%' }}>
-                          <img 
-                            src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop&q=80'} 
-                            alt={c.title} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
+                          <img src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop&q=80'} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-secondary) 0%, transparent 100%)' }}></div>
-                          <button 
-                            onClick={() => setExpandedChallengeId(null)}
-                            style={{
-                              position: 'absolute',
-                              top: '12px',
-                              left: '12px',
-                              background: 'rgba(0,0,0,0.6)',
-                              border: 'none',
-                              color: '#fff',
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '50%',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 'bold',
-                              fontSize: '1rem'
-                            }}
-                          >
-                            ✕
-                          </button>
+                          <button onClick={() => setExpandedChallengeId(null)} style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>✕</button>
                         </div>
-
-                        {/* Modal Content */}
                         <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                           <div>
-                            <h3 style={{ fontWeight: 900, fontSize: '1.4rem', margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>{c.title}</h3>
-                            <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
+                            <h3 style={{ fontWeight: 900, fontSize: '1.4rem', margin: '0 0 0.5rem 0' }}>{c.title}</h3>
+                            <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem' }}>
                               <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>{c.category}</span>
                               <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.2rem 0.6rem', borderRadius: '6px' }}>{c.difficulty}</span>
                             </div>
                           </div>
-
-                          {/* The Goal */}
                           <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
                             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>המטרה שלך:</h4>
                             <p style={{ margin: 0, fontSize: '1rem', lineHeight: 1.5 }}>{c.description}</p>
                           </div>
-
-                          {/* The Reward */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255, 215, 0, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px dashed rgba(255, 215, 0, 0.3)' }}>
                             <span style={{ fontSize: '1.5rem' }}>🏆</span>
                             <div>
                               <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>פרס על השלמה:</h4>
                               <strong style={{ color: '#ffd700', fontSize: '1.1rem' }}>{c.xpReward} XP</strong>
-                              {c.badgeReward && <div style={{ fontSize: '0.75rem', color: '#ffd700', marginTop: '0.1rem' }}>+ תג: {c.badgeReward}</div>}
                             </div>
                           </div>
-
-                          {/* Action button */}
-                          <button 
-                            onClick={() => {
-                              toggleJoinChallenge(c.id);
-                              setExpandedChallengeId(null);
-                            }} 
-                            className="btn btn-primary" 
-                            style={{ padding: '1rem', fontSize: '1.1rem', marginTop: '0.5rem', fontWeight: 'bold' }}
-                          >
-                            הצטרף לאתגר 🔥
-                          </button>
+                          <button onClick={() => { toggleJoinChallenge(c.id); setExpandedChallengeId(null); setIsDiscoverModalOpen(false); }} className="btn btn-primary" style={{ padding: '1rem', fontSize: '1.1rem', marginTop: '0.5rem', fontWeight: 'bold' }}>הצטרף לאתגר 🔥</button>
                         </div>
                       </div>
                     </div>
                   );
                 })()}
+
               </div>
             )}
 
@@ -2735,199 +2490,174 @@ export default function App() {
 
 
         {/* TAB 3: CREATE CHALLENGE (INSTAGRAM / TIKTOK POST STYLE WIZARD) */}
-        {activeTab === 'create' && (
-          <div className="creator-container">
+        {activeTab === "create" && (
+          <div className="creator-container" style={{maxWidth: "600px", margin: "0 auto"}}>
             <div className="creator-header-row">
               <h2 className="creator-main-title" style={{ fontWeight: 800 }}>פרסום יוזמה חברתית חדשה</h2>
-              <span className="creator-subtitle">צרו אתגר והוכיחו ביצוע בסגנון Instagram / TikTok</span>
             </div>
 
             {currentUser.isBlocked ? (
-              <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
-                <p style={{ color: '#ff4d4d', fontWeight: 'bold', fontSize: '1.1rem' }}>חשבונך חסום. אינך יכול לפרסם אתגרים חדשים.</p>
+              <div className="glass-card" style={{ padding: "2rem", textAlign: "center" }}>
+                <p style={{ color: "#ff4d4d", fontWeight: "bold", fontSize: "1.1rem" }}>חשבונך חסום. אינך יכול לפרסם אתגרים חדשים.</p>
               </div>
             ) : (
               <div>
                 {/* Step indicator */}
-                <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '1.5rem', direction: 'rtl', padding: '0 0.5rem' }}>
-                  <div style={{ fontWeight: creationStep === 1 ? 'bold' : 'normal', color: creationStep === 1 ? 'var(--accent)' : 'var(--text-muted)', borderBottom: creationStep === 1 ? '2px solid var(--accent)' : 'none', paddingBottom: '4px' }}>1. רקע ואווירה 🖼️</div>
-                  <div style={{ fontWeight: creationStep === 2 ? 'bold' : 'normal', color: creationStep === 2 ? 'var(--accent)' : 'var(--text-muted)', borderBottom: creationStep === 2 ? '2px solid var(--accent)' : 'none', paddingBottom: '4px' }}>2. פרטי האתגר 📝</div>
-                  <div style={{ fontWeight: creationStep === 3 ? 'bold' : 'normal', color: creationStep === 3 ? 'var(--accent)' : 'var(--text-muted)', borderBottom: creationStep === 3 ? '2px solid var(--accent)' : 'none', paddingBottom: '4px' }}>3. הוכחה ופרס 🏆</div>
+                <div style={{ display: "flex", justifyContent: "space-around", marginBottom: "1.5rem", direction: "rtl", padding: "0 0.5rem" }}>
+                  <div style={{ fontWeight: creationStep === 1 ? "bold" : "normal", color: creationStep === 1 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 1 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>1. תמונות 🖼️</div>
+                  <div style={{ fontWeight: creationStep === 2 ? "bold" : "normal", color: creationStep === 2 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 2 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>2. פסקול 🎵</div>
+                  <div style={{ fontWeight: creationStep === 3 ? "bold" : "normal", color: creationStep === 3 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 3 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>3. פרטים 📝</div>
                 </div>
 
-                <form onSubmit={handleCreateChallenge} className="creator-split-grid">
-                  
-                  {/* LEFT COLUMN: TikTok / Instagram Style Live Preview */}
-                  <div className="creator-preview-pane">
-                    <div className="creator-card-label">תצוגה מקדימה של הפוסט</div>
-                    
-                    {/* Mock Phone Viewport */}
-                    <div className="mock-post-card">
-                      {/* Image Preview */}
-                      <div className="mock-post-media">
-                        <img 
-                          src={newChallengeProofImage || "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"} 
-                          alt="Preview" 
-                          className="mock-media-img"
-                        />
-                        <div className="mock-post-gradient-overlay"></div>
-                        
-                        {/* Floating TikTok Style Badges */}
-                        <div className="mock-post-badges">
-                          <span className={`mock-badge diff-${newChallengeDifficulty}`}>
-                            ⚡ {newChallengeDifficulty}
-                          </span>
-                          <span className="mock-badge category">
-                            🏷️ {newChallengeCategory}
-                          </span>
-                        </div>
-
-                        {/* Bottom Info Overlay inside Media */}
-                        <div className="mock-post-bottom-info">
-                          <div className="mock-user-row">
-                            <img src={currentUser.avatar} alt="" className="mock-user-avatar" />
-                            <span className="mock-user-name">{currentUser.name}</span>
-                          </div>
-                          <h4 className="mock-challenge-title">{newChallengeTitle || "שם האתגר שלכם..."}</h4>
-                          <p className="mock-challenge-desc">{newChallengeProofText || "הוכחת הביצוע שלכם תופיע כאן..."}</p>
-                          
-                          {/* Dynamic Trophies counter */}
-                          <div className="mock-xp-row">
-                            <span>גביעים מוענקים:</span>
-                            <span className="mock-xp-glow">
-                              +{Math.round(Number(newChallengeXp) * (newChallengeDifficulty === 'בינוני' ? 1.2 : newChallengeDifficulty === 'קשה' ? 1.5 : newChallengeDifficulty === 'קשה מאוד' ? 2.0 : 1.0))} 🏆
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* RIGHT COLUMN: Step-by-Step Settings Panels */}
-                  <div className="creator-details-pane">
+                <form onSubmit={handleCreateChallenge}>
+                  <div className="creator-details-pane" style={{ width: "100%" }}>
                     
                     {/* Step 1: Media Selection */}
                     {creationStep === 1 && (
                       <div className="glass-card creator-section-card">
-                        <h3 className="section-title" style={{ fontWeight: 700 }}>🖼️ רקע ואווירה</h3>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>בחרו תמונה המשקפת את רוח האימון או האתגר שלכם:</p>
+                        <h3 className="section-title" style={{ fontWeight: 700 }}>🖼️ בחירת תמונות</h3>
+                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>לחצו כאן כדי לבחור תמונות מהמכשיר או מהגלריה (עד 10 תמונות):</p>
                         
                         <div className="media-preset-section" style={{ padding: 0, margin: 0 }}>
-                          <div className="media-presets-grid">
-                            {[
-                              { name: "ריצה", url: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&auto=format&fit=crop&q=80" },
-                              { name: "כוח/משקולות", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80" },
-                              { name: "אימון ביתי", url: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=300&auto=format&fit=crop&q=80" },
-                              { name: "ריצה/אירובי", url: "https://images.unsplash.com/photo-1502224562085-639556652f33?w=300&auto=format&fit=crop&q=80" },
-                              { name: "שטח/טיפוס", url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&auto=format&fit=crop&q=80" }
-                            ].map((preset, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                className={`preset-thumb-btn ${newChallengeProofImage === preset.url ? 'active' : ''}`}
-                                onClick={() => setNewChallengeProofImage(preset.url)}
-                              >
-                                <img src={preset.url} alt={preset.name} />
-                                <span>{preset.name}</span>
-                              </button>
-                            ))}
-                          </div>
-
-                          <div className="form-group" style={{ marginTop: '1rem' }}>
-                            <label className="form-label" style={{ fontSize: '0.8rem' }}>או כתובת תמונה מותאמת אישית (URL):</label>
+                          <div className="form-group">
+                            <label 
+                              htmlFor="customImageFile"
+                              className="btn btn-secondary"
+                              style={{ display: "block", textAlign: "center", padding: "1rem", border: "2px dashed var(--accent)", borderRadius: "12px", cursor: "pointer", background: "var(--bg-tertiary)", color: "var(--text-primary)", fontWeight: "bold" }}
+                            >
+                              📸 פתח גלריה לבחירת תמונות
+                            </label>
                             <input 
-                              type="url" 
-                              className="form-control" 
-                              placeholder="https://..."
-                              value={newChallengeProofImage}
-                              onChange={(e) => setNewChallengeProofImage(e.target.value)}
-                              style={{ fontSize: '0.8rem' }}
+                              type="file" 
+                              id="customImageFile"
+                              accept="image/*"
+                              multiple
+                              style={{ display: "none" }}
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files);
+                                if (files.length === 0) return;
+                                
+                                const currentCount = newChallengeImages.length;
+                                const allowedFiles = files.slice(0, 10 - currentCount);
+                                
+                                allowedFiles.forEach(file => {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    setNewChallengeImages(prev => {
+                                      if (prev.length < 10) return [...prev, event.target.result];
+                                      return prev;
+                                    });
+                                  };
+                                  reader.readAsDataURL(file);
+                                });
+                                // Clear input so same files can be selected again if removed
+                                e.target.value = "";
+                              }}
                             />
                           </div>
+                          
+                          {newChallengeImages.length > 0 && (
+                            <div style={{ marginTop: "1rem" }}>
+                              <p style={{ fontSize: "0.8rem", fontWeight: "bold" }}>נבחרו ({newChallengeImages.length}/10):</p>
+                              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                                {newChallengeImages.map((img, idx) => (
+                                  <div key={idx} style={{ position: "relative", width: "60px", height: "60px", borderRadius: "8px", overflow: "hidden" }}>
+                                    <img src={img} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                    <button 
+                                      type="button" 
+                                      onClick={() => setNewChallengeImages(newChallengeImages.filter(url => url !== img))}
+                                      style={{ position: "absolute", top: "2px", right: "2px", background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: "50%", width: "20px", height: "20px", fontSize: "10px", cursor: "pointer" }}
+                                    >X</button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
 
-                    {/* Step 2: Core Details */}
+                    {/* Step 2: Soundtrack */}
                     {creationStep === 2 && (
                       <div className="glass-card creator-section-card">
-                        <h3 className="section-title" style={{ fontWeight: 700 }}>✍️ פרטי האתגר</h3>
+                        <h3 className="section-title" style={{ fontWeight: 700 }}>🎵 בחירת פסקול</h3>
+                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>בחרו מוזיקת רקע שתלווה את האתגר שלכם:</p>
                         
-                        <div className="form-group">
-                          <label className="form-label">שם האתגר</label>
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="לדוגמה: 100 שכיבות סמיכה ברצף" 
-                            value={newChallengeTitle}
-                            onChange={(e) => setNewChallengeTitle(e.target.value)}
-                            required
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">תיאור האתגר ומטרות</label>
-                          <textarea 
-                            className="form-control" 
-                            rows="2"
-                            placeholder="הסבירו מה צריך לעשות..." 
-                            value={newChallengeDesc}
-                            onChange={(e) => setNewChallengeDesc(e.target.value)}
-                            required
-                          ></textarea>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                          <div className="form-group">
-                            <label className="form-label">קטגוריה</label>
-                            <select 
-                              className="form-control"
-                              value={newChallengeCategory}
-                              onChange={(e) => setNewChallengeCategory(e.target.value)}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                          {[
+                            { id: "none", name: "ללא פסקול", artist: "", previewUrl: "" },
+                            { id: "workout", name: "Energetic Workout", artist: "Pulse Music", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+                            { id: "chill", name: "Chill Vibes", artist: "Lofi Beats", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+                            { id: "epic", name: "Epic Motivation", artist: "Cinematic", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+                            { id: "run", name: "Running Tempo 160bpm", artist: "Pulse Fitness", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" }
+                          ].map(track => (
+                            <div 
+                              key={track.id}
+                              onClick={() => {
+                                setNewChallengeSoundtrack(track.id === "none" ? "" : track.name);
+                                if (!window.previewAudioPlayer) {
+                                  window.previewAudioPlayer = new Audio();
+                                }
+                                window.previewAudioPlayer.pause();
+                                if (track.previewUrl) {
+                                  window.previewAudioPlayer.src = track.previewUrl;
+                                  window.previewAudioPlayer.play().catch(e => console.log(e));
+                                }
+                              }}
+                              style={{ 
+                                display: "flex", alignItems: "center", justifyContent: "space-between", 
+                                padding: "0.75rem", borderRadius: "12px", 
+                                background: newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "var(--accent-glow)" : "var(--bg-tertiary)",
+                                border: `1px solid ${newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "var(--accent)" : "transparent"}`,
+                                cursor: "pointer"
+                              }}
                             >
-                              <option value="כוח">כוח 💪</option>
-                              <option value="אירובי">אירובי 🏃‍♂️</option>
-                              <option value="ליבה">ליבה 🧘</option>
-                              <option value="שטח">שטח ⛰️</option>
-                            </select>
-                          </div>
-
-                          <div className="form-group">
-                            <label className="form-label">רמת קושי</label>
-                            <select 
-                              className="form-control"
-                              value={newChallengeDifficulty}
-                              onChange={(e) => setNewChallengeDifficulty(e.target.value)}
-                            >
-                              <option value="קל">קל</option>
-                              <option value="בינוני">בינוני</option>
-                              <option value="קשה">קשה</option>
-                              <option value="קשה מאוד">קשה מאוד</option>
-                            </select>
-                          </div>
+                              <div>
+                                <div style={{ fontWeight: "bold", fontSize: "0.9rem", color: newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "#000" : "inherit" }}>
+                                  {track.name} {track.previewUrl && newChallengeSoundtrack === track.name && "🎵"}
+                                </div>
+                                {track.artist && <div style={{ fontSize: "0.75rem", color: newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "#333" : "var(--text-muted)" }}>{track.artist}</div>}
+                              </div>
+                              <div>
+                                <input type="radio" checked={newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack)} readOnly />
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Step 3: Proof, Location & Rewards */}
+                    {/* Step 3: Details */}
                     {creationStep === 3 && (
                       <>
                         <div className="glass-card creator-section-card">
-                          <h3 className="section-title" style={{ fontWeight: 700 }}>🏆 הוכחת ביצוע וטקסט פוסט (Caption)</h3>
+                          <h3 className="section-title" style={{ fontWeight: 700 }}>📝 פרטים אחרונים (Bio)</h3>
                           
                           <div className="form-group">
-                            <label className="form-label">איך ביצעתם את האתגר בעצמכם? (חובה לפרסום)</label>
+                            <label className="form-label">כותרת הפוסט (Bio)</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              placeholder="כותרת לאתגר..." 
+                              value={newChallengeTitle}
+                              onChange={(e) => setNewChallengeTitle(e.target.value)}
+                              required
+                            />
+                          </div>
+                          
+                          <div className="form-group">
+                            <label className="form-label">תיאור והוראות ביצוע (Caption)</label>
                             <textarea 
                               className="form-control" 
                               rows="3"
-                              placeholder="שתפו את הזמן, המרחק או החוויה שלכם. הפוסט יתפרסם בפיד הראשי!" 
+                              placeholder="ספרו קצת על האתגר, תייגו חברים והוסיפו חוויות..." 
                               value={newChallengeProofText}
                               onChange={(e) => setNewChallengeProofText(e.target.value)}
                               required
                             ></textarea>
 
                             {/* Hashtag helpers */}
-                            <div className="hashtag-helpers" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                            <div className="hashtag-helpers" style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
                               {["#Fitness", "#Pulse", "#NoExcuses", "#WorkoutDone", "#ChallengeAccepted"].map(tag => (
                                 <button
                                   type="button"
@@ -2938,17 +2668,47 @@ export default function App() {
                                       setNewChallengeProofText(prev => prev + " " + tag);
                                     }
                                   }}
-                                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                                  style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: "12px", padding: "0.2rem 0.5rem", fontSize: "0.75rem", cursor: "pointer", color: "var(--text-secondary)" }}
                                 >
                                   {tag}
                                 </button>
                               ))}
                             </div>
                           </div>
+                          
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+                            <div className="form-group">
+                              <label className="form-label">קטגוריה</label>
+                              <select 
+                                className="form-control"
+                                value={newChallengeCategory}
+                                onChange={(e) => setNewChallengeCategory(e.target.value)}
+                              >
+                                <option value="כוח">כוח 💪</option>
+                                <option value="אירובי">אירובי 🏃‍♂️</option>
+                                <option value="ליבה">ליבה 🧘</option>
+                                <option value="שטח">שטח ⛰️</option>
+                              </select>
+                            </div>
+
+                            <div className="form-group">
+                              <label className="form-label">רמת קושי</label>
+                              <select 
+                                className="form-control"
+                                value={newChallengeDifficulty}
+                                onChange={(e) => setNewChallengeDifficulty(e.target.value)}
+                              >
+                                <option value="קל">קל</option>
+                                <option value="בינוני">בינוני</option>
+                                <option value="קשה">קשה</option>
+                                <option value="קשה מאוד">קשה מאוד</option>
+                              </select>
+                            </div>
+                          </div>
 
                           {/* Location Pinning Component */}
-                          <div className="form-group" style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)', marginTop: '0.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                          <div className="form-group" style={{ background: "var(--bg-tertiary)", padding: "1rem", borderRadius: "16px", border: "1px solid var(--border)", marginTop: "1rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
                               <input 
                                 type="checkbox" 
                                 id="pin-location-check"
@@ -2960,67 +2720,64 @@ export default function App() {
                                     setNewChallengeLng(userCoords[1]);
                                   }
                                 }}
-                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                style={{ width: "18px", height: "18px", cursor: "pointer" }}
                               />
-                              <label htmlFor="pin-location-check" style={{ fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                              <label htmlFor="pin-location-check" style={{ fontWeight: "bold", fontSize: "0.85rem", cursor: "pointer", color: "var(--text-primary)" }}>
                                 📍 נעיצת מיקום גיאוגרפי במפת האתגרים
                               </label>
                             </div>
 
                             {newChallengePinLocation && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.75rem" }}>
                                 <div className="form-group" style={{ margin: 0 }}>
-                                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>שם המיקום במפה</label>
+                                  <label className="form-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>שם המיקום במפה</label>
                                   <input 
                                     type="text" 
                                     className="form-control" 
                                     placeholder="לדוגמה: גינת ספורט שכונתית"
                                     value={newChallengeLocationName}
                                     onChange={(e) => setNewChallengeLocationName(e.target.value)}
-                                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                    style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem" }}
                                     required={newChallengePinLocation}
                                   />
                                 </div>
-
                                 <div className="form-group" style={{ margin: 0 }}>
-                                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>תיאור קצר למיקום</label>
+                                  <label className="form-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>תיאור קצר למיקום</label>
                                   <input 
                                     type="text" 
                                     className="form-control" 
                                     placeholder="הנחיות הגעה או פרטים נוסםים..."
                                     value={newChallengeLocationDesc}
                                     onChange={(e) => setNewChallengeLocationDesc(e.target.value)}
-                                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                    style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem" }}
                                   />
                                 </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
                                   <div className="form-group" style={{ margin: 0 }}>
-                                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>קו רוחב (Lat)</label>
+                                    <label className="form-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>קו רוחב (Lat)</label>
                                     <input 
                                       type="number" 
                                       step="0.0001"
                                       className="form-control" 
                                       value={newChallengeLat}
                                       onChange={(e) => setNewChallengeLat(e.target.value)}
-                                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                      style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem" }}
                                       required={newChallengePinLocation}
                                     />
                                   </div>
                                   <div className="form-group" style={{ margin: 0 }}>
-                                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>קו אורך (Lng)</label>
+                                    <label className="form-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>קו אורך (Lng)</label>
                                     <input 
                                       type="number" 
                                       step="0.0001"
                                       className="form-control" 
                                       value={newChallengeLng}
                                       onChange={(e) => setNewChallengeLng(e.target.value)}
-                                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                                      style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem" }}
                                       required={newChallengePinLocation}
                                     />
                                   </div>
                                 </div>
-
                                 <button
                                   type="button"
                                   className="btn btn-secondary"
@@ -3032,32 +2789,21 @@ export default function App() {
                                       });
                                     }
                                   }}
-                                  style={{ padding: '0.4rem', fontSize: '0.75rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                  style={{ padding: "0.4rem", fontSize: "0.75rem", background: "var(--bg-secondary)", border: "1px solid var(--border)" }}
                                 >
                                   🎯 דגום את המיקום הנוכחי שלי
                                 </button>
                               </div>
                             )}
                           </div>
-                        </div>
-
-                        {/* Rewards & Publish */}
-                        <div className="glass-card creator-section-card" style={{ border: '1px solid var(--accent)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                            <span style={{ fontWeight: 'bold' }}>בסיס גביעים לפרס 🏆:</span>
-                            <input 
-                              type="number" 
-                              value={newChallengeXp}
-                              onChange={(e) => setNewChallengeXp(Number(e.target.value))}
-                              className="form-control"
-                              style={{ width: '80px', padding: '0.25rem 0.5rem', textAlign: 'center' }}
-                              min="50"
-                              max="1000"
-                            />
-                          </div>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>הגביעים הסופיים מחושבים אוטומטית לפי רמת הקושי שבחרתם.</p>
                           
-                          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--accent)', color: '#000', fontWeight: 'bold', fontSize: '1.05rem', boxShadow: '0 4px 15px var(--accent-glow)' }}>
+                          <div style={{ marginTop: "1.5rem", padding: "1rem", borderRadius: "12px", background: "rgba(255, 215, 0, 0.1)", border: "1px solid rgba(255, 215, 0, 0.3)", textAlign: "center" }}>
+                            <span style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>
+                              הגביעים (XP) לאתגר יחושבו אוטומטית לפי רמת הקושי.
+                            </span>
+                          </div>
+
+                          <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "1.5rem", background: "var(--accent)", color: "#000", fontWeight: "bold", fontSize: "1.05rem", boxShadow: "0 4px 15px var(--accent-glow)", padding: "0.8rem" }}>
                             אשר ביצוע ושתף לפוסט 🚀
                           </button>
                         </div>
@@ -3065,23 +2811,19 @@ export default function App() {
                     )}
 
                     {/* Navigation Buttons for Wizard */}
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'space-between', direction: 'rtl' }}>
+                    <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", justifyContent: "space-between", direction: "rtl" }}>
                       {creationStep < 3 ? (
                         <button 
                           type="button" 
                           className="btn btn-primary" 
                           onClick={() => {
-                            if (creationStep === 1 && !newChallengeProofImage) {
-                              // Set default image if none selected
-                              setNewChallengeProofImage("https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80");
-                            }
-                            if (creationStep === 2 && (!newChallengeTitle.trim() || !newChallengeDesc.trim())) {
-                              alert("אנא הזן שם ותיאור עבור האתגר.");
+                            if (creationStep === 1 && newChallengeImages.length === 0) {
+                              alert("יש לבחור לפחות תמונה אחת כדי להמשיך.");
                               return;
                             }
                             setCreationStep(prev => prev + 1);
                           }}
-                          style={{ flex: 1, background: 'var(--accent)', color: '#000', fontWeight: 'bold' }}
+                          style={{ flex: 1, background: "var(--accent)", color: "#000", fontWeight: "bold" }}
                         >
                           המשך ←
                         </button>
@@ -3099,14 +2841,11 @@ export default function App() {
                       )}
                     </div>
                   </div>
-
                 </form>
               </div>
             )}
           </div>
-        )}
-
-        {/* TAB: CHATS */}
+        )}\n\n        {/* TAB: CHATS */}
         {activeTab === 'chats' && (
           <div className="chats-tab-container" style={{ display: 'flex', flex: 1, minHeight: '500px', background: 'var(--bg-secondary)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', direction: 'rtl' }}>
             {/* Sidebar list of chats */}
