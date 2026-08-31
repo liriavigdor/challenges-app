@@ -353,6 +353,65 @@ export default function App() {
     localStorage.setItem('challenges_chats', JSON.stringify(chats));
   }, [chats]);
 
+  useEffect(() => {
+    if (activeTab !== 'home' && activeTab !== 'explore') {
+      if (window.currentFeedAudio) {
+        window.currentFeedAudio.pause();
+      }
+      return;
+    }
+    
+    const soundtrackUrls = {
+      "Energetic Workout": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      "Chill Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+      "Epic Motivation": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+      "Running Tempo 160bpm": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+    };
+
+    window.toggleFeedAudio = (soundtrackName) => {
+      const audioSrc = soundtrackUrls[soundtrackName] || soundtrackName;
+      if (!window.currentFeedAudio) window.currentFeedAudio = new Audio();
+      if (window.currentFeedAudio.src === audioSrc && !window.currentFeedAudio.paused) {
+        window.currentFeedAudio.pause();
+      } else {
+        window.currentFeedAudio.src = audioSrc;
+        window.currentFeedAudio.loop = true;
+        window.currentFeedAudio.play().catch(e => alert("אנא אשר ניגון בדפדפן (לחץ שוב)"));
+      }
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const soundtrackName = entry.target.getAttribute('data-soundtrack');
+        if (!soundtrackName) return;
+        const audioSrc = soundtrackUrls[soundtrackName] || soundtrackName;
+        
+        if (entry.isIntersecting) {
+          if (!window.currentFeedAudio) window.currentFeedAudio = new Audio();
+          if (window.currentFeedAudio.src !== audioSrc) {
+            window.currentFeedAudio.src = audioSrc;
+            window.currentFeedAudio.loop = true;
+          }
+          window.currentFeedAudio.play().catch(e => console.error('Audio play error:', e));
+        } else {
+          if (window.currentFeedAudio && !window.currentFeedAudio.paused) {
+            window.currentFeedAudio.pause();
+          }
+        }
+      });
+    }, { threshold: 0.4 });
+    
+    setTimeout(() => {
+      const reels = document.querySelectorAll('.reel-card');
+      reels.forEach(el => observer.observe(el));
+    }, 500);
+    
+    return () => {
+      observer.disconnect();
+      if (window.currentFeedAudio) window.currentFeedAudio.pause();
+    };
+  }, [activeTab, feed]);
+
   // Map & location challenges states
   const [challengesViewMode, setChallengesViewMode] = useState('challenges');
   const [mapFilters, setMapFilters] = useState({ iconic: false, public: false, completed: false });
@@ -1291,6 +1350,10 @@ export default function App() {
     if (window.isCreatingChallengeInProgress) return;
     window.isCreatingChallengeInProgress = true;
     try {
+      if (window.previewAudioPlayer) {
+        window.previewAudioPlayer.pause();
+        window.previewAudioPlayer.currentTime = 0;
+      }
       if (currentUser.isBlocked) {
         alert("חשבונך חסום. אינך יכול ליצור אתגרים חדשים.");
         return;
@@ -1776,6 +1839,7 @@ export default function App() {
                   <div 
                     key={post.id} 
                     className="reel-card"
+                    data-soundtrack={post.soundtrack || ""} data-soundtrack={post.soundtrack || ""}
                     onDoubleClick={() => handleDoubleTapPost(post.id)}
                   >
                     {/* Background visual */}
@@ -1849,6 +1913,12 @@ export default function App() {
                       <div className="reel-challenge-tag">
                         🏆 {post.challengeTitle}
                       </div>
+
+                      {post.soundtrack && (
+                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                          🎵 {post.soundtrack}
+                        </div>
+                      )}
 
                       <div className="reel-desc">
                         {post.achievementDetail}
@@ -4242,7 +4312,7 @@ export default function App() {
               return (
                 <div 
                   key={`explore_reel_${post.id}`} 
-                  className="reel-card"
+                  className="reel-card" data-soundtrack={post.soundtrack || ""}
                   onDoubleClick={() => handleDoubleTapPost(post.id)}
                 >
                   {/* Background visual */}
@@ -4315,10 +4385,16 @@ export default function App() {
                     </div>
 
                     <div className="reel-challenge-tag">
-                      🏆 {post.challengeTitle}
-                    </div>
+                        🏆 {post.challengeTitle}
+                      </div>
 
-                    <div className="reel-desc">
+                      {post.soundtrack && (
+                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                          🎵 {post.soundtrack}
+                        </div>
+                      )}
+
+                      <div className="reel-desc">
                       {post.achievementDetail}
                     </div>
                   </div>
