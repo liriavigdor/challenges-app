@@ -376,30 +376,139 @@ export default function App() {
       } else {
         window.currentFeedAudio.src = audioSrc;
         window.currentFeedAudio.loop = true;
-        window.currentFeedAudio.play().catch(e => alert("אנא אשר ניגון בדפדפן (לחץ שוב)"));
+        window.currentFeedAudio.play().catch(e => alert("שגיאת נגינה: " + e.message + "\nנסה שוב."));
       }
     };
 
+    // Add visual debugger
+    if (!document.getElementById('audio-debugger')) {
+      const debugDiv = document.createElement('div');
+      debugDiv.id = 'audio-debugger';
+      debugDiv.style.position = 'fixed';
+      debugDiv.style.top = '10px';
+      debugDiv.style.left = '10px';
+      debugDiv.style.zIndex = '999999';
+      debugDiv.style.background = 'rgba(0,0,0,0.8)';
+      debugDiv.style.color = 'lime';
+      debugDiv.style.padding = '10px';
+      debugDiv.style.fontFamily = 'monospace';
+      debugDiv.style.fontSize = '12px';
+      debugDiv.style.pointerEvents = 'none';
+      document.body.appendChild(debugDiv);
+    }
+    
+    // Add aggressive scroll listener to container instead of intersection observer!
+    setTimeout(() => {
+      document.querySelectorAll('.reels-feed-container').forEach(container => {
+        container.addEventListener('scroll', () => {
+          clearTimeout(window.feedAudioDebounce);
+          window.feedAudioDebounce = setTimeout(() => {
+            const cards = Array.from(document.querySelectorAll('.reel-card'));
+            let closestCard = null;
+            let minDistance = Infinity;
+            const centerY = window.innerHeight / 2;
+            
+            cards.forEach(card => {
+              const rect = card.getBoundingClientRect();
+              if (rect.height > 0) {
+                const cardCenter = rect.top + rect.height / 2;
+                const dist = Math.abs(centerY - cardCenter);
+                if (dist < minDistance) {
+                  minDistance = dist;
+                  closestCard = card;
+                }
+              }
+            });
+            
+            if (!closestCard) return;
+            
+            const soundtrackName = closestCard.getAttribute('data-soundtrack');
+            const debugText = 'Closest: ' + soundtrackName + ' | Muted: ' + window.isFeedMuted;
+            document.getElementById('audio-debugger').innerText = debugText;
+            
+            if (!soundtrackName || soundtrackName === 'undefined' || soundtrackName === 'null' || window.isFeedMuted) {
+              if (window.currentFeedAudio && !window.currentFeedAudio.paused) {
+                 window.currentFeedAudio.pause();
+              }
+              return;
+            }
+            
+            const sUrls = {
+              "Energetic Workout": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+              "Chill Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+              "Epic Motivation": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+              "Running Tempo 160bpm": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+            };
+            const audioSrc = sUrls[soundtrackName] || soundtrackName;
+            
+            if (window.currentFeedAudio && window.currentFeedAudio.src === audioSrc && !window.currentFeedAudio.paused) {
+              return;
+            }
+            
+            if (window.currentFeedAudio) {
+              window.currentFeedAudio.pause();
+              window.currentFeedAudio.src = "";
+            }
+            
+            window.currentFeedAudio = new Audio(audioSrc);
+            window.currentFeedAudio.loop = true;
+            window.currentFeedAudio.play().catch(e => console.log('Audio play blocked:', e));
+          }, 100);
+        });
+      });
+    }, 1000);
+
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const soundtrackName = entry.target.getAttribute('data-soundtrack');
-        if (!soundtrackName) return;
+      clearTimeout(window.feedAudioDebounce);
+      window.feedAudioDebounce = setTimeout(() => {
+        const cards = Array.from(document.querySelectorAll('.reel-card'));
+        let closestCard = null;
+        let minDistance = Infinity;
+        const centerY = window.innerHeight / 2;
+        
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          // Only consider cards that are somewhat visible
+          if (rect.height > 0) {
+            const cardCenter = rect.top + rect.height / 2;
+            const dist = Math.abs(centerY - cardCenter);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closestCard = card;
+            }
+          }
+        });
+        
+        if (!closestCard) {
+          if (window.currentFeedAudio) window.currentFeedAudio.pause();
+          return;
+        }
+        
+        const soundtrackName = closestCard.getAttribute('data-soundtrack');
+        
+        if (!soundtrackName || window.isFeedMuted) {
+          if (window.currentFeedAudio && !window.currentFeedAudio.paused) {
+             window.currentFeedAudio.pause();
+          }
+          return;
+        }
+        
         const audioSrc = soundtrackUrls[soundtrackName] || soundtrackName;
         
-        if (entry.isIntersecting) {
-          if (!window.currentFeedAudio) window.currentFeedAudio = new Audio();
-          if (window.currentFeedAudio.src !== audioSrc) {
-            window.currentFeedAudio.src = audioSrc;
-            window.currentFeedAudio.loop = true;
-          }
-          window.currentFeedAudio.play().catch(e => console.error('Audio play error:', e));
-        } else {
-          if (window.currentFeedAudio && !window.currentFeedAudio.paused) {
-            window.currentFeedAudio.pause();
-          }
+        if (window.currentFeedAudio && window.currentFeedAudio.src === audioSrc && !window.currentFeedAudio.paused) {
+          return;
         }
-      });
-    }, { threshold: 0.4 });
+        
+        if (window.currentFeedAudio) {
+          window.currentFeedAudio.pause();
+          window.currentFeedAudio.src = "";
+        }
+        
+        window.currentFeedAudio = new Audio(audioSrc);
+        window.currentFeedAudio.loop = true;
+        window.currentFeedAudio.play().catch(e => console.log('Audio play blocked:', e));
+      }, 150);
+    }, { threshold: [0.1, 0.5, 0.9] });
     
     setTimeout(() => {
       const reels = document.querySelectorAll('.reel-card');
@@ -639,6 +748,40 @@ export default function App() {
 
   // Reels interactive animation states
   const [doubleTapPostId, setDoubleTapPostId] = useState(null);
+  const [isMuted, setIsMuted] = useState(true);
+  
+  window.isFeedMuted = isMuted;
+  
+  const toggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    window.isFeedMuted = nextMuted;
+    
+    if (nextMuted) {
+      if (window.currentFeedAudio) window.currentFeedAudio.pause();
+    } else {
+      const visibleCard = document.querySelector('.reel-card[data-visible="true"]');
+      if (visibleCard) {
+        const soundtrack = visibleCard.getAttribute('data-soundtrack');
+        if (soundtrack) {
+          const sUrls = {
+            "Energetic Workout": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            "Chill Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+            "Epic Motivation": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+            "Running Tempo 160bpm": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+          };
+          const aSrc = sUrls[soundtrack] || soundtrack;
+          if (window.currentFeedAudio) {
+            window.currentFeedAudio.pause();
+            window.currentFeedAudio.src = "";
+          }
+          window.currentFeedAudio = new Audio(aSrc);
+          window.currentFeedAudio.loop = true;
+          window.currentFeedAudio.play().catch(e => console.log(e));
+        }
+      }
+    }
+  };
   const [commentSheetPostId, setCommentSheetPostId] = useState(null);
   
   const [currentUser, setCurrentUser] = useState(initialUsers[0]);
@@ -1915,7 +2058,27 @@ export default function App() {
                       </div>
 
                       {post.soundtrack && (
-                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: 'var(--accent)', cursor: 'pointer', zIndex: 10, position: 'relative' }} onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const sUrls = {
+                            "Energetic Workout": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                            "Chill Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+                            "Epic Motivation": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+                            "Running Tempo 160bpm": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+                          };
+                          const aSrc = sUrls[post.soundtrack] || post.soundtrack;
+                          if (window.currentFeedAudio && window.currentFeedAudio.src === aSrc && !window.currentFeedAudio.paused) {
+                            window.currentFeedAudio.pause();
+                          } else {
+                            if (window.currentFeedAudio) {
+                              window.currentFeedAudio.pause();
+                              window.currentFeedAudio.src = "";
+                            }
+                            window.currentFeedAudio = new Audio(aSrc);
+                            window.currentFeedAudio.loop = true;
+                            window.currentFeedAudio.play().catch(err => alert("שגיאת נגינה: " + err.message + "\n\nנסה ללחוץ שוב."));
+                          }
+                        }}>
                           🎵 {post.soundtrack}
                         </div>
                       )}
@@ -2613,10 +2776,22 @@ export default function App() {
                                 allowedFiles.forEach(file => {
                                   const reader = new FileReader();
                                   reader.onload = (event) => {
-                                    setNewChallengeImages(prev => {
-                                      if (prev.length < 10) return [...prev, event.target.result];
-                                      return prev;
-                                    });
+                                    const img = new Image();
+                                    img.onload = () => {
+                                      const canvas = document.createElement('canvas');
+                                      let w = img.width; let h = img.height; const max = 800;
+                                      if (w > h && w > max) { h *= max/w; w = max; }
+                                      else if (h > max) { w *= max/h; h = max; }
+                                      canvas.width = w; canvas.height = h;
+                                      const ctx = canvas.getContext('2d');
+                                      ctx.drawImage(img, 0, 0, w, h);
+                                      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                      setNewChallengeImages(prev => {
+                                        if (prev.length < 10) return [...prev, dataUrl];
+                                        return prev;
+                                      });
+                                    };
+                                    img.src = event.target.result;
                                   };
                                   reader.readAsDataURL(file);
                                 });
@@ -4002,8 +4177,19 @@ export default function App() {
                             const file = e.target.files[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setCapturedImage(reader.result);
+                              reader.onloadend = (e) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                  const canvas = document.createElement('canvas');
+                                  let w = img.width; let h = img.height; const max = 800;
+                                  if (w > h && w > max) { h *= max/w; w = max; }
+                                  else if (h > max) { w *= max/h; h = max; }
+                                  canvas.width = w; canvas.height = h;
+                                  const ctx = canvas.getContext('2d');
+                                  ctx.drawImage(img, 0, 0, w, h);
+                                  setCapturedImage(canvas.toDataURL('image/jpeg', 0.7));
+                                };
+                                img.src = e.target.result;
                               };
                               reader.readAsDataURL(file);
                             }
@@ -4389,7 +4575,27 @@ export default function App() {
                       </div>
 
                       {post.soundtrack && (
-                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: 'var(--accent)', cursor: 'pointer', zIndex: 10, position: 'relative' }} onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const sUrls = {
+                            "Energetic Workout": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                            "Chill Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+                            "Epic Motivation": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+                            "Running Tempo 160bpm": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+                          };
+                          const aSrc = sUrls[post.soundtrack] || post.soundtrack;
+                          if (window.currentFeedAudio && window.currentFeedAudio.src === aSrc && !window.currentFeedAudio.paused) {
+                            window.currentFeedAudio.pause();
+                          } else {
+                            if (window.currentFeedAudio) {
+                              window.currentFeedAudio.pause();
+                              window.currentFeedAudio.src = "";
+                            }
+                            window.currentFeedAudio = new Audio(aSrc);
+                            window.currentFeedAudio.loop = true;
+                            window.currentFeedAudio.play().catch(err => alert("שגיאת נגינה: " + err.message + "\n\nנסה ללחוץ שוב."));
+                          }
+                        }}>
                           🎵 {post.soundtrack}
                         </div>
                       )}

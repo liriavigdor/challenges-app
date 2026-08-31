@@ -50,12 +50,12 @@ export async function getUsers() {
         const existing = usersList.find(u => u.id === user.id);
         if (!existing) {
           const { id, ...rest } = user;
-          await setDoc(doc(db, "users", id), rest);
+          await Promise.race([setDoc(doc(db, "users", id), rest), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
           usersList.push(user);
         } else if (user.id === 'user_1' && (!existing.badges || existing.badges.length < 16)) {
           // Force update user_1's badges in Firebase to match new full badge list
           const { id, ...rest } = user;
-          await setDoc(doc(db, "users", id), rest, { merge: true });
+          await Promise.race([setDoc(doc(db, "users", id), rest, { merge: true }), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
           existing.badges = user.badges;
         }
       }
@@ -71,7 +71,7 @@ export async function updateUser(user) {
   if (isFirebaseActive) {
     try {
       const { id, ...rest } = user;
-      await setDoc(doc(db, "users", id), rest, { merge: true });
+      await Promise.race([setDoc(doc(db, "users", id), rest, { merge: true }), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
       return;
     } catch (e) {
       console.error("Error updating user in Firebase, using LocalStorage fallback", e);
@@ -94,7 +94,7 @@ export async function getChallenges() {
       for (const challenge of initialChallenges) {
         if (!challengesList.some(c => c.id === challenge.id)) {
           const { id, ...rest } = challenge;
-          await setDoc(doc(db, "challenges", id), rest);
+          await Promise.race([setDoc(doc(db, "challenges", id), rest), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
           challengesList.push(challenge);
         }
       }
@@ -110,7 +110,7 @@ export async function saveChallenge(challenge) {
   if (isFirebaseActive) {
     try {
       const { id, ...rest } = challenge;
-      await setDoc(doc(db, "challenges", id), rest);
+      await Promise.race([setDoc(doc(db, "challenges", id), rest), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
       return;
     } catch (e) {
       console.error("Error saving challenge to Firebase, using LocalStorage fallback", e);
@@ -133,7 +133,7 @@ export async function getFeed() {
       for (const post of initialFeed) {
         if (!feedList.some(p => p.id === post.id)) {
           const { id, ...rest } = post;
-          await setDoc(doc(db, "feed", id), rest);
+          await Promise.race([setDoc(doc(db, "feed", id), rest), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
           feedList.push(post);
         }
       }
@@ -149,7 +149,7 @@ export async function addFeedPost(post) {
   if (isFirebaseActive) {
     try {
       const { id, ...rest } = post;
-      await setDoc(doc(db, "feed", id), rest);
+      await Promise.race([setDoc(doc(db, "feed", id), rest), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
       return;
     } catch (e) {
       console.error("Error adding feed post to Firebase, using LocalStorage fallback", e);
@@ -164,7 +164,7 @@ export async function updateFeedPost(post) {
   if (isFirebaseActive) {
     try {
       const { id, ...rest } = post;
-      await setDoc(doc(db, "feed", id), rest, { merge: true });
+      await Promise.race([setDoc(doc(db, "feed", id), rest, { merge: true }), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
       return;
     } catch (e) {
       console.error("Error updating feed post in Firebase, using LocalStorage fallback", e);
