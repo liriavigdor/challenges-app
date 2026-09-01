@@ -5,7 +5,8 @@ import {
   doc, 
   setDoc, 
   updateDoc, 
-  addDoc 
+  addDoc,
+  deleteDoc
 } from "firebase/firestore";
 import { initialUsers, initialChallenges, initialFeed } from "./mockData";
 
@@ -172,5 +173,19 @@ export async function updateFeedPost(post) {
   }
   const feed = JSON.parse(localStorage.getItem(FEED_KEY)) || [];
   const updatedFeed = feed.map(p => p.id === post.id ? post : p);
+  localStorage.setItem(FEED_KEY, JSON.stringify(updatedFeed));
+}
+
+export async function deleteFeedPost(postId) {
+  if (isFirebaseActive) {
+    try {
+      await Promise.race([deleteDoc(doc(db, "feed", postId)), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
+      return;
+    } catch (e) {
+      console.error("Error deleting feed post in Firebase, using LocalStorage fallback", e);
+    }
+  }
+  const feed = JSON.parse(localStorage.getItem(FEED_KEY)) || [];
+  const updatedFeed = feed.filter(p => p.id !== postId);
   localStorage.setItem(FEED_KEY, JSON.stringify(updatedFeed));
 }

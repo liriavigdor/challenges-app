@@ -36,7 +36,8 @@ import {
   saveChallenge, 
   getFeed, 
   addFeedPost, 
-  updateFeedPost 
+  updateFeedPost,
+  deleteFeedPost 
 } from './dbService';
 
 const getPostVideo = (post) => {
@@ -1393,6 +1394,15 @@ export default function App() {
     }));
   };
 
+  // Delete a post
+  const handleDeletePost = async (postId) => {
+    if (window.confirm("האם אתה בטוח שברצונך למחוק פוסט זה?")) {
+      setFeed(prev => prev.filter(post => post.id !== postId));
+      setSelectedExplorePost(null);
+      await deleteFeedPost(postId);
+    }
+  };
+
   // Post a comment
   const handleAddComment = async (postId) => {
     if (currentUser.isBlocked) {
@@ -2057,31 +2067,7 @@ export default function App() {
                         🏆 {post.challengeTitle}
                       </div>
 
-                      {post.soundtrack && (
-                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: 'var(--accent)', cursor: 'pointer', zIndex: 10, position: 'relative' }} onClick={(e) => { 
-                          e.stopPropagation(); 
-                          const sUrls = {
-                            "Energetic Workout": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-                            "Chill Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-                            "Epic Motivation": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-                            "Running Tempo 160bpm": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
-                          };
-                          const aSrc = sUrls[post.soundtrack] || post.soundtrack;
-                          if (window.currentFeedAudio && window.currentFeedAudio.src === aSrc && !window.currentFeedAudio.paused) {
-                            window.currentFeedAudio.pause();
-                          } else {
-                            if (window.currentFeedAudio) {
-                              window.currentFeedAudio.pause();
-                              window.currentFeedAudio.src = "";
-                            }
-                            window.currentFeedAudio = new Audio(aSrc);
-                            window.currentFeedAudio.loop = true;
-                            window.currentFeedAudio.play().catch(err => alert("שגיאת נגינה: " + err.message + "\n\nנסה ללחוץ שוב."));
-                          }
-                        }}>
-                          🎵 {post.soundtrack}
-                        </div>
-                      )}
+                      
 
                       <div className="reel-desc">
                         {post.achievementDetail}
@@ -2737,9 +2723,14 @@ export default function App() {
               <div>
                 {/* Step indicator */}
                 <div style={{ display: "flex", justifyContent: "space-around", marginBottom: "1.5rem", direction: "rtl", padding: "0 0.5rem" }}>
-                  <div style={{ fontWeight: creationStep === 1 ? "bold" : "normal", color: creationStep === 1 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 1 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>1. תמונות 🖼️</div>
-                  <div style={{ fontWeight: creationStep === 2 ? "bold" : "normal", color: creationStep === 2 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 2 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>2. פסקול 🎵</div>
-                  <div style={{ fontWeight: creationStep === 3 ? "bold" : "normal", color: creationStep === 3 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 3 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>3. פרטים 📝</div>
+                  <div onClick={() => setCreationStep(1)} style={{ cursor: "pointer", fontWeight: creationStep === 1 ? "bold" : "normal", color: creationStep === 1 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 1 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>1. תמונות 🖼️</div>
+                  <div onClick={() => {
+                    if (newChallengeImages.length === 0) {
+                      alert("אנא בחר לפחות תמונה אחת כדי להמשיך.");
+                      return;
+                    }
+                    setCreationStep(2);
+                  }} style={{ cursor: "pointer", fontWeight: creationStep === 2 ? "bold" : "normal", color: creationStep === 2 ? "var(--accent)" : "var(--text-muted)", borderBottom: creationStep === 2 ? "2px solid var(--accent)" : "none", paddingBottom: "4px" }}>2. פרטים 📝</div>
                 </div>
 
                 <form onSubmit={handleCreateChallenge}>
@@ -2779,13 +2770,13 @@ export default function App() {
                                     const img = new Image();
                                     img.onload = () => {
                                       const canvas = document.createElement('canvas');
-                                      let w = img.width; let h = img.height; const max = 800;
+                                      let w = img.width; let h = img.height; const max = 1600;
                                       if (w > h && w > max) { h *= max/w; w = max; }
                                       else if (h > max) { w *= max/h; h = max; }
                                       canvas.width = w; canvas.height = h;
                                       const ctx = canvas.getContext('2d');
                                       ctx.drawImage(img, 0, 0, w, h);
-                                      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                                       setNewChallengeImages(prev => {
                                         if (prev.length < 10) return [...prev, dataUrl];
                                         return prev;
@@ -2822,58 +2813,8 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* Step 2: Soundtrack */}
+                    {/* Step 2: Details */}
                     {creationStep === 2 && (
-                      <div className="glass-card creator-section-card">
-                        <h3 className="section-title" style={{ fontWeight: 700 }}>🎵 בחירת פסקול</h3>
-                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>בחרו מוזיקת רקע שתלווה את האתגר שלכם:</p>
-                        
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                          {[
-                            { id: "none", name: "ללא פסקול", artist: "", previewUrl: "" },
-                            { id: "workout", name: "Energetic Workout", artist: "Pulse Music", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-                            { id: "chill", name: "Chill Vibes", artist: "Lofi Beats", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-                            { id: "epic", name: "Epic Motivation", artist: "Cinematic", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
-                            { id: "run", name: "Running Tempo 160bpm", artist: "Pulse Fitness", previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" }
-                          ].map(track => (
-                            <div 
-                              key={track.id}
-                              onClick={() => {
-                                setNewChallengeSoundtrack(track.id === "none" ? "" : track.name);
-                                if (!window.previewAudioPlayer) {
-                                  window.previewAudioPlayer = new Audio();
-                                }
-                                window.previewAudioPlayer.pause();
-                                if (track.previewUrl) {
-                                  window.previewAudioPlayer.src = track.previewUrl;
-                                  window.previewAudioPlayer.play().catch(e => console.log(e));
-                                }
-                              }}
-                              style={{ 
-                                display: "flex", alignItems: "center", justifyContent: "space-between", 
-                                padding: "0.75rem", borderRadius: "12px", 
-                                background: newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "var(--accent-glow)" : "var(--bg-tertiary)",
-                                border: `1px solid ${newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "var(--accent)" : "transparent"}`,
-                                cursor: "pointer"
-                              }}
-                            >
-                              <div>
-                                <div style={{ fontWeight: "bold", fontSize: "0.9rem", color: newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "#000" : "inherit" }}>
-                                  {track.name} {track.previewUrl && newChallengeSoundtrack === track.name && "🎵"}
-                                </div>
-                                {track.artist && <div style={{ fontSize: "0.75rem", color: newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack) ? "#333" : "var(--text-muted)" }}>{track.artist}</div>}
-                              </div>
-                              <div>
-                                <input type="radio" checked={newChallengeSoundtrack === track.name || (track.id === "none" && !newChallengeSoundtrack)} readOnly />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Step 3: Details */}
-                    {creationStep === 3 && (
                       <>
                         <div className="glass-card creator-section-card">
                           <h3 className="section-title" style={{ fontWeight: 700 }}>📝 פרטים אחרונים (Bio)</h3>
@@ -3057,7 +2998,7 @@ export default function App() {
 
                     {/* Navigation Buttons for Wizard */}
                     <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", justifyContent: "space-between", direction: "rtl" }}>
-                      {creationStep < 3 ? (
+                      {creationStep < 2 ? (
                         <button 
                           type="button" 
                           className="btn btn-primary" 
@@ -4181,13 +4122,13 @@ export default function App() {
                                 const img = new Image();
                                 img.onload = () => {
                                   const canvas = document.createElement('canvas');
-                                  let w = img.width; let h = img.height; const max = 800;
+                                  let w = img.width; let h = img.height; const max = 1600;
                                   if (w > h && w > max) { h *= max/w; w = max; }
                                   else if (h > max) { w *= max/h; h = max; }
                                   canvas.width = w; canvas.height = h;
                                   const ctx = canvas.getContext('2d');
                                   ctx.drawImage(img, 0, 0, w, h);
-                                  setCapturedImage(canvas.toDataURL('image/jpeg', 0.7));
+                                  setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
                                 };
                                 img.src = e.target.result;
                               };
@@ -4574,31 +4515,7 @@ export default function App() {
                         🏆 {post.challengeTitle}
                       </div>
 
-                      {post.soundtrack && (
-                        <div className="reel-soundtrack-tag" style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: 'var(--accent)', cursor: 'pointer', zIndex: 10, position: 'relative' }} onClick={(e) => { 
-                          e.stopPropagation(); 
-                          const sUrls = {
-                            "Energetic Workout": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-                            "Chill Vibes": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-                            "Epic Motivation": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-                            "Running Tempo 160bpm": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
-                          };
-                          const aSrc = sUrls[post.soundtrack] || post.soundtrack;
-                          if (window.currentFeedAudio && window.currentFeedAudio.src === aSrc && !window.currentFeedAudio.paused) {
-                            window.currentFeedAudio.pause();
-                          } else {
-                            if (window.currentFeedAudio) {
-                              window.currentFeedAudio.pause();
-                              window.currentFeedAudio.src = "";
-                            }
-                            window.currentFeedAudio = new Audio(aSrc);
-                            window.currentFeedAudio.loop = true;
-                            window.currentFeedAudio.play().catch(err => alert("שגיאת נגינה: " + err.message + "\n\nנסה ללחוץ שוב."));
-                          }
-                        }}>
-                          🎵 {post.soundtrack}
-                        </div>
-                      )}
+                      
 
                       <div className="reel-desc">
                       {post.achievementDetail}
@@ -4850,6 +4767,89 @@ export default function App() {
           />
         );
       })()}
+
+      {/* Post Details Modal */}
+      {selectedExplorePost && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexDirection: 'column', padding: '1rem'
+        }} onClick={() => setSelectedExplorePost(null)}>
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px', padding: '1.5rem', width: '100%', maxWidth: '400px',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <img src={currentUser.avatar} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{currentUser.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedExplorePost.timestamp || 'לפני זמן קצר'}</div>
+                </div>
+              </div>
+              <button onClick={() => setSelectedExplorePost(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: 'var(--cyan)' }}>{selectedExplorePost.challengeTitle}</h4>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{selectedExplorePost.achievementDetail || selectedExplorePost.description || ''}</p>
+              </div>
+
+              <div style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '1rem', background: '#000' }}>
+                {selectedExplorePost.proofVideo ? (
+                  <video src={selectedExplorePost.proofVideo} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }} />
+                ) : (
+                  <img src={selectedExplorePost.proofImage} alt="Post" style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }} />
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+                  <HeartIcon size={20} />
+                  <span>{selectedExplorePost.likes || selectedExplorePost.claps || 0}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+                  <CommentIcon size={20} />
+                  <span>{selectedExplorePost.comments?.length || 0}</span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>תגובות</h5>
+                {(!selectedExplorePost.comments || selectedExplorePost.comments.length === 0) ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>אין תגובות עדיין.</div>
+                ) : (
+                  selectedExplorePost.comments.map((c, i) => (
+                    <div key={c.id || i} style={{ marginBottom: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.85rem', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>{c.userName}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{c.text}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {selectedExplorePost.userId === currentUser.id && (
+              <div style={{ paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 'auto' }}>
+                <button 
+                  onClick={() => handleDeletePost(selectedExplorePost.id)}
+                  style={{ 
+                    background: 'rgba(255,59,48,0.1)', color: '#FF3B30', 
+                    border: '1px solid rgba(255,59,48,0.3)', padding: '0.75rem', 
+                    borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer',
+                    width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
+                  }}
+                >
+                  מחק פוסט
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
 
   );
