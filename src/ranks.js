@@ -47,3 +47,14 @@ export const getNextRank = (currentRankId) => {
   }
   return null;
 };
+
+export const calculateArenaXP = (currentXp, isHomeGame, isWinner) => {
+  const currentRank = getUserRank(currentXp);
+  const rankFloor = currentRank.xpRequired;
+
+  if (isWinner) {
+    return currentXp + (isHomeGame ? 15 : 40);
+  } else {
+    return Math.max(rankFloor, currentXp - 15);
+  }
+};

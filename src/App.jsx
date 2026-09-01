@@ -26,8 +26,9 @@ import { initialUsers, initialChallenges, initialFeed, initialStories, initialNo
 import AIRefereeCourt from './AIRefereeCourt';
 import AIMentor from './AIMentor';
 import AvatarPodium, { AVATAR_PRESETS } from './AvatarPodium';
-import { getUserRank, getNextRank, MILITARY_RANKS } from './ranks';
+import { getUserRank, getNextRank, MILITARY_RANKS, calculateArenaXP } from './ranks';
 import { MilitaryRankIcon } from './MilitaryRankIcon';
+import MatchmakingRadar from './MatchmakingRadar';
 
 import { 
   getUsers, 
@@ -260,6 +261,7 @@ export default function App() {
   const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
   const [isMyChallengesModalOpen, setIsMyChallengesModalOpen] = useState(false);
   const [isDiscoverModalOpen, setIsDiscoverModalOpen] = useState(false);
+  const [isRadarOpen, setIsRadarOpen] = useState(false);
 
   const handleLogActivity = (e) => {
     e.preventDefault();

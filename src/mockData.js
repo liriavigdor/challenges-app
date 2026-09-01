@@ -916,10 +916,10 @@ export const initialMatches = [
     id: "match_1",
     challengeId: "run_5k",
     challengeTitle: "ריצת 5 ק\"מ מהירה",
-    challengerId: "user_2", // יובל לוי
-    opponentId: "user_1", // רועי כהן (המשתמש הנוכחי)
-    xpStaked: 30,
-    status: "referee_court", // pending, active, referee_court, completed
+    challengerId: "user_2", // יובל לוי (Home)
+    opponentId: "user_1", // רועי כהן (Away)
+    type: "away",
+    status: "referee_court", // pending, active, referee_court, completed, waiting_for_opponent
     challengerProof: {
       duration: "21:45",
       avgSpeed: "13.8 קמ\"ש",
@@ -943,9 +943,9 @@ export const initialMatches = [
     id: "match_2",
     challengeId: "plank_30d",
     challengeTitle: "אתגר פלאנק יומי",
-    challengerId: "user_1", // רועי כהן
-    opponentId: "user_4", // שירה אלוני
-    xpStaked: 25,
+    challengerId: "user_1", // רועי כהן (Home)
+    opponentId: "user_4", // שירה אלוני (Away)
+    type: "home",
     status: "active",
     challengerProof: null,
     opponentProof: {
@@ -963,7 +963,7 @@ export const initialMatches = [
     challengeTitle: "100 שכיבות סמיכה",
     challengerId: "user_1",
     opponentId: "user_3",
-    xpStaked: 20,
+    type: "home",
     status: "completed",
     challengerProof: {
       count: 100,
@@ -979,6 +979,23 @@ export const initialMatches = [
     },
     verdict: "השופט קבע: שני המתחרים הציגו רמת הגינות גבוהה ונתוני דופק שתואמים את המאמץ. רועי כהן השלים את כל 100 החזרות ומוכרז כמנצח!",
     winnerId: "user_1"
+  },
+  {
+    id: "match_4",
+    challengeId: "swim_1k",
+    challengeTitle: "שחייה 1 ק\"מ בים פתוח",
+    challengerId: "user_2", // יובל לוי מציב אתגר פומבי
+    opponentId: null,
+    type: "away", // מי שייכנס למשחק חוץ ימצא את זה
+    status: "waiting_for_opponent",
+    challengerProof: {
+      duration: "18:30",
+      device: "Garmin Fenix 7",
+      isManual: false
+    },
+    opponentProof: null,
+    verdict: null,
+    winnerId: null
   }
 ];
 

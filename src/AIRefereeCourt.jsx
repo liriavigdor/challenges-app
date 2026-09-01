@@ -189,7 +189,7 @@ export default function AIRefereeCourt({ match, challenger, opponent, onClose, o
                   marginTop: '0.25rem'
                 }}>
                   <div style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '8px', textAlign: 'center', fontSize: '1.2rem', fontWeight: 900, color: '#fbbf24', textShadow: '0 2px 8px rgba(251,191,36,0.3)' }}>
-                    {winnerId === challenger?.id ? challenger?.name : opponent?.name} זוכה ב-{match.xpStaked} נקודות XP!
+                    {winnerId === challenger?.id ? challenger?.name : opponent?.name} זוכה ב-{winnerId === opponent?.id && match.type === 'away' ? '40' : '15'} נקודות XP!
                   </div>
                 </div>
               )}
