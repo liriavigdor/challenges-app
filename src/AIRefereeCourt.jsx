@@ -44,42 +44,48 @@ export default function AIRefereeCourt({ match, challenger, opponent, onClose, o
 
   // Determine winner and generate verdict text (simulated AI logic)
   const calculateResult = () => {
-    const isChallengerCheating = match.challengerProof?.maxSpeed && parseFloat(match.challengerProof.maxSpeed) > 30 && match.challengerProof?.avgHeartRate < 100;
-    const isOpponentCheating = match.opponentProof?.maxSpeed && parseFloat(match.opponentProof.maxSpeed) > 30 && match.opponentProof?.avgHeartRate < 100;
-
     let verdictText = "";
     let winnerId = null;
     let isCheatingDetected = false;
 
-    if (isChallengerCheating && isOpponentCheating) {
-      isCheatingDetected = true;
-      winnerId = 'draw';
-      verdictText = `על סמך ניתוח ה-AI: שני המתמודדים הציגו רמת ביצוע קרובה להפליא ונתוני דופק זהים כמעט לחלוטין. אין באפשרותי לקבוע מנצח מובהק. תיקו!`;
-    } else if (isChallengerCheating) {
-      isCheatingDetected = true;
-      winnerId = opponent.id;
-      verdictText = `❌ שופט ה-AI קבע: רמאות זוהתה אצל ${challenger.name}! נרשמה מהירות שיא של ${match.challengerProof.maxSpeed} עם דופק מנוחה של ${match.challengerProof.avgHeartRate} פעימות בלבד. הניצחון מוענק ל-${opponent.name}!`;
-    } else if (isOpponentCheating) {
-      isCheatingDetected = true;
-      winnerId = challenger.id;
-      verdictText = `❌ שופט ה-AI קבע: רמאות זוהתה אצל ${opponent.name}! נרשמה מהירות שיא של ${match.opponentProof.maxSpeed} עם דופק מנוחה של ${match.opponentProof.avgHeartRate} פעימות בלבד. הניצחון מוענק ל-${challenger.name}!`;
-    } else {
-      // Normal comparison
-      if (match.challengeId === 'run_5k') {
-        const t1 = match.challengerProof.duration;
-        const t2 = match.opponentProof.duration;
+    const sportType = match.sportType || 'running';
+
+    if (sportType === 'running' || sportType === 'cycling') {
+      const isChallengerCheating = match.challengerProof?.maxSpeed && parseFloat(match.challengerProof.maxSpeed) > 30 && match.challengerProof?.avgHeartRate < 100;
+      const isOpponentCheating = match.opponentProof?.maxSpeed && parseFloat(match.opponentProof.maxSpeed) > 30 && match.opponentProof?.avgHeartRate < 100;
+
+      if (isChallengerCheating && isOpponentCheating) {
+        isCheatingDetected = true;
+        winnerId = 'draw';
+        verdictText = `על סמך ניתוח ה-AI: שני המתמודדים הציגו רמת ביצוע קרובה להפליא ונתוני דופק זהים כמעט לחלוטין. אין באפשרותי לקבוע מנצח מובהק. תיקו!`;
+      } else if (isChallengerCheating) {
+        isCheatingDetected = true;
+        winnerId = opponent.id;
+        verdictText = `❌ שופט ה-AI קבע: רמאות זוהתה אצל ${challenger.name}! נרשמה מהירות שיא של ${match.challengerProof.maxSpeed} עם דופק מנוחה של ${match.challengerProof.avgHeartRate} פעימות בלבד. הניצחון מוענק ל-${opponent.name}!`;
+      } else if (isOpponentCheating) {
+        isCheatingDetected = true;
+        winnerId = challenger.id;
+        verdictText = `❌ שופט ה-AI קבע: רמאות זוהתה אצל ${opponent.name}! נרשמה מהירות שיא של ${match.opponentProof.maxSpeed} עם דופק מנוחה של ${match.opponentProof.avgHeartRate} פעימות בלבד. הניצחון מוענק ל-${challenger.name}!`;
+      } else {
+        const t1 = match.challengerProof?.duration || "99:99";
+        const t2 = match.opponentProof?.duration || "99:99";
         if (t1 < t2) {
           winnerId = challenger.id;
-          verdictText = `⚖️ שופט ה-AI אישר את נתוני שני הרצים. ${challenger.name} השלים את הריצה בזמן מהיר יותר של ${t1} (לעומת ${t2} של ${opponent.name}) ומוכרז כמנצח הדו-קרב!`;
+          verdictText = `⚖️ שופט ה-AI אישר את הנתונים. ${challenger.name} סיים בזמן מהיר יותר של ${t1} (לעומת ${t2}) ומוכרז כמנצח!`;
         } else {
           winnerId = opponent.id;
-          verdictText = `⚖️ שופט ה-AI אישר את נתוני שני הרצים. ${opponent.name} השלים את הריצה בזמן מהיר יותר של ${t2} (לעומת ${t1} של ${challenger.name}) ומוכרז כמנצח הדו-קרב!`;
+          verdictText = `⚖️ שופט ה-AI אישר את הנתונים. ${opponent.name} סיים בזמן מהיר יותר של ${t2} (לעומת ${t1}) ומוכרז כמנצח!`;
         }
-      } else {
-        // Fallback or other challenge type
-        winnerId = challenger.id;
-        verdictText = `⚖️ שופט ה-AI בחן את מדדי הדופק ומשך הפעילות. הנתונים תקינים, ונקבע כי ${challenger.name} ניצח בדו-קרב זה!`;
       }
+    } else if (sportType === 'climbing') {
+      winnerId = challenger.id;
+      verdictText = `🧗 שופט ה-AI (גזרת טיפוס): ניתחתי את המסלול מהוידאו. ${challenger.name} הציג טכניקה חלקה יותר ויציבות מרכז כובד עדיפה במסלול ברמת קושי ${match.skillLevel || 'זהה'}, ולכן מוכרז כמנצח! (הערה: ה-AI מוגבל בניתוח אחיזות טיפוס והסתמך על תנועת הגוף).`;
+    } else if (sportType === 'weightlifting') {
+      winnerId = opponent.id;
+      verdictText = `🏋️ שופט ה-AI (גזרת כוח): על סמך ניתוח תנועה (Bar Speed) וטווח מפרקים, ${opponent.name} שמר על תנועה מלאה ומדויקת יותר לאורך הסט. הניצחון מוענק ל-${opponent.name}!`;
+    } else {
+      winnerId = challenger.id;
+      verdictText = `⚖️ שופט ה-AI בחן את מדדי הדופק ומשך הפעילות. הנתונים תקינים, ונקבע כי ${challenger.name} ניצח בדו-קרב זה!`;
     }
 
     return { winnerId, verdictText, isCheatingDetected };

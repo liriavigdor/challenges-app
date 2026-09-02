@@ -4544,3 +4544,616 @@ body {
   transform: translateY(4px) !important;
   box-shadow: 0 0px 0 #000 !important;
 }
+
+
+/* Natural background for Arena Lobby */
+.arena-lobby {
+  background: linear-gradient(180deg, #60a5fa 0%, #bae6fd 60%, #e0f2fe 100%) !important;
+}
+
+.arena-lobby::before,
+.arena-lobby::after {
+  display: none !important;
+}
+
+/* Restored Arena CSS */
+.arena-banner:before{content:"";background:linear-gradient(to bottom, var(--cyan), transparent);border-radius:22px 0 0 22px;width:4px;height:100%;position:absolute;top:0;left:0}
+.arena-banner:after{content:"";background:linear-gradient(to bottom, var(--fire), transparent);border-radius:0 22px 22px 0;width:4px;height:100%;position:absolute;top:0;right:0}
+.arena-lobby:before{content:"";pointer-events:none;z-index:0;background-image:radial-gradient(1px 1px at 15% 25%,#00e5ff80 0%,#0000 100%),radial-gradient(1px 1px at 75% 15%,#a855f766 0%,#0000 100%),radial-gradient(1px 1px at 40% 60%,#00e5ff4d 0%,#0000 100%),radial-gradient(1px 1px at 85% 70%,#fb923c4d 0%,#0000 100%),radial-gradient(1px 1px at 25% 80%,#a855f74d 0%,#0000 100%),radial-gradient(1px 1px at 60% 40%,#00e5ff40 0%,#0000 100%),radial-gradient(2px 2px at 90% 30%,#00e5ff33 0%,#0000 100%),radial-gradient(2px 2px at 10%,#a855f733 0%,#0000 100%);position:absolute;inset:0}
+.arena-lobby:after{content:"";pointer-events:none;z-index:0;background-image:linear-gradient(#00e5ff08 1px,#0000 1px),linear-gradient(90deg,#00e5ff08 1px,#0000 1px);background-size:40px 40px;position:absolute;inset:0}
+.arena-hud{z-index:10;justify-content:space-between;align-items:center;display:flex;position:absolute;top:12px;left:12px;right:12px}
+.arena-rank-pill{-webkit-backdrop-filter:blur(16px);border:1px solid var(--arena-border-glow);background:#06080fbf;border-radius:999px;align-items:center;gap:.6rem;padding:.45rem .9rem .45rem .45rem;display:flex;box-shadow:0 0 0 1px #00e5ff14,0 4px 20px #00000080}
+.arena-rank-icon-ring{border:2px solid var(--neon-cyan);width:38px;height:38px;box-shadow:0 0 12px var(--glow-cyan), inset 0 0 8px #00e5ff1a;background:#0009;border-radius:50%;flex-shrink:0;justify-content:center;align-items:center;display:flex}
+.arena-rank-info{flex-direction:column;gap:3px;display:flex}
+.arena-rank-label{color:var(--neon-cyan);letter-spacing:.05em;text-transform:uppercase;font-size:.7rem;font-weight:800;animation:8s infinite neonFlicker}
+.arena-xp-bar-track{background:#ffffff14;border-radius:999px;width:96px;height:6px;position:relative;overflow:hidden}
+.arena-xp-bar-fill{background:linear-gradient(90deg, var(--neon-cyan-dim), var(--neon-cyan));height:100%;box-shadow:0 0 6px var(--glow-cyan);border-radius:999px;animation:1.2s cubic-bezier(.22,1,.36,1) both arenaProgressFill}
+.arena-xp-text{color:#ffffff73;font-variant-numeric:tabular-nums;margin-top:1px;font-size:.6rem}
+.arena-create-btn{background:linear-gradient(135deg, var(--neon-cyan-dim), #00b2c2);color:#000;cursor:pointer;box-shadow:0 0 16px var(--glow-cyan), 0 4px 12px #0006;transition:var(--arena-transition);letter-spacing:.02em;border:none;border-radius:999px;align-items:center;gap:.35rem;padding:.5rem 1.1rem;font-size:.82rem;font-weight:800;display:flex;position:relative;overflow:hidden}
+.arena-create-btn:hover{box-shadow:0 0 28px var(--glow-cyan-strong), 0 8px 20px #00000080;transform:translateY(-2px)}
+.arena-create-btn:active{transform:translateY(0)}
+.arena-avatar-stage{z-index:2;flex-direction:column;align-items:center;margin-top:3.5rem;margin-bottom:.5rem;display:flex;position:relative}
+.arena-avatar-platform{background:radial-gradient(ellipse at 50% 100%, var(--glow-cyan-strong) 0%, transparent 75%);filter:blur(4px);pointer-events:none;width:140px;height:20px;position:absolute;bottom:-12px}
+.arena-btns-grid{z-index:2;grid-template-columns:1fr 1fr;gap:.7rem;width:100%;padding:0 1rem 1rem;display:grid;position:relative}
+.arena-action-btn{border:1px solid var(--arena-border);cursor:pointer;font-family:var(--font-sans);letter-spacing:.01em;transition:var(--arena-transition);-webkit-backdrop-filter:blur(12px);text-align:right;color:#fff;direction:rtl;border-radius:14px;align-items:center;gap:.6rem;padding:.85rem 1rem;font-size:.88rem;font-weight:700;display:flex;position:relative;overflow:hidden}
+.arena-action-btn:before{content:"";background:inherit;filter:brightness(1.3)blur(12px);opacity:0;border-radius:inherit;transition:opacity .28s;position:absolute;inset:0}
+.arena-action-btn:hover{border-color:#ffffff2e;transform:translateY(-3px)}
+.arena-action-btn:hover:before{opacity:.15}
+.arena-action-btn:active{transform:translateY(0)}
+.arena-ripple{pointer-events:none;background:#ffffff38;border-radius:50%;width:80px;height:80px;margin-top:-40px;margin-left:-40px;animation:.5s linear arenaRipple;position:absolute;transform:scale(0)}
+.arena-btn-challenges{background:linear-gradient(135deg,#00b4c82e,#00e5ff14);border-color:#00e5ff40;animation:3s ease-in-out infinite arenaPulse;box-shadow:0 0 14px #00e5ff1a,0 4px 16px #00000073}
+.arena-btn-challenges:hover{box-shadow:0 0 30px #00e5ff4d,0 8px 24px #00000080}
+.arena-btn-daily{background:linear-gradient(135deg,#dc501438,#fb923c1a);border-color:#fb923c47;box-shadow:0 0 14px #fb641424,0 4px 16px #00000073}
+.arena-btn-daily:hover{box-shadow:0 0 30px #fb923c59,0 8px 24px #00000080}
+.arena-btn-home{background:linear-gradient(135deg,#783cc838,#a855f71a);border-color:#a855f747;box-shadow:0 0 14px #a855f71f,0 4px 16px #00000073}
+.arena-btn-home:hover{box-shadow:0 0 30px #a855f759,0 8px 24px #00000080}
+.arena-btn-away{background:linear-gradient(135deg,#c81e1e38,#ef44441a);border-color:#ef444447;box-shadow:0 0 14px #ef44441f,0 4px 16px #00000073}
+.arena-btn-away:hover{box-shadow:0 0 30px #ef444459,0 8px 24px #00000080}
+.arena-btn-icon{filter:drop-shadow(0 0 6px);flex-shrink:0;font-size:1.5rem;transition:transform .2s}
+.arena-btn-icon{transform:scale(1.18)rotate(-5deg)}
+.arena-btn-label{flex-direction:column;gap:1px;display:flex}
+.arena-btn-title{color:#fff;font-size:.88rem;font-weight:800;line-height:1.2}
+.arena-btn-subtitle{color:#ffffff80;font-size:.67rem;font-weight:500}
+.arena-map-fab{width:44px;height:44px;color:var(--neon-cyan);cursor:pointer;z-index:10;transition:var(--arena-transition);box-shadow:0 0 12px var(--glow-cyan);background:#00e5ff1a;border:1.5px solid #00e5ff66;border-radius:50%;justify-content:center;align-items:center;display:flex;position:absolute;bottom:16px;left:16px}
+.arena-map-fab:hover{box-shadow:0 0 24px var(--glow-cyan-strong);background:#00e5ff2e;transform:scale(1.12)}
+.arena-modal-overlay{-webkit-backdrop-filter:blur(14px);z-index:2000;background:#03050cd1;justify-content:center;align-items:flex-end;animation:.22s both arenaFadeIn;display:flex;position:fixed;inset:0}
+.arena-modal-panel{direction:rtl;background:linear-gradient(#0d1117 0%,#080c12 100%);border:1px solid #00e5ff26;border-bottom:none;border-radius:24px 24px 0 0;width:100%;max-width:500px;max-height:82vh;padding:1.5rem 1.25rem 2rem;animation:.35s cubic-bezier(.16,1,.3,1) both arenaSlideUp;overflow-y:auto;box-shadow:0 -8px 48px #000000b3,0 0 0 1px #00e5ff0f}
+.arena-modal-panel::-webkit-scrollbar{width:4px}
+.arena-modal-panel::-webkit-scrollbar-track{background:0 0}
+.arena-modal-panel::-webkit-scrollbar-thumb{background:#00e5ff33;border-radius:999px}
+.arena-modal-drag-handle{background:#ffffff26;border-radius:999px;width:36px;height:4px;margin:0 auto 1.25rem}
+.arena-modal-header{justify-content:space-between;align-items:center;margin-bottom:1.25rem;display:flex}
+.arena-modal-title{color:#fff;letter-spacing:-.01em;align-items:center;gap:.5rem;font-size:1.3rem;font-weight:900;display:flex}
+.arena-modal-close{color:#fff9;cursor:pointer;width:34px;height:34px;transition:var(--arena-transition);background:#ffffff0f;border:1px solid #ffffff1a;border-radius:50%;flex-shrink:0;justify-content:center;align-items:center;font-size:1rem;display:flex}
+.arena-modal-close:hover{color:#fff;background:#ef44442e;border-color:#ef444466}
+.arena-mission-card{background:var(--arena-surface);border:1px solid var(--arena-border);transition:var(--arena-transition);border-radius:14px;align-items:center;gap:.85rem;margin-bottom:.65rem;padding:.9rem 1rem;display:flex}
+.arena-mission-card:hover{background:var(--arena-surface-hover);border-color:#00e5ff33;transform:translate(-2px)}
+.arena-mission-card.completed{opacity:.65;border-color:#22c55e33}
+.arena-mission-icon-wrap{background:#fb923c1a;border:1px solid #fb923c38;border-radius:12px;flex-shrink:0;justify-content:center;align-items:center;width:44px;height:44px;font-size:1.4rem;display:flex}
+.arena-mission-info{flex:1}
+.arena-mission-title{color:#fff;margin-bottom:.4rem;font-size:.92rem;font-weight:700}
+.arena-mission-title.done{color:#fff6;text-decoration:line-through}
+.arena-mission-progress-track{background:#ffffff12;border-radius:999px;height:5px;margin-bottom:.3rem;overflow:hidden}
+.arena-mission-progress-fill{height:100%;box-shadow:0 0 6px var(--glow-amber);background:linear-gradient(90deg,#e69100,#ffb433);border-radius:999px;animation:.9s cubic-bezier(.22,1,.36,1) both arenaProgressFill}
+.arena-mission-progress-fill.done{box-shadow:0 0 6px var(--glow-green);background:linear-gradient(90deg,#12a15e,#0df287)}
+.arena-xp-chip{color:var(--neon-amber);box-shadow:0 0 8px var(--glow-amber);white-space:nowrap;background:#ffba001a;border:1px solid #ffba0040;border-radius:999px;flex-shrink:0;align-items:center;gap:.25rem;padding:.2rem .55rem;font-size:.72rem;font-weight:800;display:flex}
+.arena-cta-btn{background:linear-gradient(135deg, var(--neon-cyan-dim), #00c4d6);color:#000;width:100%;font-family:var(--font-sans);letter-spacing:.02em;cursor:pointer;box-shadow:0 0 18px var(--glow-cyan), 0 4px 16px #0006;transition:var(--arena-transition);border:none;border-radius:12px;justify-content:center;align-items:center;gap:.45rem;padding:.85rem 1.5rem;font-size:.95rem;font-weight:800;animation:2.8s ease-in-out infinite arenaPulse;display:flex;position:relative;overflow:hidden}
+.arena-cta-btn:hover{box-shadow:0 0 32px var(--glow-cyan-strong), 0 8px 24px #00000080;animation:none;transform:translateY(-2px)}
+.arena-cta-btn:active{transform:translateY(0)}
+.arena-ripple{background:#ffffff4d}
+.arena-proof-btn{color:#000;box-shadow:0 0 14px var(--glow-green), 0 4px 12px #0006;background:linear-gradient(135deg,#0f8a51,#0bcb72);animation:none}
+.arena-proof-btn:hover{box-shadow:0 0 28px var(--glow-green), 0 8px 20px #00000080}
+.arena-challenge-row{background:var(--arena-surface);border:1px solid var(--arena-border);transition:var(--arena-transition);border-radius:14px;align-items:center;gap:.85rem;margin-bottom:.7rem;display:flex;overflow:hidden}
+.arena-challenge-row:hover{background:var(--arena-surface-hover);border-color:#00e5ff33;transform:translate(-2px);box-shadow:0 4px 20px #0006}
+.arena-challenge-thumb{object-fit:cover;flex-shrink:0;width:72px;height:72px}
+.arena-challenge-info{flex:1;padding:.7rem 0 .7rem .4rem}
+.arena-challenge-title{color:#fff;margin-bottom:.3rem;font-size:.9rem;font-weight:700;line-height:1.3}
+.arena-challenge-meta{flex-wrap:wrap;align-items:center;gap:.4rem;display:flex}
+.arena-diff-badge{border-radius:5px;padding:.15rem .45rem;font-size:.65rem;font-weight:700}
+.arena-diff-easy{color:#30e892;background:#22c55e26;border:1px solid #22c55e40}
+.arena-diff-med{color:#ffb433;background:#fb923c26;border:1px solid #fb923c40}
+.arena-diff-hard{color:#f67055;background:#ef444426;border:1px solid #ef444440}
+.arena-diff-vhard{color:#ff775c;background:#ef444440;border:1.5px solid #ef444480}
+.arena-challenge-actions{flex-shrink:0;padding:0 .75rem}
+.arena-detail-hero{border-radius:16px;height:180px;margin-bottom:1.1rem;position:relative;overflow:hidden}
+.arena-detail-hero-overlay{background:linear-gradient(#0000 45%,#06080ff2 100%);position:absolute;inset:0}
+.arena-detail-hero-close{color:#fff;cursor:pointer;width:30px;height:30px;transition:var(--arena-transition);background:#000000a6;border:1px solid #ffffff26;border-radius:50%;justify-content:center;align-items:center;font-size:.9rem;display:flex;position:absolute;top:10px;right:10px}
+.arena-detail-hero-close:hover{background:#ef444480}
+.arena-detail-title{color:#fff;letter-spacing:-.01em;margin-bottom:.6rem;font-size:1.35rem;font-weight:900;line-height:1.2}
+.arena-detail-tags{flex-wrap:wrap;gap:.45rem;margin-bottom:1rem;display:flex}
+.arena-tag{color:#ffffffb3;text-transform:uppercase;letter-spacing:.04em;background:#ffffff0f;border:1px solid #ffffff1a;border-radius:6px;padding:.25rem .65rem;font-size:.72rem;font-weight:700}
+.arena-detail-desc-box{background:#ffffff08;border:1px solid #ffffff14;border-radius:12px;margin-bottom:.9rem;padding:.9rem 1rem}
+.arena-detail-desc-label{color:var(--neon-cyan);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.45rem;font-size:.72rem;font-weight:700}
+.arena-detail-desc-text{color:#ffffffbf;margin:0;font-size:.92rem;line-height:1.55}
+.arena-detail-reward-box{background:#ffba000f;border:1px solid #ffba0033;border-radius:12px;align-items:center;gap:.9rem;margin-bottom:1.1rem;padding:.9rem 1rem;animation:3s ease-in-out infinite arenaGlow;display:flex}
+.arena-reward-icon{font-size:1.8rem}
+.arena-reward-label{color:#ffffff73;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.15rem;font-size:.72rem;font-weight:600}
+.arena-reward-value{color:var(--neon-amber);text-shadow:0 0 12px var(--glow-amber);font-size:1.3rem;font-weight:900}
+.arena-participants-row{color:#ffffff73;align-items:center;gap:.5rem;margin-bottom:1.1rem;font-size:.8rem;display:flex}
+.arena-check-pop{color:#30e892;width:28px;height:28px;box-shadow:0 0 10px var(--glow-green);background:#22c55e26;border:1.5px solid #22c55e66;border-radius:50%;justify-content:center;align-items:center;font-size:.9rem;animation:.4s cubic-bezier(.16,1,.3,1) both arenaScalePop;display:inline-flex}
+.arena-discover-card{background:var(--arena-surface);border:1px solid var(--arena-border);cursor:pointer;transition:var(--arena-transition);border-radius:14px;align-items:center;gap:.75rem;margin-bottom:.6rem;padding:.6rem;display:flex}
+.arena-discover-card:hover{background:var(--arena-surface-hover);box-shadow:0 6px 24px #00000073, 4px 0 0 0 var(--neon-cyan) inset;border-color:#00e5ff40;transform:translate(-3px)}
+.arena-discover-card.iconic{border-color:#ffba004d}
+.arena-discover-card.iconic:hover{box-shadow:0 6px 24px #00000073, 4px 0 0 0 var(--neon-amber) inset;border-color:#ffba0080}
+.arena-discover-thumb{object-fit:cover;border-radius:10px;flex-shrink:0;width:70px;height:70px}
+.arena-discover-info{flex:1}
+.arena-discover-title{color:#fff;margin-bottom:.35rem;font-size:.9rem;font-weight:800;line-height:1.3}
+.arena-discover-footer{justify-content:space-between;align-items:center;display:flex}
+.arena-discover-xp{color:var(--neon-amber);font-size:.78rem;font-weight:800}
+.arena-crown-tag{color:var(--neon-amber);text-transform:uppercase;letter-spacing:.06em;background:#ffba001a;border:1px solid #ffba0040;border-radius:4px;padding:.15rem .4rem;font-size:.65rem;font-weight:800}
+
+/* =======================================================
+   LIGHT & NATURAL THEME REDESIGN FOR ARENA BUTTONS
+   ======================================================= */
+
+.arena-btns-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.8rem !important;
+  width: 100% !important;
+  padding: 0 1rem 1rem !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.arena-action-btn {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  border-radius: 16px !important;
+  color: #1e293b !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 1rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  direction: rtl !important;
+  overflow: hidden !important;
+}
+
+.arena-action-btn:hover {
+  transform: translateY(-4px) !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.arena-btn-title {
+  color: #0f172a !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+}
+
+.arena-btn-subtitle {
+  color: #64748b !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+}
+
+.arena-btn-challenges {
+  border-bottom: 4px solid #38bdf8 !important;
+}
+
+.arena-btn-daily {
+  border-bottom: 4px solid #fb923c !important;
+}
+
+.arena-btn-home {
+  border-bottom: 4px solid #a855f7 !important;
+}
+
+.arena-btn-away {
+  border-bottom: 4px solid #ef4444 !important;
+}
+
+.arena-btn-icon {
+  font-size: 1.8rem !important;
+  flex-shrink: 0 !important;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)) !important;
+  transition: transform 0.2s !important;
+}
+
+.arena-action-btn:hover .arena-btn-icon {
+  transform: scale(1.15) rotate(-5deg) !important;
+}
+
+.arena-btn-label {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+/* =======================================================
+   PREMIUM SLEEK DESIGN FOR ARENA (REPLACING CHILDISH HUD)
+   ======================================================= */
+
+.arena-rank-pill {
+  background: rgba(20, 25, 35, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  padding: 0.6rem 1.2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+}
+
+.arena-rank-label {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-size: 0.85rem !important;
+  text-shadow: none !important;
+}
+
+.arena-xp-text {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  margin-top: 4px !important;
+  text-shadow: none !important;
+}
+
+.arena-rank-icon-ring {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  border-radius: 50% !important;
+}
+.arena-rank-icon-ring svg {
+  margin: 0 !important;
+  display: block !important;
+}
+
+.arena-xp-bar-track {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 99px !important;
+  height: 8px !important;
+  margin: 6px 0 !important;
+  width: 140px !important;
+  overflow: hidden !important;
+}
+
+.arena-xp-bar-fill {
+  background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%) !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4) !important;
+  border-radius: 99px !important;
+  height: 100% !important;
+}
+
+/* 2x2 Grid container */
+.arena-btns-grid {
+  gap: 1rem !important;
+  padding: 0 1.5rem 1.5rem !important;
+}
+.top-grid {
+  margin-top: 1rem !important;
+  padding-bottom: 0 !important;
+}
+.bottom-grid {
+  margin-bottom: 2rem !important;
+}
+
+/* Action Buttons - Sleek Glassmorphism */
+.arena-action-btn {
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  text-align: center !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  padding: 1rem 0.5rem !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform: none !important;
+  text-shadow: none !important;
+}
+.arena-action-btn:before { display: none !important; }
+
+.arena-action-btn:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.arena-action-btn:active {
+  transform: translateY(2px) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+.arena-btn-challenges {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(29, 78, 216, 0.25) 100%) !important;
+}
+.arena-btn-daily {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(217, 119, 6, 0.25) 100%) !important;
+}
+.arena-btn-home {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(126, 34, 206, 0.25) 100%) !important;
+}
+.arena-btn-away {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.25) 100%) !important;
+}
+
+.arena-btn-icon {
+  font-size: 1.8rem !important;
+  transform: none !important;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3)) !important;
+  margin-bottom: 0.5rem !important;
+  transition: transform 0.3s ease !important;
+}
+.arena-action-btn:hover .arena-btn-icon {
+  transform: scale(1.1) !important;
+}
+
+.arena-btn-label {
+  align-items: center !important;
+}
+.arena-btn-title {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: #f1f5f9 !important;
+  text-shadow: none !important;
+}
+.arena-btn-subtitle {
+  font-size: 0.65rem !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+  text-shadow: none !important;
+  margin-top: 0.2rem !important;
+}
+
+/* Modals - Premium Look */
+.arena-modal-panel {
+  background: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 24px 24px 0 0 !important;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5) !important;
+  z-index: 10000 !important;
+}
+.arena-modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding-bottom: 1rem !important;
+}
+.arena-modal-title {
+  text-shadow: none !important;
+  font-size: 1.3rem !important;
+  color: #f8fafc !important;
+}
+.arena-modal-close {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 1.2rem !important;
+  color: #94a3b8 !important;
+  transition: all 0.2s ease !important;
+}
+.arena-modal-close:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+
+/* Modal Inner Elements */
+.arena-mission-card, .arena-challenge-row, .arena-discover-card {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 16px !important;
+  transition: all 0.3s ease !important;
+}
+.arena-mission-card:hover, .arena-challenge-row:hover, .arena-discover-card:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  transform: translateY(-2px) !important;
+}
+
+.arena-cta-btn, .arena-proof-btn, .btn-primary {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  border-radius: 12px !important;
+  animation: none !important;
+  transition: all 0.3s ease !important;
+}
+.arena-cta-btn:hover, .arena-proof-btn:hover, .btn-primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4) !important;
+}
+.arena-cta-btn:active, .arena-proof-btn:active, .btn-primary:active {
+  transform: translateY(1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Background Override */
+.arena-lobby {
+  background-image: url('/farm_bg.jpg') !important;
+  background-size: cover !important;
+  background-position: center bottom !important;
+  position: relative;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.arena-lobby::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.3) 0%, rgba(15, 23, 42, 0.85) 100%) !important;
+  z-index: 1;
+  display: block !important;
+  pointer-events: none;
+}
+
+.arena-avatar-stage {
+  animation: float-avatar 6s ease-in-out infinite;
+  flex: 1 !important;
+  margin: 1rem 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+.arena-avatar-platform {
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 60%) !important;
+  width: 140px !important;
+  height: 20px !important;
+  bottom: -10px !important;
+  animation: shadow-pulse 6s ease-in-out infinite;
+}
+
+.arena-modal-overlay {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* =======================================================
+   FIX FOR MODAL LAYOUT AND SCREEN FITTING
+   ======================================================= */
+
+.arena-modal-overlay {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  inset: 0 !important;
+  padding: 1rem !important;
+}
+
+.arena-modal-panel {
+  width: 100% !important;
+  max-width: 500px !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  padding: 1.5rem !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+}
+
+/* Ensure images in modals don't overflow */
+.arena-modal-panel img {
+  max-width: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Fix Head2Head container to fit screen properly */
+.creator-container {
+  width: 100% !important;
+  max-width: 500px !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 1rem !important;
+}
+
+.creator-section-card {
+  flex: 1 !important;
+}
+
+/* =======================================================
+   FIX FOR MISSING FLEX LAYOUTS IN ARENA MODALS
+   ======================================================= */
+
+.arena-modal-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.arena-modal-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin: 0 !important;
+}
+
+.arena-modal-close {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  cursor: pointer !important;
+}
+
+.arena-mission-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  padding: 1.2rem !important;
+  margin-bottom: 0.8rem !important;
+}
+
+.arena-mission-icon-wrap {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  width: 44px !important;
+  height: 44px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 50% !important;
+}
+
+.arena-mission-info {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+.arena-challenge-row, .arena-discover-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+}
+
+/* Fix XP chip and button alignments inside mission card */
+.arena-xp-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  padding: 0.3rem 0.6rem !important;
+  background: rgba(251, 191, 36, 0.15) !important;
+  color: #fbbf24 !important;
+  border-radius: 99px !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+}
+
+.arena-cta-btn {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.9rem !important;
+}
+
+/* Fix Top Grid overlapping HUD */
+.top-grid {
+  margin-top: 4.5rem !important;
+}
+
+/* =======================================================
+   ADJUST ARENA BUTTON SIZES (-15%) & PUSH DOWN MORE
+   ======================================================= */
+.top-grid {
+  margin-top: 6.5rem !important;
+}
+
+.arena-action-btn {
+  padding: 0.75rem 0.4rem !important; /* Reduced padding */
+}
+
+.arena-btn-icon {
+  font-size: 1.5rem !important; /* Reduced from 1.8rem */
+  margin-bottom: 0.3rem !important;
+}
+
+.arena-btn-title {
+  font-size: 0.75rem !important; /* Reduced from 0.85rem */
+}
+
+.arena-btn-subtitle {
+  font-size: 0.55rem !important; /* Reduced from 0.65rem */
+}

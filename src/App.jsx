@@ -1137,7 +1137,10 @@ export default function App() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   // Form states for creating a new challenge
+  const [head2headOpponent, setHead2headOpponent] = useState(null);
+  const [head2headWager, setHead2headWager] = useState(50);
   const [newChallengeTitle, setNewChallengeTitle] = useState('');
+  const [newChallengeSportType, setNewChallengeSportType] = useState('running');
   const [newChallengeDesc, setNewChallengeDesc] = useState('');
   const [newChallengeCategory, setNewChallengeCategory] = useState('כוח');
   const [newChallengeDifficulty, setNewChallengeDifficulty] = useState('קל');
@@ -1532,6 +1535,8 @@ export default function App() {
       const newChallenge = {
         id: challengeId,
         title: newChallengeTitle,
+        sportType: newChallengeSportType,
+        skillLevel: getUserRank(currentUser?.arenaXP || 0).name,
         description: newChallengeDesc,
         category: newChallengeCategory,
         difficulty: newChallengeDifficulty,
@@ -1629,6 +1634,29 @@ export default function App() {
     } finally {
       window.isCreatingChallengeInProgress = false;
     }
+  };
+
+  const handleSendHead2HeadChallenge = (e) => {
+    e.preventDefault();
+    if (!head2headOpponent) {
+      alert("יש לבחור יריב מתוך הרשימה!");
+      return;
+    }
+    const mainSport = currentUser.mainSport || "ריצה";
+    const newMatch = {
+      id: "match_" + Date.now(),
+      type: "1v1",
+      participants: [currentUser.id, head2headOpponent.id],
+      status: "active",
+      xpWager: head2headWager,
+      title: `אתגר ${mainSport} ראש בראש`,
+      sport: mainSport
+    };
+    setMatches([newMatch, ...matches]);
+    alert("האתגר נשלח בהצלחה ליריב!");
+    setHead2headOpponent(null);
+    setHead2headWager(50);
+    setActiveTab("challenges");
   };
 
   // Submit proof and complete a challenge
@@ -2090,189 +2118,391 @@ export default function App() {
           const xpInCurrentRank = currentUser.xp - currentRank.xpRequired;
           const xpNeededForNextRank = nextRank ? nextRank.xpRequired - currentRank.xpRequired : 1;
           const progressPercentage = nextRank ? Math.min(100, Math.max(0, (xpInCurrentRank / xpNeededForNextRank) * 100)) : 100;
-          
+
+          // Ripple helper
+          const addRipple = (e) => {
+            const btn = e.currentTarget;
+            const ripple = document.createElement('span');
+            const rect = btn.getBoundingClientRect();
+            ripple.className = 'arena-ripple';
+            ripple.style.left = (e.clientX - rect.left) + 'px';
+            ripple.style.top  = (e.clientY - rect.top)  + 'px';
+            btn.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove());
+          };
+
+          // Difficulty class helper
+          const diffClass = (d) =>
+            d === 'קל' || d === 'קל-בינוני' ? 'arena-diff-easy' :
+            d === 'בינוני' ? 'arena-diff-med' :
+            d === 'קשה' ? 'arena-diff-hard' : 'arena-diff-vhard';
+
           return (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+
+            {/* ── MAP VIEW header ── */}
             {challengesViewMode === 'map' && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0 1rem' }}>
-                <button onClick={() => setChallengesViewMode('challenges')} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '20px', padding: '0.4rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>
-                  ← חזרה ללובי
+                <button
+                  onClick={() => setChallengesViewMode('challenges')}
+                  style={{ background: 'rgba(0,229,255,0.1)', border: '1px solid rgba(0,229,255,0.3)', borderRadius: '20px', padding: '0.4rem 1rem', color: 'var(--neon-cyan)', cursor: 'pointer', fontWeight: 'bold', backdropFilter: 'blur(8px)' }}
+                >
+                  ← חזרה לזירה
                 </button>
-                <h2 style={{ fontWeight: 800, margin: 0 }}>מפת האתגרים</h2>
+                <h2 style={{ fontWeight: 800, margin: 0, color: '#fff' }}>מפת האתגרים</h2>
               </div>
             )}
 
+            {/* ── ARENA LOBBY ── */}
             {challengesViewMode === 'challenges' && (
-              <div className="game-lobby-container" style={{ flex: 1, borderRadius: '16px', overflow: 'hidden' }}>
-                {/* Top Info Bar */}
-                <div style={{ position: 'absolute', top: '15px', left: '15px', right: '15px', display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem', borderRadius: '30px', border: '2px solid var(--border)', backdropFilter: 'blur(5px)' }}>
-                    <div style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #38bdf8', fontWeight: 900, fontSize: '1.2rem', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                      {currentRank.id + 1}
+              <div className="arena-lobby" style={{ flex: 1, borderRadius: '16px', overflow: 'hidden' }}>
+
+                {/* HUD — Rank pill + Create button */}
+                <div className="arena-hud">
+                  <div className="arena-rank-pill">
+                    <div className="arena-rank-icon-ring">
+                      <MilitaryRankIcon rankId={currentRank.id} size={24} />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 'bold' }}>רמה {currentRank.name}</span>
-                      <div style={{ width: '100px', height: '8px', background: '#0f172a', borderRadius: '10px', overflow: 'hidden', position: 'relative', marginTop: '2px' }}>
-                        <div style={{ width: `${progressPercentage}%`, height: '100%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', transition: 'width 0.5s' }}></div>
+                    <div className="arena-rank-info">
+                      <span className="arena-rank-label">{currentRank.name}</span>
+                      <div className="arena-xp-bar-track">
+                        <div
+                          className="arena-xp-bar-fill"
+                          style={{ width: `${progressPercentage}%` }}
+                        />
                       </div>
+                      <span className="arena-xp-text">
+                        {xpInCurrentRank.toLocaleString()} / {xpNeededForNextRank.toLocaleString()} XP
+                      </span>
                     </div>
                   </div>
-                  <button onClick={() => setActiveTab('create')} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '30px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
-                    <PlusIcon size={18} /> יוזמה
+
+                </div>
+
+                {/* Top Action Buttons (Above Avatar) */}
+                <div className="arena-btns-grid top-grid">
+                  {/* My Challenges */}
+                  <button
+                    className="arena-action-btn arena-btn-challenges"
+                    onClick={(e) => { addRipple(e); setIsMyChallengesModalOpen(true); }}
+                  >
+                    <span className="arena-btn-icon">⚔️</span>
+                    <div className="arena-btn-label">
+                      <span className="arena-btn-title">האתגרים שלי</span>
+                      <span className="arena-btn-subtitle">{currentUser.activeChallenges.length} פעילים</span>
+                    </div>
+                  </button>
+
+                  {/* Daily Missions */}
+                  <button
+                    className="arena-action-btn arena-btn-daily"
+                    onClick={(e) => { addRipple(e); setIsDailyModalOpen(true); }}
+                  >
+                    <span className="arena-btn-icon">🔥</span>
+                    <div className="arena-btn-label">
+                      <span className="arena-btn-title">יומיות</span>
+                      <span className="arena-btn-subtitle">
+                        {dailyChallenges.filter(d => !d.completed).length} נותרו
+                      </span>
+                    </div>
                   </button>
                 </div>
 
-                {/* Center Stage Avatar */}
-                <div className="lobby-avatar-stage" style={{ marginTop: '2.5rem' }}>
+                {/* Avatar Stage */}
+                <div className="arena-avatar-stage">
                   <AvatarPodium avatarConfig={currentUser.avatarConfig} userXp={currentUser.xp} />
+                  <div className="arena-avatar-platform" />
                 </div>
 
-                {/* Action Buttons */}
-                <button className="game-btn game-btn-my-challenges" onClick={() => setIsMyChallengesModalOpen(true)}>
-                  <span className="game-btn-icon">⚔️</span>
-                  <span className="game-btn-text">האתגרים שלי</span>
-                </button>
+                {/* Bottom Action Buttons (Below Avatar) */}
+                <div className="arena-btns-grid bottom-grid">
+                  {/* Home Ground */}
+                  <button
+                    className="arena-action-btn arena-btn-home"
+                    onClick={(e) => { addRipple(e); setActiveTab('create-head2head'); }}
+                  >
+                    <span className="arena-btn-icon">🏠</span>
+                    <div className="arena-btn-label">
+                      <span className="arena-btn-title">מגרש ביתי</span>
+                      <span className="arena-btn-subtitle">ראש בראש</span>
+                    </div>
+                  </button>
 
-                <button className="game-btn game-btn-daily" onClick={() => setIsDailyModalOpen(true)}>
-                  <span className="game-btn-icon">🔥</span>
-                  <span className="game-btn-text">משימות יומיות</span>
-                </button>
+                  {/* Away Game / Radar */}
+                  <button
+                    className="arena-action-btn arena-btn-away"
+                    onClick={(e) => { addRipple(e); setIsRadarOpen(true); }}
+                  >
+                    <span className="arena-btn-icon">🎯</span>
+                    <div className="arena-btn-label">
+                      <span className="arena-btn-title">משחק חוץ</span>
+                      <span className="arena-btn-subtitle">מצא יריב</span>
+                    </div>
+                  </button>
+                </div>
 
-                <button className="game-btn game-btn-discover" onClick={() => { setIsDiscoverModalOpen(true); setExpandedChallengeId(null); }}>
-                  <span className="game-btn-icon">🏆</span>
-                  <span className="game-btn-text">גלה אתגרים</span>
-                </button>
-                
-                <button 
-                  style={{ position: 'absolute', bottom: '20px', left: '20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem', borderRadius: '50%', color: '#fff', cursor: 'pointer', zIndex: 20 }}
+                {/* Map FAB */}
+                <button
+                  className="arena-map-fab"
                   onClick={() => setChallengesViewMode('map')}
                   title="מפת האתגרים"
                 >
-                  <MapIcon size={24} />
+                  <MapIcon size={20} />
                 </button>
 
-                {/* Modals */}
+                {/* ════════════ DAILY MISSIONS MODAL ════════════ */}
                 {isDailyModalOpen && (
-                  <div className="game-modal-overlay" onClick={() => setIsDailyModalOpen(false)}>
-                    <div className="game-modal-content" onClick={e => e.stopPropagation()}>
-                      <div className="game-modal-header">
-                        <h3 className="game-modal-title">משימות יומיות</h3>
-                        <button className="game-modal-close" onClick={() => setIsDailyModalOpen(false)}>✕</button>
+                  <div className="arena-modal-overlay" onClick={() => setIsDailyModalOpen(false)}>
+                    <div className="arena-modal-panel" onClick={e => e.stopPropagation()}>
+                      <div className="arena-modal-drag-handle" />
+                      <div className="arena-modal-header">
+                        <h3 className="arena-modal-title">🔥 משימות יומיות</h3>
+                        <button className="arena-modal-close" onClick={() => setIsDailyModalOpen(false)}>✕</button>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {dailyChallenges.map(dc => (
-                          <div key={dc.id} style={{ background: 'var(--bg-tertiary)', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <TargetIcon size={24} color={dc.completed ? 'var(--success)' : 'var(--primary)'} />
-                              <div>
-                                <h4 style={{ margin: 0, fontWeight: 600, textDecoration: dc.completed ? 'line-through' : 'none' }}>{dc.title}</h4>
-                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>+{dc.xp} XP</span>
-                              </div>
+
+                      {/* Progress summary */}
+                      <div style={{ marginBottom: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.07)', borderRadius: '999px', overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${Math.round((dailyChallenges.filter(d => d.completed).length / dailyChallenges.length) * 100)}%`,
+                            background: 'linear-gradient(90deg, hsl(152,80%,35%), hsl(152,90%,50%))',
+                            borderRadius: '999px',
+                            transition: 'width 0.6s ease',
+                            boxShadow: '0 0 6px var(--glow-green)'
+                          }} />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
+                          {dailyChallenges.filter(d => d.completed).length}/{dailyChallenges.length} הושלמו
+                        </span>
+                      </div>
+
+                      {dailyChallenges.map((dc, idx) => (
+                        <div
+                          key={dc.id}
+                          className={`arena-mission-card${dc.completed ? ' completed' : ''}`}
+                        >
+                          <div className="arena-mission-icon-wrap">
+                            {dc.completed ? '✅' : '🎯'}
+                          </div>
+                          <div className="arena-mission-info">
+                            <div className={`arena-mission-title${dc.completed ? ' done' : ''}`}>
+                              {dc.title}
                             </div>
-                            {!dc.completed ? (
-                              <button onClick={() => handleCompleteDailyChallenge(dc.id, dc.xp)} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>דווח ביצוע</button>
+                            <div className="arena-mission-progress-track">
+                              <div
+                                className={`arena-mission-progress-fill${dc.completed ? ' done' : ''}`}
+                                style={{
+                                  width: dc.completed ? '100%' : '0%',
+                                  animationDelay: `${idx * 0.15}s`
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', flexShrink: 0 }}>
+                            <span className="arena-xp-chip">⚡ {dc.xp} XP</span>
+                            {dc.completed ? (
+                              <span className="arena-check-pop">✓</span>
                             ) : (
-                              <span style={{ color: 'var(--success)', fontWeight: 600 }}>הושלם!</span>
+                              <button
+                                className="arena-cta-btn"
+                                style={{ width: 'auto', padding: '0.4rem 0.8rem', fontSize: '0.78rem', animation: 'none' }}
+                                onClick={(e) => { addRipple(e); handleCompleteDailyChallenge(dc.id, dc.xp); }}
+                              >
+                                ביצעתי!
+                              </button>
                             )}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
 
+                {/* ════════════ MY CHALLENGES MODAL ════════════ */}
                 {isMyChallengesModalOpen && (
-                  <div className="game-modal-overlay" onClick={() => setIsMyChallengesModalOpen(false)}>
-                    <div className="game-modal-content" onClick={e => e.stopPropagation()}>
-                      <div className="game-modal-header">
-                        <h3 className="game-modal-title">האתגרים שלי</h3>
-                        <button className="game-modal-close" onClick={() => setIsMyChallengesModalOpen(false)}>✕</button>
+                  <div className="arena-modal-overlay" onClick={() => setIsMyChallengesModalOpen(false)}>
+                    <div className="arena-modal-panel" onClick={e => e.stopPropagation()}>
+                      <div className="arena-modal-drag-handle" />
+                      <div className="arena-modal-header">
+                        <h3 className="arena-modal-title">⚔️ האתגרים שלי</h3>
+                        <button className="arena-modal-close" onClick={() => setIsMyChallengesModalOpen(false)}>✕</button>
                       </div>
+
                       {currentUser.activeChallenges.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>אין לך אתגרים פעילים כרגע.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          {currentUser.activeChallenges.map(challengeId => {
-                            const c = challenges.find(ch => ch.id === challengeId);
-                            if (!c) return null;
-                            return (
-                              <div key={c.id} style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ flex: 1, paddingLeft: '1rem' }}>
-                                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 'bold' }}>{c.title}</h4>
-                                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                    <span style={{ color: 'var(--accent)' }}>{c.xpReward} XP</span>
-                                    <span>•</span>
-                                    <span>{c.difficulty}</span>
-                                  </div>
-                                </div>
-                                <button onClick={() => { setProofChallengeId(c.id); setActiveTab('complete-challenge'); setIsMyChallengesModalOpen(false); }} className="btn btn-primary" style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem', background: 'var(--success)' }}>העלה הוכחה 📷</button>
-                              </div>
-                            );
-                          })}
+                        <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'rgba(255,255,255,0.35)' }}>
+                          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🏟️</div>
+                          <p style={{ margin: 0, fontSize: '0.9rem' }}>אין לך אתגרים פעילים כרגע.</p>
+                          <p style={{ margin: '0.4rem 0 0', fontSize: '0.78rem', opacity: 0.6 }}>
+                            גלה אתגרים חדשים והצטרף לזירה!
+                          </p>
                         </div>
+                      ) : (
+                        currentUser.activeChallenges.map(challengeId => {
+                          const c = challenges.find(ch => ch.id === challengeId);
+                          if (!c) return null;
+                          const mockProgress = 40 + Math.abs(challengeId.charCodeAt(challengeId.length - 1)) % 45;
+                          return (
+                            <div key={c.id} className="arena-challenge-row">
+                              <img
+                                className="arena-challenge-thumb"
+                                src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=200&auto=format&fit=crop&q=80'}
+                                alt={c.title}
+                              />
+                              <div className="arena-challenge-info">
+                                <div className="arena-challenge-title">{c.title}</div>
+                                <div className="arena-challenge-meta">
+                                  <span className={`arena-diff-badge ${diffClass(c.difficulty)}`}>{c.difficulty}</span>
+                                  <span className="arena-xp-chip" style={{ fontSize: '0.62rem', padding: '0.1rem 0.4rem' }}>
+                                    ⚡ {c.xpReward}
+                                  </span>
+                                </div>
+                                <div style={{ marginTop: '0.5rem', height: '4px', background: 'rgba(255,255,255,0.07)', borderRadius: '999px', overflow: 'hidden' }}>
+                                  <div style={{
+                                    width: `${mockProgress}%`,
+                                    height: '100%',
+                                    background: 'linear-gradient(90deg, var(--neon-cyan-dim), var(--neon-cyan))',
+                                    borderRadius: '999px',
+                                    boxShadow: '0 0 5px var(--glow-cyan)',
+                                    animation: 'arenaProgressFill 1s cubic-bezier(0.22,1,0.36,1) both'
+                                  }} />
+                                </div>
+                              </div>
+                              <div className="arena-challenge-actions">
+                                <button
+                                  className="arena-cta-btn arena-proof-btn"
+                                  style={{ width: 'auto', padding: '0.5rem 0.75rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                                  onClick={(e) => {
+                                    addRipple(e);
+                                    setProofChallengeId(c.id);
+                                    setActiveTab('complete-challenge');
+                                    setIsMyChallengesModalOpen(false);
+                                  }}
+                                >
+                                  📷 הוכחה
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
                 )}
 
+                {/* Matchmaking Radar (unchanged component) */}
+                {isRadarOpen && (
+                  <MatchmakingRadar
+                    currentUser={currentUser}
+                    onClose={() => setIsRadarOpen(false)}
+                    onMatchFound={(match) => {
+                      setIsRadarOpen(false);
+                      setTimeout(() => { setActiveJudgeMatchId(match.id); }, 500);
+                    }}
+                  />
+                )}
+
+                {/* ════════════ DISCOVER MODAL ════════════ */}
                 {isDiscoverModalOpen && (
-                  <div className="game-modal-overlay" onClick={() => setIsDiscoverModalOpen(false)}>
-                    <div className="game-modal-content" onClick={e => e.stopPropagation()}>
-                      <div className="game-modal-header">
-                        <h3 className="game-modal-title">גלה אתגרים חדשים</h3>
-                        <button className="game-modal-close" onClick={() => setIsDiscoverModalOpen(false)}>✕</button>
+                  <div className="arena-modal-overlay" onClick={() => setIsDiscoverModalOpen(false)}>
+                    <div className="arena-modal-panel" onClick={e => e.stopPropagation()}>
+                      <div className="arena-modal-drag-handle" />
+                      <div className="arena-modal-header">
+                        <h3 className="arena-modal-title">🌐 גלה אתגרים</h3>
+                        <button className="arena-modal-close" onClick={() => setIsDiscoverModalOpen(false)}>✕</button>
                       </div>
-                      <div className="challenges-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                        {filteredChallenges.filter(c => !currentUser.activeChallenges.includes(c.id)).map(c => (
-                          <div key={c.id} onClick={() => setExpandedChallengeId(c.id)} style={{ cursor: 'pointer', position: 'relative', borderRadius: '16px', overflow: 'hidden', background: c.isIconic ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(212, 175, 55, 0.03))' : 'var(--bg-tertiary)', border: c.isIconic ? '1.5px solid #ffd700' : '1px solid var(--border)', display: 'flex', transition: 'all 0.2s ease', padding: '0.5rem' }}>
-                            <img src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=80'} alt={c.title} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '12px' }} />
-                            <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', flex: 1, gap: '0.35rem' }}>
-                              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>{c.title}</h4>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                                <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>{c.difficulty}</span>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 'bold' }}>🏆 {c.xpReward}</span>
+                      {filteredChallenges.filter(c => !currentUser.activeChallenges.includes(c.id)).map(c => (
+                        <div
+                          key={c.id}
+                          className={`arena-discover-card${c.isIconic ? ' iconic' : ''}`}
+                          onClick={() => setExpandedChallengeId(c.id)}
+                        >
+                          <img
+                            className="arena-discover-thumb"
+                            src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=200&auto=format&fit=crop&q=80'}
+                            alt={c.title}
+                          />
+                          <div className="arena-discover-info">
+                            <div className="arena-discover-title">{c.title}</div>
+                            <div className="arena-discover-footer">
+                              <span className={`arena-diff-badge ${diffClass(c.difficulty)}`}>{c.difficulty}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                {c.isIconic && <span className="arena-crown-tag">⭐ אייקוני</span>}
+                                <span className="arena-discover-xp">🏆 {c.xpReward} XP</span>
                               </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
-                
-                {/* Modal Detail Popup Overlay for Discover */}
+
+                {/* ════════════ CHALLENGE DETAIL MODAL ════════════ */}
                 {expandedChallengeId && (() => {
                   const c = challenges.find(ch => ch.id === expandedChallengeId);
                   if (!c) return null;
                   return (
-                    <div className="game-modal-overlay" style={{ zIndex: 3000 }} onClick={() => setExpandedChallengeId(null)}>
-                      <div className="game-modal-content" style={{ padding: 0 }} onClick={e => e.stopPropagation()}>
-                        <div style={{ position: 'relative', height: '160px', width: '100%' }}>
-                          <img src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop&q=80'} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-secondary) 0%, transparent 100%)' }}></div>
-                          <button onClick={() => setExpandedChallengeId(null)} style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>✕</button>
+                    <div className="arena-modal-overlay" style={{ zIndex: 3000 }} onClick={() => setExpandedChallengeId(null)}>
+                      <div className="arena-modal-panel" onClick={e => e.stopPropagation()}>
+                        <div className="arena-modal-drag-handle" />
+
+                        {/* Hero image */}
+                        <div className="arena-detail-hero">
+                          <img
+                            src={c.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80'}
+                            alt={c.title}
+                          />
+                          <div className="arena-detail-hero-overlay" />
+                          <button
+                            className="arena-detail-hero-close"
+                            onClick={() => setExpandedChallengeId(null)}
+                          >
+                            ✕
+                          </button>
                         </div>
-                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                        {/* Title & tags */}
+                        <h3 className="arena-detail-title">{c.title}</h3>
+                        <div className="arena-detail-tags">
+                          <span className="arena-tag">{c.category}</span>
+                          <span className={`arena-diff-badge ${diffClass(c.difficulty)}`}>{c.difficulty}</span>
+                          {c.isIconic && <span className="arena-crown-tag">⭐ אייקוני</span>}
+                        </div>
+
+                        {/* Description */}
+                        <div className="arena-detail-desc-box">
+                          <div className="arena-detail-desc-label">המטרה שלך</div>
+                          <p className="arena-detail-desc-text">{c.description}</p>
+                        </div>
+
+                        {/* Participants */}
+                        <div className="arena-participants-row">
+                          <span>👥</span>
+                          <span>{c.participantsCount || Math.floor(Math.random() * 300) + 50} משתתפים פעילים</span>
+                        </div>
+
+                        {/* XP Reward */}
+                        <div className="arena-detail-reward-box">
+                          <span className="arena-reward-icon">🏆</span>
                           <div>
-                            <h3 style={{ fontWeight: 900, fontSize: '1.4rem', margin: '0 0 0.5rem 0' }}>{c.title}</h3>
-                            <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem' }}>
-                              <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>{c.category}</span>
-                              <span className={`difficulty-tag difficulty-${c.difficulty}`} style={{ padding: '0.2rem 0.6rem', borderRadius: '6px' }}>{c.difficulty}</span>
-                            </div>
+                            <div className="arena-reward-label">פרס על השלמה</div>
+                            <div className="arena-reward-value">{c.xpReward} XP</div>
                           </div>
-                          <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>המטרה שלך:</h4>
-                            <p style={{ margin: 0, fontSize: '1rem', lineHeight: 1.5 }}>{c.description}</p>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255, 215, 0, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px dashed rgba(255, 215, 0, 0.3)' }}>
-                            <span style={{ fontSize: '1.5rem' }}>🏆</span>
-                            <div>
-                              <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>פרס על השלמה:</h4>
-                              <strong style={{ color: '#ffd700', fontSize: '1.1rem' }}>{c.xpReward} XP</strong>
-                            </div>
-                          </div>
-                          <button onClick={() => { toggleJoinChallenge(c.id); setExpandedChallengeId(null); setIsDiscoverModalOpen(false); }} className="btn btn-primary" style={{ padding: '1rem', fontSize: '1.1rem', marginTop: '0.5rem', fontWeight: 'bold' }}>הצטרף לאתגר 🔥</button>
                         </div>
+
+                        {/* Join CTA */}
+                        <button
+                          className="arena-cta-btn"
+                          onClick={(e) => {
+                            addRipple(e);
+                            toggleJoinChallenge(c.id);
+                            setExpandedChallengeId(null);
+                            setIsDiscoverModalOpen(false);
+                          }}
+                        >
+                          🔥 הצטרף לאתגר
+                        </button>
                       </div>
                     </div>
                   );
@@ -2710,6 +2940,81 @@ export default function App() {
     })()}
 
 
+        {/* TAB: HEAD TO HEAD CHALLENGE */}
+        {activeTab === "create-head2head" && (() => {
+          const mainSport = currentUser.mainSport || 'ריצה';
+          return (
+            <div className="creator-container" style={{maxWidth: "600px", margin: "0 auto", animation: 'fadeIn 0.3s ease-out'}}>
+              <div className="creator-header-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
+                <button onClick={() => setActiveTab('challenges')} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.5rem', cursor: 'pointer' }}>← חזור</button>
+                <h2 className="creator-main-title" style={{ fontWeight: 800, margin: '0 auto', color: 'var(--accent)' }}>מגרש ביתי ⚔️</h2>
+                <div style={{ width: '40px' }}></div>
+              </div>
+
+              <div className="glass-card creator-section-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                
+                <div>
+                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>1. בחר יריב</h3>
+                  <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
+                    {users.filter(u => u.id !== currentUser.id).slice(0,8).map(u => (
+                      <div 
+                        key={u.id} 
+                        onClick={() => setHead2headOpponent(u)}
+                        style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+                          opacity: head2headOpponent?.id === u.id ? 1 : 0.6,
+                          transform: head2headOpponent?.id === u.id ? 'scale(1.1)' : 'scale(1)',
+                          transition: 'all 0.2s', minWidth: '70px'
+                        }}
+                      >
+                        <div style={{
+                          width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden',
+                          border: head2headOpponent?.id === u.id ? '3px solid var(--accent)' : '2px solid transparent'
+                        }}>
+                          <img src={u.avatar} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                        <span style={{ fontSize: '0.8rem', color: head2headOpponent?.id === u.id ? 'var(--accent)' : 'var(--text-secondary)' }}>{u.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>2. הגדרת האתגר</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                    בתור המארח במגרש הביתי, האתגר הוא בתחום המומחיות שלך: <strong style={{ color: 'var(--accent)' }}>{mainSport}</strong>.
+                  </p>
+                  
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>XP על הכף (המנצח לוקח הכל): {head2headWager}</label>
+                    <input 
+                      type="range" 
+                      min="10" max="500" step="10" 
+                      value={head2headWager} 
+                      onChange={e => setHead2headWager(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: 'var(--accent)' }} 
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <span>10 XP</span>
+                      <span>500 XP</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleSendHead2HeadChallenge}
+                  className="btn btn-primary"
+                  style={{ padding: '1rem', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '12px', marginTop: '1rem', background: 'var(--accent)', color: '#000' }}
+                  disabled={!head2headOpponent}
+                >
+                  {head2headOpponent ? `שלח אתגר ל${head2headOpponent.name.split(' ')[0]} 🚀` : 'בחר יריב כדי להמשיך'}
+                </button>
+
+              </div>
+            </div>
+          );
+        })()}
+
         {/* TAB 3: CREATE CHALLENGE (INSTAGRAM / TIKTOK POST STYLE WIZARD) */}
         {activeTab === "create" && (
           <div className="creator-container" style={{maxWidth: "600px", margin: "0 auto"}}>
@@ -2831,6 +3136,15 @@ export default function App() {
                               onChange={(e) => setNewChallengeTitle(e.target.value)}
                               required
                             />
+                          </div>
+                          
+                          <div className="form-group">
+                            <label className="form-label">ענף ספורט</label>
+                            <select className="form-control" value={newChallengeSportType} onChange={e => setNewChallengeSportType(e.target.value)}>
+                              <option value="running">ריצה</option>
+                              <option value="climbing">טיפוס</option>
+                              <option value="weightlifting">משקולות</option>
+                            </select>
                           </div>
                           
                           <div className="form-group">
@@ -3033,7 +3347,9 @@ export default function App() {
               </div>
             )}
           </div>
-        )}\n\n        {/* TAB: CHATS */}
+        )}
+
+        {/* TAB: CHATS */}
         {activeTab === 'chats' && (
           <div className="chats-tab-container" style={{ display: 'flex', flex: 1, minHeight: '500px', background: 'var(--bg-secondary)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', direction: 'rtl' }}>
             {/* Sidebar list of chats */}

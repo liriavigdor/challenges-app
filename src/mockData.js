@@ -39,6 +39,7 @@ export const initialUsers = [
     followers: ["user_2", "user_3", "user_5", "user_7"],
     following: ["user_2", "user_4", "user_6"],
     stats: { strength: 78, stamina: 85, agility: 62, zen: 45 },
+    mainSport: "ריצה",
     avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }
   },
   {
@@ -57,6 +58,7 @@ export const initialUsers = [
     followers: ["user_1", "user_4", "user_6"],
     following: ["user_1", "user_3", "user_5"],
     stats: { strength: 90, stamina: 70, agility: 80, zen: 30 },
+    mainSport: "שחייה",
     avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#a855f7' }
   },
   {
@@ -75,6 +77,7 @@ export const initialUsers = [
     followers: ["user_2"],
     following: ["user_1", "user_7"],
     stats: { strength: 65, stamina: 88, agility: 70, zen: 50 },
+    mainSport: "אופניים",
     avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#eab308' }
   },
   {
@@ -919,6 +922,8 @@ export const initialMatches = [
     challengerId: "user_2", // יובל לוי (Home)
     opponentId: "user_1", // רועי כהן (Away)
     type: "away",
+    sportType: "running",
+    skillLevel: "advanced",
     status: "referee_court", // pending, active, referee_court, completed, waiting_for_opponent
     challengerProof: {
       duration: "21:45",
