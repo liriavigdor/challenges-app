@@ -2155,90 +2155,78 @@ export default function App() {
 
             {/* ── ARENA LOBBY ── */}
             {challengesViewMode === 'challenges' && (
-              <div className="arena-lobby" style={{ flex: 1, borderRadius: '16px', overflow: 'hidden' }}>
+              <div className="fantasy-rpg-lobby">
 
-                {/* HUD — Rank pill + Create button */}
-                <div className="arena-hud">
-                  <div className="arena-rank-pill">
-                    <div className="arena-rank-icon-ring">
-                      <MilitaryRankIcon rankId={currentRank.id} size={24} />
-                    </div>
-                    <div className="arena-rank-info">
-                      <span className="arena-rank-label">{currentRank.name}</span>
-                      <div className="arena-xp-bar-track">
-                        <div
-                          className="arena-xp-bar-fill"
-                          style={{ width: `${progressPercentage}%` }}
-                        />
-                      </div>
-                      <span className="arena-xp-text">
-                        {xpInCurrentRank.toLocaleString()} / {xpNeededForNextRank.toLocaleString()} XP
-                      </span>
+                {/* TOP HEADER */}
+                <div className="rpg-top-header">
+                  <div className="rpg-header-deco left"></div>
+                  <div className="rpg-header-center">
+                    <span className="rpg-icon swords">⚔️</span>
+                    <h2>זירת האתגרים</h2>
+                    <span className="rpg-icon scroll">📜</span>
+                  </div>
+                  <div className="rpg-header-deco right"></div>
+                </div>
+
+                {/* AVATAR ARENA */}
+                <div className="rpg-avatar-arena">
+                  <div className="rpg-magic-circle"></div>
+                  <div className="rpg-avatar-wrapper">
+                    <AvatarPodium avatarConfig={currentUser.avatarConfig} userXp={currentUser.xp} />
+                  </div>
+                  <div className="rpg-char-panel">
+                    <div className="rpg-char-name">רמה {currentRank.id} | {currentUser.name || 'Hero'}</div>
+                    <div className="rpg-char-class">{currentRank.name}</div>
+                    <div className="rpg-xp-bar-container">
+                      <div className="rpg-xp-bar-fill" style={{ width: `${progressPercentage}%` }}></div>
                     </div>
                   </div>
-
                 </div>
 
-                {/* Top Action Buttons (Above Avatar) */}
-                <div className="arena-btns-grid top-grid">
-                  {/* My Challenges */}
-                  <button
-                    className="arena-action-btn arena-btn-challenges"
-                    onClick={(e) => { addRipple(e); setIsMyChallengesModalOpen(true); }}
-                  >
-                    <span className="arena-btn-icon">⚔️</span>
-                    <div className="arena-btn-label">
-                      <span className="arena-btn-title">האתגרים שלי</span>
-                      <span className="arena-btn-subtitle">{currentUser.activeChallenges.length} פעילים</span>
-                    </div>
+                {/* MAIN ACTIONS */}
+                <div className="rpg-action-buttons">
+                  <button className="rpg-btn-primary" onClick={(e) => { addRipple(e); setActiveTab('create-head2head'); }}>
+                    <span className="rpg-btn-icon">🏠</span> מגרש ביתי
                   </button>
-
-                  {/* Daily Missions */}
-                  <button
-                    className="arena-action-btn arena-btn-daily"
-                    onClick={(e) => { addRipple(e); setIsDailyModalOpen(true); }}
-                  >
-                    <span className="arena-btn-icon">🔥</span>
-                    <div className="arena-btn-label">
-                      <span className="arena-btn-title">יומיות</span>
-                      <span className="arena-btn-subtitle">
-                        {dailyChallenges.filter(d => !d.completed).length} נותרו
-                      </span>
-                    </div>
+                  <button className="rpg-btn-primary" onClick={(e) => { addRipple(e); setIsRadarOpen(true); }}>
+                    <span className="rpg-btn-icon">🎯</span> משחק חוץ
+                  </button>
+                  <button className="rpg-btn-secondary" onClick={(e) => { addRipple(e); setIsMyChallengesModalOpen(true); }}>
+                    האתגרים שלי ({currentUser.activeChallenges.length})
                   </button>
                 </div>
 
-                {/* Avatar Stage */}
-                <div className="arena-avatar-stage">
-                  <AvatarPodium avatarConfig={currentUser.avatarConfig} userXp={currentUser.xp} />
-                  <div className="arena-avatar-platform" />
-                </div>
-
-                {/* Bottom Action Buttons (Below Avatar) */}
-                <div className="arena-btns-grid bottom-grid">
-                  {/* Home Ground */}
-                  <button
-                    className="arena-action-btn arena-btn-home"
-                    onClick={(e) => { addRipple(e); setActiveTab('create-head2head'); }}
-                  >
-                    <span className="arena-btn-icon">🏠</span>
-                    <div className="arena-btn-label">
-                      <span className="arena-btn-title">מגרש ביתי</span>
-                      <span className="arena-btn-subtitle">ראש בראש</span>
-                    </div>
-                  </button>
-
-                  {/* Away Game / Radar */}
-                  <button
-                    className="arena-action-btn arena-btn-away"
-                    onClick={(e) => { addRipple(e); setIsRadarOpen(true); }}
-                  >
-                    <span className="arena-btn-icon">🎯</span>
-                    <div className="arena-btn-label">
-                      <span className="arena-btn-title">משחק חוץ</span>
-                      <span className="arena-btn-subtitle">מצא יריב</span>
-                    </div>
-                  </button>
+                {/* ACTIVE CHALLENGES PANEL */}
+                <div className="rpg-challenges-panel">
+                  <div className="rpg-panel-title">
+                    <span className="rpg-panel-icon">📋</span> אתגרים פעילים
+                  </div>
+                  <div className="rpg-tabs">
+                    <button className="rpg-tab active">יומי</button>
+                    <button className="rpg-tab" onClick={() => setIsDiscoverModalOpen(true)}>גלה עוד</button>
+                  </div>
+                  <div className="rpg-challenges-list">
+                    {dailyChallenges.slice(0, 3).map((dc, idx) => (
+                      <div key={dc.id} className={`rpg-challenge-card ${dc.completed ? 'completed' : ''}`}>
+                        <div className="rpg-card-icon">{dc.completed ? '✅' : (idx === 0 ? '🐺' : idx === 1 ? '💎' : '👹')}</div>
+                        <div className="rpg-card-main">
+                          <div className="rpg-card-title">{dc.title}</div>
+                          <div className="rpg-card-progress-bar">
+                            <div className="rpg-progress-fill" style={{ width: dc.completed ? '100%' : '30%' }}></div>
+                          </div>
+                        </div>
+                        <div className="rpg-card-reward">
+                          <div className="rpg-reward-label">פרס</div>
+                          <div className="rpg-reward-val">💎 {dc.xp}</div>
+                          {!dc.completed ? (
+                            <button className="rpg-action-btn" onClick={(e) => { addRipple(e); handleCompleteDailyChallenge(dc.id, dc.xp); }}>GO!</button>
+                          ) : (
+                            <button className="rpg-action-btn disabled">DONE</button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Map FAB */}
