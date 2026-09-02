@@ -2155,77 +2155,112 @@ export default function App() {
 
             {/* ── ARENA LOBBY ── */}
             {challengesViewMode === 'challenges' && (
-              <div className="fantasy-rpg-lobby">
+              <div className="glass-athletic-lobby">
 
                 {/* TOP HEADER */}
-                <div className="rpg-top-header">
-                  <div className="rpg-header-deco left"></div>
-                  <div className="rpg-header-center">
-                    <span className="rpg-icon swords">⚔️</span>
-                    <h2>זירת האתגרים</h2>
-                    <span className="rpg-icon scroll">📜</span>
+                <div className="glass-top-header">
+                  <div className="glass-header-left">
+                    <h2>Challenges</h2>
+                    <div className="glass-daily-streak">
+                      <span className="streak-icon pulse-flame">🔥</span>
+                      <span className="streak-count">12 Day Streak</span>
+                    </div>
                   </div>
-                  <div className="rpg-header-deco right"></div>
-                </div>
-
-                {/* AVATAR ARENA */}
-                <div className="rpg-avatar-arena">
-                  <div className="rpg-magic-circle"></div>
-                  <div className="rpg-avatar-wrapper">
-                    <AvatarPodium avatarConfig={currentUser.avatarConfig} userXp={currentUser.xp} />
-                  </div>
-                  <div className="rpg-char-panel">
-                    <div className="rpg-char-name">רמה {currentRank.id} | {currentUser.name || 'Hero'}</div>
-                    <div className="rpg-char-class">{currentRank.name}</div>
-                    <div className="rpg-xp-bar-container">
-                      <div className="rpg-xp-bar-fill" style={{ width: `${progressPercentage}%` }}></div>
+                  <div className="glass-header-stats">
+                    <span className="glass-stat">🎖 {currentRank.name}</span>
+                    <div className="glass-xp-bar-wrap">
+                      <div className="glass-xp-track">
+                        <div className="glass-xp-fill" style={{ width: `${progressPercentage}%` }} />
+                      </div>
+                      <div className="glass-xp-label">{currentUser.xp.toLocaleString()} / {nextRank ? nextRank.xpRequired.toLocaleString() : '—'} XP</div>
                     </div>
                   </div>
                 </div>
 
-                {/* MAIN ACTIONS */}
-                <div className="rpg-action-buttons">
-                  <button className="rpg-btn-primary" onClick={(e) => { addRipple(e); setActiveTab('create-head2head'); }}>
-                    <span className="rpg-btn-icon">🏠</span> מגרש ביתי
-                  </button>
-                  <button className="rpg-btn-primary" onClick={(e) => { addRipple(e); setIsRadarOpen(true); }}>
-                    <span className="rpg-btn-icon">🎯</span> משחק חוץ
-                  </button>
-                  <button className="rpg-btn-secondary" onClick={(e) => { addRipple(e); setIsMyChallengesModalOpen(true); }}>
-                    האתגרים שלי ({currentUser.activeChallenges.length})
-                  </button>
+                {/* AVATAR ARENA */}
+                <div className="glass-avatar-arena">
+                  <div className="glass-backdrop-glow"></div>
+                  <div className="challenges-pedestal-ring"></div>
+                  <div className="glass-avatar-wrapper">
+                    <AvatarPodium avatarConfig={currentUser.avatarConfig} userXp={currentUser.xp} />
+                  </div>
+
+                  {/* Floating Action Buttons — Home & Away */}
+                  <div className="glass-fab-container left">
+                    <button className="glass-fab home-fab" onClick={(e) => { addRipple(e); setActiveTab('create-head2head'); }}>
+                      <span className="glass-fab-icon">🏠</span>
+                      <span className="glass-fab-title home-title">Home</span>
+                      <span className="glass-fab-sub">Training</span>
+                    </button>
+                  </div>
+                  <div className="glass-fab-container right">
+                    <button className="glass-fab away-fab" onClick={(e) => { addRipple(e); setIsRadarOpen(true); }}>
+                      <span className="glass-fab-icon">🎯</span>
+                      <span className="glass-fab-title away-title">Away</span>
+                      <span className="glass-fab-sub">Ranked</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* ACTIVE CHALLENGES PANEL */}
-                <div className="rpg-challenges-panel">
-                  <div className="rpg-panel-title">
-                    <span className="rpg-panel-icon">📋</span> אתגרים פעילים
+                <div className="glass-challenges-panel">
+                  <div className="glass-panel-header">
+                    <div className="glass-panel-title-wrap">
+                      <h3>Active Missions</h3>
+                      <div className="glass-countdown-timer">⏳ 14:22:10</div>
+                    </div>
+                    <button className="glass-btn-text" onClick={() => setIsMyChallengesModalOpen(true)}>
+                      View All ({currentUser.activeChallenges.length})
+                    </button>
                   </div>
-                  <div className="rpg-tabs">
-                    <button className="rpg-tab active">יומי</button>
-                    <button className="rpg-tab" onClick={() => setIsDiscoverModalOpen(true)}>גלה עוד</button>
+                  
+                  <div className="glass-tabs">
+                    <button className="glass-tab active">Daily</button>
                   </div>
-                  <div className="rpg-challenges-list">
-                    {dailyChallenges.slice(0, 3).map((dc, idx) => (
-                      <div key={dc.id} className={`rpg-challenge-card ${dc.completed ? 'completed' : ''}`}>
-                        <div className="rpg-card-icon">{dc.completed ? '✅' : (idx === 0 ? '🐺' : idx === 1 ? '💎' : '👹')}</div>
-                        <div className="rpg-card-main">
-                          <div className="rpg-card-title">{dc.title}</div>
-                          <div className="rpg-card-progress-bar">
-                            <div className="rpg-progress-fill" style={{ width: dc.completed ? '100%' : '30%' }}></div>
+                  
+                  <div className="glass-challenges-list">
+                    {dailyChallenges.slice(0, 3).map((dc, idx) => {
+                      const isMystery = idx === 1; // Make the second one a mystery box
+                      return (
+                        <div key={dc.id} className={`glass-challenge-card ${dc.completed ? 'completed' : ''} ${isMystery && !dc.completed ? 'mystery-box' : ''}`}>
+                          <div className="glass-card-header">
+                            <span className="glass-card-title">{isMystery && !dc.completed ? '❓ Mystery Challenge' : dc.title}</span>
+                            <span className="glass-card-reward">{isMystery && !dc.completed ? '💎 ??? XP' : `💎 ${dc.xp} XP`}</span>
+                          </div>
+                          
+                          {!isMystery || dc.completed ? (
+                            <div className="glass-card-progress-wrapper">
+                              <div className="glass-card-progress-bar">
+                                <div className="glass-progress-fill" style={{ width: dc.completed ? '100%' : '30%' }}></div>
+                              </div>
+                              <span className="glass-progress-text">{dc.completed ? '100%' : '30%'}</span>
+                            </div>
+                          ) : (
+                            <div className="mystery-hint">Complete to reveal the reward!</div>
+                          )}
+
+                          <div className="glass-card-footer">
+                            <div className="glass-card-avatars">
+                              <div className="glass-avatar-stack"></div>
+                              <span>{isMystery ? '1.2K trying' : '+4 joined'}</span>
+                            </div>
+                            {!dc.completed ? (
+                              <button className={`glass-action-btn ${isMystery ? 'pulse-btn' : ''}`} onClick={(e) => { addRipple(e); handleCompleteDailyChallenge(dc.id, dc.xp); }}>Start</button>
+                            ) : (
+                              <button className="glass-action-btn disabled">Done</button>
+                            )}
                           </div>
                         </div>
-                        <div className="rpg-card-reward">
-                          <div className="rpg-reward-label">פרס</div>
-                          <div className="rpg-reward-val">💎 {dc.xp}</div>
-                          {!dc.completed ? (
-                            <button className="rpg-action-btn" onClick={(e) => { addRipple(e); handleCompleteDailyChallenge(dc.id, dc.xp); }}>GO!</button>
-                          ) : (
-                            <button className="rpg-action-btn disabled">DONE</button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+                  </div>
+                  
+                  {/* LIVE SOCIAL TICKER */}
+                  <div className="glass-social-ticker">
+                    <div className="ticker-content">
+                      <span className="ticker-avatar">🏃</span>
+                      <span className="ticker-text"><strong>Alex</strong> just completed the 5K Sprint!</span>
+                    </div>
                   </div>
                 </div>
 

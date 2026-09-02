@@ -5157,345 +5157,636 @@ body {
 .arena-btn-subtitle {
   font-size: 0.55rem !important; /* Reduced from 0.65rem */
 }
- 
- /* ========================================================
-   FANTASY RPG LOBBY (CHALLENGES TAB)
+
+
+/* ========================================================
+   ATHLETIC GLASS LOBBY (CHALLENGES TAB) - MODERN UI
    ======================================================== */
 
-.fantasy-rpg-lobby {
+
+/* ═══════════════════════════════════════════════════════════
+   CHALLENGES TAB — Premium Sports Arena Design System
+   Palette: Deep slate · Steel blue · Muted amber · Sage green
+   Tone: Calm, confident, premium — not stressed, not neon
+   ═══════════════════════════════════════════════════════════ */
+
+.glass-athletic-lobby {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: url('https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=1080&auto=format&fit=crop') center/cover no-repeat;
+  background: linear-gradient(160deg, #111827 0%, #161d2e 55%, #1a2238 100%);
   position: relative;
   overflow-y: auto;
   border-radius: 16px;
-  box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+  font-family: 'Inter', sans-serif;
+  color: #fff;
 }
 
-.fantasy-rpg-lobby::before {
+/* Subtle ambient stadium glow — warm and soft, not harsh */
+.glass-athletic-lobby::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.8) 100%);
+  background:
+    radial-gradient(ellipse 70% 35% at 50% 100%, rgba(107,141,214,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 20% at 15% 60%, rgba(107,141,214,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── TOP HEADER ── */
+.glass-top-header {
+  padding: 1.25rem 1.5rem 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 10;
+  position: relative;
+}
+
+.glass-top-header h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+}
+
+.glass-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.glass-daily-streak {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(201, 168, 76, 0.08);
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.16);
+  width: fit-content;
+}
+
+.streak-count {
+  font-size: 0.72rem;
+  color: #c9a84c;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Calm flame — slow and gentle */
+.pulse-flame {
+  display: inline-block;
+  animation: flamePulse 3.5s infinite ease-in-out;
+}
+
+@keyframes flamePulse {
+  0%   { transform: scale(1);    filter: drop-shadow(0 0 2px rgba(201, 168, 76, 0.25)); }
+  50%  { transform: scale(1.1);  filter: drop-shadow(0 0 5px rgba(201, 168, 76, 0.5)); }
+  100% { transform: scale(1);    filter: drop-shadow(0 0 2px rgba(201, 168, 76, 0.25)); }
+}
+
+.glass-header-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.glass-stat {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* XP Progress Bar — slim and calm */
+.glass-xp-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.glass-xp-track {
+  width: 96px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.glass-xp-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4e6fc0, #7a9fde);
+  box-shadow: 0 0 5px rgba(107, 141, 214, 0.35);
+  transition: width 0.8s ease;
+}
+
+.glass-xp-label {
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.06em;
+}
+
+/* ── AVATAR ARENA ── */
+.glass-avatar-arena {
+  position: relative;
+  z-index: 5;
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 1.75rem;
+}
+
+.glass-backdrop-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle at center, rgba(107, 141, 214, 0.09) 0%, transparent 70%);
+  border-radius: 50%;
   pointer-events: none;
 }
 
-/* TOP HEADER */
-.rpg-top-header {
+/* Pedestal ring — slow breathing, like a calm heartbeat */
+.challenges-pedestal-ring {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130px;
+  height: 24px;
+  border: 1px solid rgba(107, 141, 214, 0.28);
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px rgba(107, 141, 214, 0.1),
+    inset 0 0 10px rgba(107, 141, 214, 0.05);
+  animation: pedestalBreath 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pedestalBreath {
+  0%, 100% { opacity: 0.45; transform: translateX(-50%) scaleX(1); }
+  50%       { opacity: 0.9;  transform: translateX(-50%) scaleX(1.04); }
+}
+
+.glass-avatar-wrapper {
   position: relative;
   z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1.5rem 1rem 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  transform: scale(1.15);
 }
 
-.rpg-header-center {
+/* ── Floating Action Buttons (Home / Away) ── */
+.glass-fab-container {
+  position: absolute;
+  bottom: 20px;
+  z-index: 15;
+}
+.glass-fab-container.left  { left: 1.25rem; }
+.glass-fab-container.right { right: 1.25rem; }
+
+.glass-fab {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 0.85rem 1rem;
+  border-radius: 18px;
+  color: #fff;
+  font-weight: 600;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.8rem;
-  background: linear-gradient(to bottom, #d4af37, #8a6a1c);
-  padding: 0.4rem 2rem;
-  border-radius: 4px;
-  border: 2px solid #3e2723;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.3);
+  gap: 0.22rem;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  min-width: 78px;
   position: relative;
+  overflow: hidden;
 }
 
-.rpg-header-center::before,
-.rpg-header-center::after {
+.glass-fab.home-fab { border-color: rgba(107, 141, 214, 0.2); }
+.glass-fab.home-fab:hover {
+  border-color: rgba(107, 141, 214, 0.42);
+  box-shadow: 0 6px 22px rgba(107, 141, 214, 0.12);
+  background: rgba(107, 141, 214, 0.06);
+  transform: translateY(-3px);
+}
+
+.glass-fab.away-fab { border-color: rgba(201, 168, 76, 0.18); }
+.glass-fab.away-fab:hover {
+  border-color: rgba(201, 168, 76, 0.4);
+  box-shadow: 0 6px 22px rgba(201, 168, 76, 0.1);
+  background: rgba(201, 168, 76, 0.05);
+  transform: translateY(-3px);
+}
+
+.glass-fab:active { transform: translateY(1px); }
+
+.glass-fab-icon  { font-size: 1.15rem; line-height: 1; }
+
+.glass-fab-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.glass-fab-title.home-title { color: #8aadec; }
+.glass-fab-title.away-title { color: #c9a84c; }
+
+.glass-fab span.glass-fab-sub {
+  font-size: 0.52rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── CHALLENGES PANEL ── */
+.glass-challenges-panel {
+  flex: 1;
+  background: rgba(15, 20, 32, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.2);
+}
+
+.glass-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.glass-panel-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.glass-btn-text {
+  background: none;
+  border: none;
+  color: rgba(107, 141, 214, 0.75);
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+}
+.glass-btn-text:hover { color: #8aadec; }
+
+/* Tabs */
+.glass-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.5rem;
+}
+
+.glass-tab {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.28);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  padding: 0 0.5rem 0.5rem;
+  position: relative;
+  transition: color 0.2s;
+}
+.glass-tab.active { color: rgba(255, 255, 255, 0.88); }
+.glass-tab.active::after {
   content: '';
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%) rotate(45deg);
-  width: 14px;
-  height: 14px;
-  background: #d4af37;
-  border: 2px solid #3e2723;
-}
-.rpg-header-center::before { left: -7px; }
-.rpg-header-center::after { right: -7px; }
-
-.rpg-header-center h2 {
-  margin: 0;
-  font-family: 'Cinzel', serif;
-  color: #fff;
-  font-size: 1.3rem;
-  letter-spacing: 1px;
+  bottom: -0.5rem;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #4e6fc0, #7a9fde);
+  border-radius: 2px;
+  box-shadow: 0 0 5px rgba(107, 141, 214, 0.35);
 }
 
-/* AVATAR ARENA */
-.rpg-avatar-arena {
-  position: relative;
-  z-index: 5;
-  height: 320px;
+/* ── CHALLENGE CARDS ── */
+.glass-challenges-list {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin-top: -1rem;
+  gap: 0.85rem;
 }
 
-.rpg-magic-circle {
-  position: absolute;
-  bottom: 60px;
-  width: 250px;
-  height: 80px;
-  background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.4) 0%, rgba(255, 215, 0, 0) 70%);
-  border: 2px solid rgba(255, 215, 0, 0.3);
-  border-radius: 50%;
-  transform: rotateX(60deg);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), inset 0 0 20px rgba(255, 215, 0, 0.5);
-  animation: pulse-magic 4s infinite ease-in-out;
-}
-
-@keyframes pulse-magic {
-  0%, 100% { transform: rotateX(60deg) scale(1); opacity: 0.8; }
-  50% { transform: rotateX(60deg) scale(1.05); opacity: 1; }
-}
-
-.rpg-avatar-wrapper {
-  position: relative;
-  z-index: 10;
-  margin-bottom: 2rem;
-  transform: scale(1.2);
-}
-
-.rpg-char-panel {
-  position: absolute;
-  bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 0.5rem 1.5rem;
-  border-radius: 20px;
-  border: 1px solid #8a6a1c;
-  backdrop-filter: blur(4px);
-}
-
-.rpg-char-name {
-  color: #fff;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.rpg-char-class {
-  color: #d4af37;
-  font-size: 0.85rem;
-  margin-bottom: 0.4rem;
-}
-
-.rpg-xp-bar-container {
-  width: 150px;
-  height: 6px;
-  background: #2a2a2a;
-  border-radius: 3px;
-  overflow: hidden;
-  border: 1px solid #111;
-}
-
-.rpg-xp-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #d4af37, #f3e5ab);
-  box-shadow: 0 0 5px #d4af37;
-}
-
-/* MAIN ACTIONS */
-.rpg-action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0 1rem;
-  z-index: 10;
-  margin-bottom: 1.5rem;
-}
-
-.rpg-btn-primary, .rpg-btn-secondary {
-  position: relative;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: bold;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-  transition: transform 0.2s, filter 0.2s;
-  overflow: hidden;
-}
-
-.rpg-btn-primary {
-  background: linear-gradient(to bottom, #2a5298, #1e3c72);
-  border: 2px solid #5a8bdc;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 4px rgba(255,255,255,0.3);
-}
-
-.rpg-btn-secondary {
-  background: linear-gradient(to bottom, #8a2387, #e94057);
-  border: 2px solid #f27121;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 4px rgba(255,255,255,0.3);
-}
-
-.rpg-btn-primary:active, .rpg-btn-secondary:active {
-  transform: translateY(2px);
-  filter: brightness(0.9);
-}
-
-/* ACTIVE CHALLENGES PANEL */
-.rpg-challenges-panel {
-  flex: 1;
-  background: linear-gradient(to bottom, #2d2b27, #1a1917);
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
-  border-top: 3px solid #6b5c3e;
-  border-left: 3px solid #6b5c3e;
-  border-right: 3px solid #6b5c3e;
-  z-index: 10;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.rpg-panel-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  color: #d4af37;
-  font-family: 'Cinzel', serif;
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  text-shadow: 1px 1px 2px #000;
-}
-
-.rpg-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.rpg-tab {
-  flex: 1;
-  background: #3e3831;
-  border: 1px solid #5a5146;
-  color: #a39b8e;
-  padding: 0.6rem;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.rpg-tab.active {
-  background: linear-gradient(to bottom, #1e3c72, #2a5298);
-  border-color: #5a8bdc;
-  color: #fff;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-}
-
-.rpg-challenges-list {
+.glass-challenge-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 1.1rem 1.2rem;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.glass-challenge-card:hover {
+  background: rgba(107, 141, 214, 0.05);
+  border-color: rgba(107, 141, 214, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(107, 141, 214, 0.07);
+}
+.glass-challenge-card.completed {
+  background: rgba(76, 175, 125, 0.04);
+  border-color: rgba(76, 175, 125, 0.16);
+}
+.glass-challenge-card.completed:hover {
+  background: rgba(76, 175, 125, 0.07);
+  border-color: rgba(76, 175, 125, 0.26);
+  box-shadow: 0 6px 18px rgba(76, 175, 125, 0.07);
 }
 
-.rpg-challenge-card {
+.glass-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.glass-card-title {
+  font-size: 0.93rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.glass-card-reward {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #c9a84c;
+  background: rgba(201, 168, 76, 0.08);
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  white-space: nowrap;
+}
+
+/* Progress bar */
+.glass-card-progress-wrapper {
   display: flex;
   align-items: center;
-  background: linear-gradient(to right, #24221f, #2d2b27);
-  border: 2px solid #5a5146;
-  border-radius: 8px;
-  padding: 0.8rem;
-  gap: 0.8rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-  position: relative;
-  overflow: hidden;
+  gap: 0.75rem;
 }
 
-.rpg-challenge-card.completed {
-  border-color: #2e7d32;
-  background: linear-gradient(to right, #1b3a1e, #2d2b27);
-}
-
-.rpg-card-icon {
-  width: 50px;
-  height: 50px;
-  background: #111;
-  border: 2px solid #8a6a1c;
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.5rem;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-}
-
-.rpg-card-main {
+.glass-card-progress-bar {
   flex: 1;
-}
-
-.rpg-card-title {
-  color: #fff;
-  font-weight: bold;
-  font-size: 0.95rem;
-  margin-bottom: 0.5rem;
-}
-
-.rpg-card-progress-bar {
-  height: 8px;
-  background: #111;
-  border-radius: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
   overflow: hidden;
-  border: 1px solid #333;
 }
 
-.rpg-progress-fill {
+.glass-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00c6ff, #0072ff);
-  box-shadow: 0 0 5px #00c6ff;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4e6fc0, #8aadec);
+  box-shadow: 0 0 5px rgba(107, 141, 214, 0.3);
+  transition: width 0.7s ease;
+}
+.glass-challenge-card.completed .glass-progress-fill {
+  background: linear-gradient(90deg, #3a9e6f, #4caf7d);
+  box-shadow: 0 0 5px rgba(76, 175, 125, 0.35);
 }
 
-.rpg-card-reward {
+.glass-progress-text {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+  min-width: 34px;
+  text-align: right;
+}
+
+/* Card Footer */
+.glass-card-footer {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  min-width: 70px;
-  border-left: 1px solid #5a5146;
-  padding-left: 0.8rem;
 }
 
-.rpg-reward-label {
-  font-size: 0.7rem;
-  color: #a39b8e;
+.glass-card-avatars {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.glass-card-avatars span {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.28);
 }
 
-.rpg-reward-val {
-  font-size: 0.9rem;
-  font-weight: bold;
-  color: #d4af37;
-  margin-bottom: 0.4rem;
-}
-
-.rpg-action-btn {
-  background: linear-gradient(to bottom, #d4af37, #8a6a1c);
-  border: 1px solid #f3e5ab;
-  color: #000;
-  font-weight: bold;
-  padding: 0.3rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
+/* Action buttons */
+.glass-action-btn {
+  background: rgba(107, 141, 214, 0.12);
+  color: #8aadec;
+  border: 1px solid rgba(107, 141, 214, 0.22);
+  padding: 0.42rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.78rem;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
 }
+.glass-action-btn:hover {
+  background: rgba(107, 141, 214, 0.2);
+  border-color: rgba(107, 141, 214, 0.38);
+  transform: translateY(-1px);
+}
+.glass-action-btn:active { transform: translateY(1px); }
 
-.rpg-action-btn.disabled {
-  background: #555;
-  border-color: #333;
-  color: #aaa;
+/* Completed state — calm green */
+.glass-action-btn.disabled {
+  background: rgba(76, 175, 125, 0.09);
+  color: rgba(76, 175, 125, 0.65);
+  border-color: rgba(76, 175, 125, 0.18);
   cursor: default;
+}
+.glass-action-btn.disabled:hover { transform: none; }
+
+/* ── GAMIFICATION HOOKS ── */
+
+/* Mystery box */
+.mystery-box {
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.04), rgba(201, 168, 76, 0.07));
+  border-color: rgba(201, 168, 76, 0.18);
+}
+
+.mystery-hint {
+  font-size: 0.78rem;
+  color: rgba(201, 168, 76, 0.75);
+  font-style: italic;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(201, 168, 76, 0.05);
+  border-radius: 8px;
+  border: 1px dashed rgba(201, 168, 76, 0.18);
+}
+
+/* Pulse CTA button — calm amber glow, not frantic */
+.pulse-btn {
+  background: rgba(201, 168, 76, 0.15);
+  color: #c9a84c;
+  border-color: rgba(201, 168, 76, 0.3);
+  animation: calmPulse 3.5s infinite ease-in-out;
+}
+.pulse-btn:hover {
+  background: rgba(201, 168, 76, 0.24);
+  border-color: rgba(201, 168, 76, 0.5);
+}
+
+@keyframes calmPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  50%       { box-shadow: 0 0 0 5px rgba(201, 168, 76, 0.1); }
+}
+
+/* Panel title + countdown */
+.glass-panel-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.glass-countdown-timer {
+  font-family: 'Inter', monospace;
+  font-size: 0.72rem;
+  color: rgba(255, 100, 100, 0.75);
+  font-weight: 600;
+  background: rgba(255, 100, 100, 0.06);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 100, 100, 0.12);
+  animation: urgentPulse 2s infinite alternate;
+}
+
+@keyframes urgentPulse {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+
+/* Social Ticker */
+.glass-social-ticker {
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.ticker-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.38);
+  animation: tickerSlideUp 0.5s ease-out;
+}
+
+.ticker-avatar {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.28rem;
+  border-radius: 50%;
+  font-size: 0.9rem;
+}
+
+.ticker-text strong { color: rgba(255, 255, 255, 0.72); }
+
+@keyframes tickerSlideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════
+   XP ORB ANIMATION SYSTEM
+   Orbs fly from challenge card → XP bar (Clash Royale style)
+   ═══════════════════════════════════════════════ */
+
+/* The flying orb chip */
+.xp-orb-fly {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fde68a 0%, #c9a84c 60%, #a07830 100%);
+  box-shadow:
+    0 0 8px rgba(201, 168, 76, 0.7),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #78350f;
+  will-change: transform, opacity;
+}
+
+/* XP bar flashes when it receives orbs */
+.glass-xp-track.xp-received {
+  animation: xpBarReceive 0.55s ease-out forwards;
+}
+
+@keyframes xpBarReceive {
+  0%   { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  25%  { box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.55); }
+  60%  { box-shadow: 0 0 0 7px rgba(201, 168, 76, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+}
+
+/* XP fill bar bounces on receive */
+.glass-xp-fill.xp-fill-bump {
+  animation: xpFillBump 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes xpFillBump {
+  0%   { filter: brightness(1); }
+  40%  { filter: brightness(1.6); }
+  100% { filter: brightness(1); }
+}
+
+/* Score pop — the "+XP" text that appears at the card */
+.xp-score-pop {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #fde68a;
+  text-shadow:
+    0 0 8px rgba(201, 168, 76, 0.9),
+    0 1px 3px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.04em;
+  will-change: transform, opacity;
+  animation: scorePop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes scorePop {
+  0%   { transform: translateY(0)  scale(0.5); opacity: 0; }
+  20%  { transform: translateY(-8px) scale(1.3); opacity: 1; }
+  55%  { transform: translateY(-22px) scale(1);  opacity: 1; }
+  100% { transform: translateY(-40px) scale(0.8); opacity: 0; }
 }
 
