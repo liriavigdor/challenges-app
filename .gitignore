@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# 3D Assets (Downloaded via script, no need to push to git)
+public/avatars3d/*.glb
