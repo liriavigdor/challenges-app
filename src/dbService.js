@@ -23,6 +23,13 @@ function initLocalStorage() {
   const storedUser1Badges = parsedStored.find(u => u.id === 'user_1')?.badges || [];
   if (!storedUsers || parsedStored.length < initialUsers.length || storedUser1Badges.length < 16) {
     localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
+  } else {
+    // Force patch user 1 avatar config
+    const user1 = parsedStored.find(u => u.id === 'user_1');
+    if (user1 && (!user1.avatarConfig || user1.avatarConfig.id !== 'alien_soldier_black')) {
+      user1.avatarConfig = { id: 'alien_soldier_black' };
+      localStorage.setItem(USERS_KEY, JSON.stringify(parsedStored));
+    }
   }
   
   const storedChallenges = localStorage.getItem(CHALLENGES_KEY);
@@ -53,11 +60,29 @@ export async function getUsers() {
           const { id, ...rest } = user;
           await Promise.race([setDoc(doc(db, "users", id), rest), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
           usersList.push(user);
-        } else if (user.id === 'user_1' && (!existing.badges || existing.badges.length < 16)) {
-          // Force update user_1's badges in Firebase to match new full badge list
-          const { id, ...rest } = user;
-          await Promise.race([setDoc(doc(db, "users", id), rest, { merge: true }), new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))]);
-          existing.badges = user.badges;
+        }
+        
+        if (user.id === 'user_1') {
+          let needsUpdate = false;
+          let updateData = {};
+          
+          if (!existing.badges || existing.badges.length < 16) {
+            needsUpdate = true;
+            updateData.badges = user.badges;
+            existing.badges = user.badges;
+          }
+          if (!existing.avatarConfig || existing.avatarConfig.id !== 'alien_soldier_black') {
+            needsUpdate = true;
+            updateData.avatarConfig = { id: 'alien_soldier_black' };
+            existing.avatarConfig = { id: 'alien_soldier_black' };
+          }
+          
+          if (needsUpdate) {
+            await Promise.race([
+              setDoc(doc(db, "users", user.id), updateData, { merge: true }), 
+              new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000))
+            ]).catch(e => console.warn('Firestore timeout', e));
+          }
         }
       }
       return usersList;

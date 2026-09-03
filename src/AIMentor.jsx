@@ -50,66 +50,119 @@ export default function AIMentor({ isOpen, onClose, activityData, user, onXpAwar
     <AnimatePresence>
       {isOpen && (
         <motion.div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(4px)'
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div 
-            className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative overflow-hidden text-center text-white"
+            style={{
+              backgroundColor: '#18181b', // zinc-900
+              border: '1px solid #3f3f46', // zinc-700
+              borderRadius: '24px',
+              padding: '1.5rem',
+              width: '100%',
+              maxWidth: '350px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              position: 'relative',
+              overflow: 'hidden',
+              textAlign: 'center',
+              color: 'white',
+              direction: 'rtl'
+            }}
             initial={{ scale: 0.9, y: 50 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 50, opacity: 0 }}
           >
             {/* Ambient Background Glow */}
-            <div className="absolute -top-20 -left-20 w-40 h-40 bg-purple-500 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
-            <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+            <div style={{
+              position: 'absolute', top: '-5rem', left: '-5rem', width: '10rem', height: '10rem',
+              backgroundColor: '#a855f7', borderRadius: '50%', filter: 'blur(40px)', opacity: 0.2, pointerEvents: 'none'
+            }}></div>
+            <div style={{
+              position: 'absolute', bottom: '-5rem', right: '-5rem', width: '10rem', height: '10rem',
+              backgroundColor: '#3b82f6', borderRadius: '50%', filter: 'blur(40px)', opacity: 0.2, pointerEvents: 'none'
+            }}></div>
 
-            <div className="relative z-10 flex flex-col items-center">
+            <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               {/* AI Avatar */}
               <motion.div 
-                className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 p-1 shadow-[0_0_20px_rgba(168,85,247,0.4)] mb-4"
+                style={{
+                  width: '96px', height: '96px', borderRadius: '50%',
+                  background: 'linear-gradient(to top right, #a855f7, #3b82f6)',
+                  padding: '4px',
+                  boxShadow: '0 0 20px rgba(168,85,247,0.4)',
+                  marginBottom: '1rem'
+                }}
                 animate={step === 0 ? { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] } : {}}
                 transition={{ repeat: Infinity, duration: 2 }}
               >
-                <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center overflow-hidden">
-                  <img src="https://api.dicebear.com/9.x/bottts/svg?seed=Mentor" alt="AI Mentor" className="w-20 h-20" />
+                <div style={{
+                  width: '100%', height: '100%', borderRadius: '50%',
+                  backgroundColor: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+                }}>
+                  <img src="https://api.dicebear.com/9.x/bottts/svg?seed=Mentor" alt="AI Mentor" style={{ width: '80px', height: '80px' }} />
                 </div>
               </motion.div>
 
               {step === 0 ? (
-                <div className="py-8">
-                  <h3 className="text-xl font-bold mb-2">מנתח את האימון שלך...</h3>
-                  <div className="flex justify-center gap-2 mt-4">
-                    <motion.div className="w-2 h-2 rounded-full bg-purple-500" animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, delay: 0 }} />
-                    <motion.div className="w-2 h-2 rounded-full bg-purple-500" animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, delay: 0.2 }} />
-                    <motion.div className="w-2 h-2 rounded-full bg-purple-500" animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, delay: 0.4 }} />
+                <div style={{ padding: '2rem 0' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>מנתח את האימון שלך...</h3>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                    <motion.div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#a855f7' }} animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, delay: 0 }} />
+                    <motion.div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#a855f7' }} animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, delay: 0.2 }} />
+                    <motion.div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#a855f7' }} animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, delay: 0.4 }} />
                   </div>
                 </div>
               ) : (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="w-full"
+                  style={{ width: '100%' }}
                 >
-                  <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 mb-2">
+                  <h3 style={{
+                    fontSize: '1.5rem', fontWeight: 'bold', margin: '0 0 0.5rem 0',
+                    background: 'linear-gradient(to right, #c084fc, #60a5fa)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}>
                     עבודה מצוינת!
                   </h3>
-                  <p className="text-zinc-300 text-sm mb-6">
+                  <p style={{ color: '#d4d4d8', fontSize: '0.875rem', margin: '0 0 1.5rem 0' }}>
                     הנה הסיכום של ההישג שלך היום:
                   </p>
 
-                  <div className="bg-zinc-800/50 rounded-2xl p-4 mb-6 space-y-3 text-sm">
+                  <div style={{
+                    backgroundColor: 'rgba(39, 39, 42, 0.5)',
+                    borderRadius: '1rem',
+                    padding: '1rem',
+                    marginBottom: '1.5rem',
+                    fontSize: '0.875rem'
+                  }}>
                     {breakdown.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center">
-                        <span className="text-zinc-400">{item.label}</span>
-                        <span className="font-mono text-purple-400 font-bold">+{item.amount} XP</span>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ color: '#a1a1aa' }}>{item.label}</span>
+                        <span style={{ fontFamily: 'monospace', color: '#c084fc', fontWeight: 'bold' }}>+{item.amount} XP</span>
                       </div>
                     ))}
-                    <div className="h-px bg-zinc-700 my-2"></div>
-                    <div className="flex justify-between items-center text-lg font-bold">
+                    <div style={{ height: '1px', backgroundColor: '#3f3f46', margin: '0.5rem 0' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '1.125rem', fontWeight: 'bold' }}>
                       <span>סה"כ</span>
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">
+                      <span style={{
+                        background: 'linear-gradient(to right, #facc15, #f59e0b)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent'
+                      }}>
                         +{awardedXp} XP
                       </span>
                     </div>
@@ -117,7 +170,12 @@ export default function AIMentor({ isOpen, onClose, activityData, user, onXpAwar
 
                   <button 
                     onClick={onClose}
-                    className="w-full py-3 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors shadow-lg active:scale-95"
+                    style={{
+                      width: '100%', padding: '0.75rem', borderRadius: '0.75rem',
+                      backgroundColor: 'white', color: 'black', fontWeight: 'bold',
+                      border: 'none', cursor: 'pointer',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                    }}
                   >
                     המשך
                   </button>

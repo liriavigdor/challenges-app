@@ -122,12 +122,21 @@ export const AVATAR_PRESETS = [
     glowColor: '#eab308', // gold/yellow
     desc: 'מפקדת חוליית הסייבר עם הילת חלקיקי זהב דומיננטית',
     reqXp: 1500
+  },
+  {
+    id: 'alien_soldier_black',
+    name: 'לוחם חייזרי (שחור)',
+    base: 'alien',
+    isGlb: true,
+    glowColor: '#4ade80',
+    desc: 'לוחם חייזרי מסתורי',
+    reqXp: 2000
   }
 ];
 
 import robotGlbUrl from './assets/models/human_rigged.glb?url';
 import femaleGlbUrl from './assets/models/female_human.glb?url';
-
+import alienGlbUrl from './assets/models/human_rigged.glb?url';
 export default function AvatarPodium({ avatarConfig, isCustomizable = false, onAvatarChange, userXp = 10000, onPodiumClick }) {
   const containerRef = useRef(null);
 
@@ -278,8 +287,10 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
 
     if (currentPreset.isGlb) {
       const loader = new GLTFLoader();
-      const glbPath = currentPreset.base === 'female' ? femaleGlbUrl : robotGlbUrl;
-      const scaleVal = currentPreset.base === 'female' ? 0.75 : 0.85; // Increased scale
+      const glbPath = currentPreset.base === 'female' ? femaleGlbUrl : 
+                      currentPreset.base === 'alien' ? alienGlbUrl : robotGlbUrl;
+      const scaleVal = currentPreset.base === 'female' ? 0.75 : 
+                       currentPreset.base === 'alien' ? 0.8 : 0.85;
 
       loader.load(
         glbPath,
@@ -287,11 +298,18 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
           loadedModel = gltf.scene;
           loadedModel.scale.set(scaleVal, scaleVal, scaleVal);
           
+          // Ensure model faces the camera. Usually models face +Z, but the camera might be on +Z looking at -Z.
+          // Let's try 0 first (default) or Math.PI to turn it 180 degrees around.
+          loadedModel.rotation.y = 0; // The previous sideways was -Math.PI/2, and before that it was 0? Wait, it was sideways at 0? 
+          // If it was sideways at 0, and showing its back at -Math.PI/2, then facing front should be +Math.PI/2.
+          loadedModel.rotation.y = Math.PI / 2;
+          
           // Try to center the model just in case it's off-origin
           const box = new THREE.Box3().setFromObject(loadedModel);
           const center = box.getCenter(new THREE.Vector3());
           loadedModel.position.x = -center.x;
-          // loadedModel.position.y = -box.min.y; // Align feet to bottom
+          // Align feet exactly to the floor based on bounding box
+          loadedModel.position.y = -box.min.y;
           loadedModel.position.z = -center.z;
           
           loadedModel.traverse((child) => {
@@ -302,7 +320,7 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
               if (child.material) {
                 // Enhance metallic feel but DO NOT overwrite the color
                 const mat = child.material;
-                if (currentPreset.base === 'robot') {
+                if (currentPreset.base === 'robot' || currentPreset.base === 'alien') {
                   mat.roughness = currentPreset.customRobotRoughness ?? 0.65;
                   mat.metalness = currentPreset.customRobotMetalness ?? 0.6;
                 } else {
@@ -316,13 +334,6 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
 
           bodyGroup.add(loadedModel);
 
-          // Play animation if available
-          if (gltf.animations && gltf.animations.length > 0) {
-            mixer = new THREE.AnimationMixer(loadedModel);
-            const idleClip = gltf.animations[0];
-            const action = mixer.clipAction(idleClip);
-            action.play();
-          }
         },
         undefined,
         (error) => {
@@ -455,14 +466,8 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
       const time = clock.getElapsedTime();
       const delta = clock.getDelta();
 
-      if (mixer) {
-        mixer.update(delta || 0.016);
-      }
-
       // Fluid breathing idle float
-      if (!mixer) {
-        bodyGroup.position.y = 0.04 + Math.sin(time * 1.8) * 0.015;
-      }
+      bodyGroup.position.y = 0.04 + Math.sin(time * 1.8) * 0.015;
 
       // Auto rotation
       if (!isDragging) {

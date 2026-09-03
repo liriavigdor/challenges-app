@@ -262,6 +262,7 @@ export default function App() {
   const [isMyChallengesModalOpen, setIsMyChallengesModalOpen] = useState(false);
   const [isDiscoverModalOpen, setIsDiscoverModalOpen] = useState(false);
   const [isRadarOpen, setIsRadarOpen] = useState(false);
+  const [isHomeModeModalOpen, setIsHomeModeModalOpen] = useState(false);
 
   const handleLogActivity = (e) => {
     e.preventDefault();
@@ -1139,6 +1140,8 @@ export default function App() {
   // Form states for creating a new challenge
   const [head2headOpponent, setHead2headOpponent] = useState(null);
   const [head2headWager, setHead2headWager] = useState(50);
+  const [showBattleIntro, setShowBattleIntro] = useState(false);
+  const [battleIntroData, setBattleIntroData] = useState(null); // { challenger, opponent, sport, xpWager }
   const [newChallengeTitle, setNewChallengeTitle] = useState('');
   const [newChallengeSportType, setNewChallengeSportType] = useState('running');
   const [newChallengeDesc, setNewChallengeDesc] = useState('');
@@ -1653,10 +1656,24 @@ export default function App() {
       sport: mainSport
     };
     setMatches([newMatch, ...matches]);
-    alert("האתגר נשלח בהצלחה ליריב!");
-    setHead2headOpponent(null);
-    setHead2headWager(50);
-    setActiveTab("challenges");
+
+    // Trigger battle intro animation
+    setBattleIntroData({
+      challenger: currentUser,
+      opponent: head2headOpponent,
+      sport: mainSport,
+      xpWager: head2headWager,
+    });
+    setShowBattleIntro(true);
+
+    // After animation completes, clean up and return to challenges
+    setTimeout(() => {
+      setShowBattleIntro(false);
+      setBattleIntroData(null);
+      setHead2headOpponent(null);
+      setHead2headWager(50);
+      setActiveTab("challenges");
+    }, 4800);
   };
 
   // Submit proof and complete a challenge
@@ -2131,6 +2148,93 @@ export default function App() {
             ripple.addEventListener('animationend', () => ripple.remove());
           };
 
+          // ── XP Orb Animation (Clash Royale style) ──
+          // Spawns gold orbs that fly from the card button → XP bar
+          const launchXpOrbs = (sourceEl, xpAmount, onComplete) => {
+            const targetTrack = document.getElementById('challenges-xp-track');
+            const targetFill  = document.getElementById('challenges-xp-fill');
+            if (!targetTrack || !sourceEl) { onComplete?.(); return; }
+
+            const sourceRect = sourceEl.getBoundingClientRect();
+            const targetRect = targetTrack.getBoundingClientRect();
+            const targetX = targetRect.left + targetRect.width  / 2;
+            const targetY = targetRect.top  + targetRect.height / 2;
+
+            // Show "+XP" score pop at the button
+            const pop = document.createElement('div');
+            pop.className = 'xp-score-pop';
+            pop.textContent = `+${xpAmount} XP`;
+            pop.style.left = (sourceRect.left + sourceRect.width  / 2 - 28) + 'px';
+            pop.style.top  = (sourceRect.top  + sourceRect.height / 2 - 12) + 'px';
+            document.body.appendChild(pop);
+            pop.addEventListener('animationend', () => pop.remove());
+
+            // Number of orbs: 3-7 based on XP value
+            const orbCount = Math.min(3 + Math.ceil(xpAmount / 20), 7);
+            let arrivedCount = 0;
+
+            for (let i = 0; i < orbCount; i++) {
+              setTimeout(() => {
+                const orb = document.createElement('div');
+                orb.className = 'xp-orb-fly';
+                orb.textContent = '⚡';
+
+                // Slightly randomise start position around the button
+                const jitterX = (Math.random() - 0.5) * 32;
+                const jitterY = (Math.random() - 0.5) * 20;
+                const startX  = sourceRect.left + sourceRect.width  / 2 + jitterX;
+                const startY  = sourceRect.top  + sourceRect.height / 2 + jitterY;
+
+                orb.style.cssText = [
+                  `left:${startX - 13}px`,
+                  `top:${startY - 13}px`,
+                  'transform:scale(0.5)',
+                  'opacity:1',
+                  'transition:none',
+                ].join(';');
+                document.body.appendChild(orb);
+
+                // Step 1 — pop-in spring
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                    orb.style.transition = 'transform 0.18s cubic-bezier(0.34,1.56,0.64,1)';
+                    orb.style.transform  = 'scale(1.2)';
+
+                    // Step 2 — fly to XP bar
+                    setTimeout(() => {
+                      const dx = targetX - startX;
+                      const dy = targetY - startY;
+                      const delay = i * 55; // stagger each orb
+                      orb.style.transition = [
+                        `transform 0.55s cubic-bezier(0.55,0,0.45,1) ${delay}ms`,
+                        `opacity   0.15s ease ${0.5 + delay / 1000}s`,
+                      ].join(',');
+                      orb.style.transform = `translate(${dx}px,${dy}px) scale(0.25)`;
+                      orb.style.opacity   = '0';
+
+                      // Cleanup + trigger bar flash on last orb
+                      setTimeout(() => {
+                        orb.remove();
+                        arrivedCount++;
+                        if (arrivedCount === orbCount) {
+                          // Flash the XP track
+                          targetTrack.classList.add('xp-received');
+                          setTimeout(() => targetTrack.classList.remove('xp-received'), 700);
+                          // Brightness bump on fill bar
+                          if (targetFill) {
+                            targetFill.classList.add('xp-fill-bump');
+                            setTimeout(() => targetFill.classList.remove('xp-fill-bump'), 500);
+                          }
+                          onComplete?.();
+                        }
+                      }, 700 + delay);
+                    }, 200);
+                  });
+                });
+              }, i * 60);
+            }
+          };
+
           // Difficulty class helper
           const diffClass = (d) =>
             d === 'קל' || d === 'קל-בינוני' ? 'arena-diff-easy' :
@@ -2153,115 +2257,85 @@ export default function App() {
               </div>
             )}
 
-            {/* ── ARENA LOBBY ── */}
+            {/* ── ARENA LOBBY (Clash Royale Style) ── */}
             {challengesViewMode === 'challenges' && (
-              <div className="glass-athletic-lobby">
+              <div className="glass-arena-fullscreen">
 
                 {/* TOP HEADER */}
-                <div className="glass-top-header">
-                  <div className="glass-header-left">
-                    <h2>Challenges</h2>
-                    <div className="glass-daily-streak">
-                      <span className="streak-icon pulse-flame">🔥</span>
-                      <span className="streak-count">12 Day Streak</span>
-                    </div>
-                  </div>
+                <div className="glass-top-header" style={{ zIndex: 10 }}>
                   <div className="glass-header-stats">
                     <span className="glass-stat">🎖 {currentRank.name}</span>
                     <div className="glass-xp-bar-wrap">
-                      <div className="glass-xp-track">
-                        <div className="glass-xp-fill" style={{ width: `${progressPercentage}%` }} />
+                      <div className="glass-xp-track" id="challenges-xp-track">
+                        <div className="glass-xp-fill" id="challenges-xp-fill" style={{ width: `${progressPercentage}%` }} />
                       </div>
                       <div className="glass-xp-label">{currentUser.xp.toLocaleString()} / {nextRank ? nextRank.xpRequired.toLocaleString() : '—'} XP</div>
                     </div>
                   </div>
+                  <div className="glass-header-title">
+                    <h2>Challenges</h2>
+                    <div className="glass-daily-streak">
+                      <span className="streak-count">Day Streak 12</span>
+                      <span className="streak-icon pulse-flame">🔥</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* AVATAR ARENA */}
-                <div className="glass-avatar-arena">
+                {/* AVATAR ARENA (Full Centered) */}
+                <div className="glass-avatar-arena-cr">
                   <div className="glass-backdrop-glow"></div>
                   <div className="challenges-pedestal-ring"></div>
-                  <div className="glass-avatar-wrapper">
+                  <div className="glass-avatar-wrapper" style={{ width: '100%', height: '100%' }}>
                     <AvatarPodium avatarConfig={currentUser.avatarConfig} userXp={currentUser.xp} />
                   </div>
 
-                  {/* Floating Action Buttons — Home & Away */}
-                  <div className="glass-fab-container left">
-                    <button className="glass-fab home-fab" onClick={(e) => { addRipple(e); setActiveTab('create-head2head'); }}>
+                  {/* FLOATING ACTION BUTTONS (Missions & Mystery) */}
+                  <button 
+                    className="cr-floating-btn cr-floating-btn-left" 
+                    onClick={() => setIsMyChallengesModalOpen(true)}
+                  >
+                    <span className="cr-btn-icon">📜</span>
+                    <span className="cr-btn-label">Missions</span>
+                  </button>
+
+                  <button 
+                    className="cr-floating-btn cr-floating-btn-right" 
+                    onClick={(e) => {
+                      addRipple(e);
+                      // Example action for Mystery
+                      launchXpOrbs(e.currentTarget, 50, () => {});
+                    }}
+                  >
+                    <span className="cr-btn-icon">❓</span>
+                    <span className="cr-btn-label">Mystery</span>
+                  </button>
+
+                  {/* BOTTOM ACTIONS (Home & Away) */}
+                  <div className="cr-bottom-actions">
+                    <button className="glass-fab home-fab" onClick={(e) => { addRipple(e); setIsHomeModeModalOpen(true); }} style={{ transform: 'scale(1.1)' }}>
                       <span className="glass-fab-icon">🏠</span>
-                      <span className="glass-fab-title home-title">Home</span>
-                      <span className="glass-fab-sub">Training</span>
+                      <span className="glass-fab-title home-title">HOME</span>
+                      <span className="glass-fab-sub">TRAINING</span>
                     </button>
-                  </div>
-                  <div className="glass-fab-container right">
-                    <button className="glass-fab away-fab" onClick={(e) => { addRipple(e); setIsRadarOpen(true); }}>
+                    <button className="glass-fab away-fab" onClick={(e) => { addRipple(e); setIsRadarOpen(true); }} style={{ transform: 'scale(1.1)' }}>
                       <span className="glass-fab-icon">🎯</span>
-                      <span className="glass-fab-title away-title">Away</span>
-                      <span className="glass-fab-sub">Ranked</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* ACTIVE CHALLENGES PANEL */}
-                <div className="glass-challenges-panel">
-                  <div className="glass-panel-header">
-                    <div className="glass-panel-title-wrap">
-                      <h3>Active Missions</h3>
-                      <div className="glass-countdown-timer">⏳ 14:22:10</div>
-                    </div>
-                    <button className="glass-btn-text" onClick={() => setIsMyChallengesModalOpen(true)}>
-                      View All ({currentUser.activeChallenges.length})
+                      <span className="glass-fab-title away-title">AWAY</span>
+                      <span className="glass-fab-sub">RANKED</span>
                     </button>
                   </div>
                   
-                  <div className="glass-tabs">
-                    <button className="glass-tab active">Daily</button>
-                  </div>
-                  
-                  <div className="glass-challenges-list">
-                    {dailyChallenges.slice(0, 3).map((dc, idx) => {
-                      const isMystery = idx === 1; // Make the second one a mystery box
-                      return (
-                        <div key={dc.id} className={`glass-challenge-card ${dc.completed ? 'completed' : ''} ${isMystery && !dc.completed ? 'mystery-box' : ''}`}>
-                          <div className="glass-card-header">
-                            <span className="glass-card-title">{isMystery && !dc.completed ? '❓ Mystery Challenge' : dc.title}</span>
-                            <span className="glass-card-reward">{isMystery && !dc.completed ? '💎 ??? XP' : `💎 ${dc.xp} XP`}</span>
-                          </div>
-                          
-                          {!isMystery || dc.completed ? (
-                            <div className="glass-card-progress-wrapper">
-                              <div className="glass-card-progress-bar">
-                                <div className="glass-progress-fill" style={{ width: dc.completed ? '100%' : '30%' }}></div>
-                              </div>
-                              <span className="glass-progress-text">{dc.completed ? '100%' : '30%'}</span>
-                            </div>
-                          ) : (
-                            <div className="mystery-hint">Complete to reveal the reward!</div>
-                          )}
-
-                          <div className="glass-card-footer">
-                            <div className="glass-card-avatars">
-                              <div className="glass-avatar-stack"></div>
-                              <span>{isMystery ? '1.2K trying' : '+4 joined'}</span>
-                            </div>
-                            {!dc.completed ? (
-                              <button className={`glass-action-btn ${isMystery ? 'pulse-btn' : ''}`} onClick={(e) => { addRipple(e); handleCompleteDailyChallenge(dc.id, dc.xp); }}>Start</button>
-                            ) : (
-                              <button className="glass-action-btn disabled">Done</button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {/* LIVE SOCIAL TICKER */}
-                  <div className="glass-social-ticker">
+                  {/* LIVE SOCIAL TICKER - Hidden in CR Arena to keep it clean */}
+                  <div className="cr-hidden glass-social-ticker" style={{ position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)', zIndex: 10, width: '80%' }}>
                     <div className="ticker-content">
                       <span className="ticker-avatar">🏃</span>
                       <span className="ticker-text"><strong>Alex</strong> just completed the 5K Sprint!</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Hide the old scrollable active challenges panel */}
+                <div className="cr-hidden glass-challenges-panel">
+                  {/* Content hidden */}
                 </div>
 
                 {/* Map FAB */}
@@ -2272,6 +2346,108 @@ export default function App() {
                 >
                   <MapIcon size={20} />
                 </button>
+
+                {/* ════════════ HOME MODE MODAL ════════════ */}
+                {isHomeModeModalOpen && (
+                  <div className="arena-modal-overlay" onClick={() => setIsHomeModeModalOpen(false)}>
+                    <div className="arena-modal-panel" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                      <div className="arena-modal-drag-handle" />
+                      <div className="arena-modal-header" style={{ borderBottom: 'none' }}>
+                        <h3 className="arena-modal-title" style={{ fontSize: '1.5rem', fontWeight: 800 }}>אימון מגרש ביתי</h3>
+                        <button className="arena-modal-close" onClick={() => setIsHomeModeModalOpen(false)}>✕</button>
+                      </div>
+                      <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                        בחר את יריב האימון שלך. 
+                      </p>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '1rem' }}>
+                        {/* VS Machine */}
+                        <button 
+                          onClick={() => {
+                            setIsHomeModeModalOpen(false);
+                            setIsAIMentorOpen(true);
+                          }}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.05) 0%, rgba(0, 153, 255, 0.05) 100%)',
+                            border: '1px solid rgba(0, 229, 255, 0.2)',
+                            borderRadius: '16px',
+                            padding: '1.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            textAlign: 'right'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 229, 255, 0.1)';
+                            e.currentTarget.style.borderColor = 'rgba(0, 229, 255, 0.5)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.borderColor = 'rgba(0, 229, 255, 0.2)';
+                          }}
+                        >
+                          <div style={{
+                            width: '50px', height: '50px', borderRadius: '50%', flexShrink: 0,
+                            background: 'rgba(0, 229, 255, 0.1)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', color: 'var(--cyan)'
+                          }}>
+                            <TargetIcon size={24} />
+                          </div>
+                          <div>
+                            <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.2rem' }}>אימון מול המכונה</div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>התמודד מול היעדים של עצמך עם ליווי צמוד של המערכת.</div>
+                          </div>
+                        </button>
+
+                        {/* VS People */}
+                        <button 
+                          onClick={() => {
+                            setIsHomeModeModalOpen(false);
+                            setActiveTab('create-head2head');
+                          }}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(255, 41, 117, 0.05) 0%, rgba(255, 144, 81, 0.05) 100%)',
+                            border: '1px solid rgba(255, 41, 117, 0.2)',
+                            borderRadius: '16px',
+                            padding: '1.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            textAlign: 'right'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 41, 117, 0.1)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 41, 117, 0.5)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.borderColor = 'rgba(255, 41, 117, 0.2)';
+                          }}
+                        >
+                          <div style={{
+                            width: '50px', height: '50px', borderRadius: '50%', flexShrink: 0,
+                            background: 'rgba(255, 41, 117, 0.1)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', color: 'var(--neon-pink)'
+                          }}>
+                            <SwordsIcon size={24} />
+                          </div>
+                          <div>
+                            <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.2rem' }}>ראש בראש</div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>אתגר מתחרים אמיתיים והרווח יותר XP על ניצחון.</div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* ════════════ DAILY MISSIONS MODAL ════════════ */}
                 {isDailyModalOpen && (
@@ -5091,6 +5267,281 @@ export default function App() {
         user={currentUser}
         onXpAwarded={handleMentorXpAwarded}
       />
+
+      {/* ══════════════════════════════════════════
+          BATTLE INTRO MODAL — Crossed Swords Animation
+          Phase 1 (0-1.9s):  profile photos + swords cross + sparks
+          Phase 2 (1.9-2.4s): swords separate + shockwave ring
+          Phase 3 (2.1-4.8s): 3D avatars face-to-face + VS + sent badge
+         ══════════════════════════════════════════ */}
+      {showBattleIntro && battleIntroData && (() => {
+        const { challenger, opponent, sport, xpWager } = battleIntroData;
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 99998,
+            background: 'radial-gradient(ellipse at center, #0d1b2a 0%, #060c1e 100%)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden',
+            animation: 'battleBgFadeIn 0.3s ease-out forwards',
+          }}>
+
+            {/* ── Ambient particles ── */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+              {[...Array(18)].map((_, i) => (
+                <div key={i} style={{
+                  position: 'absolute',
+                  width: `${2 + (i % 3)}px`, height: `${2 + (i % 3)}px`,
+                  borderRadius: '50%',
+                  background: i % 3 === 0 ? '#c9a84c' : i % 3 === 1 ? '#8aadec' : '#ffffff',
+                  left: `${(i * 17 + 5) % 90 + 5}%`,
+                  top: `${(i * 23 + 7) % 85 + 5}%`,
+                  opacity: 0,
+                  animation: `battleParticle ${1.5 + (i % 4) * 0.4}s ease-out ${0.5 + (i % 5) * 0.25}s forwards`,
+                }} />
+              ))}
+            </div>
+
+            {/* ── PHASE 1: Profile photos + Crossed swords ── */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'battlePhase1Hide 0.35s ease-in 1.9s forwards',
+            }}>
+              {/* Left — Challenger */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
+                animation: 'battleFighterLeft 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s both',
+                position: 'absolute', left: '8%',
+              }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: '50%', overflow: 'hidden',
+                  border: '3px solid rgba(107,141,214,0.7)',
+                  boxShadow: '0 0 20px rgba(107,141,214,0.5), 0 0 40px rgba(107,141,214,0.2)',
+                }}>
+                  <img src={challenger.avatar} alt={challenger.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <span style={{
+                  fontWeight: 800, fontSize: '0.85rem', color: '#8aadec',
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  textShadow: '0 0 10px rgba(107,141,214,0.6)',
+                }}>{challenger.name.split(' ')[0]}</span>
+              </div>
+
+              {/* Right — Opponent */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
+                animation: 'battleFighterRight 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s both',
+                position: 'absolute', right: '8%',
+              }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: '50%', overflow: 'hidden',
+                  border: '3px solid rgba(201,168,76,0.7)',
+                  boxShadow: '0 0 20px rgba(201,168,76,0.5), 0 0 40px rgba(201,168,76,0.2)',
+                }}>
+                  <img src={opponent.avatar} alt={opponent.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <span style={{
+                  fontWeight: 800, fontSize: '0.85rem', color: '#c9a84c',
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  textShadow: '0 0 10px rgba(201,168,76,0.6)',
+                }}>{opponent.name.split(' ')[0]}</span>
+              </div>
+
+              {/* Crossed Swords + Sparks */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                animation: 'swordsClash 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.55s both',
+              }}>
+                <svg width="170" height="130" viewBox="0 0 170 130" fill="none" style={{ overflow: 'visible' }}>
+                  <defs>
+                    <linearGradient id="bGrad1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#e2eeff"/>
+                      <stop offset="55%" stopColor="#8aadec"/>
+                      <stop offset="100%" stopColor="#4e6fc0"/>
+                    </linearGradient>
+                    <linearGradient id="bGrad2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fff9e6"/>
+                      <stop offset="55%" stopColor="#e8c96a"/>
+                      <stop offset="100%" stopColor="#a07830"/>
+                    </linearGradient>
+                    <radialGradient id="clashGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#fde68a" stopOpacity="0.9"/>
+                      <stop offset="100%" stopColor="#c9a84c" stopOpacity="0"/>
+                    </radialGradient>
+                  </defs>
+
+                  {/* Clash glow blob */}
+                  <ellipse cx="85" cy="65" rx="28" ry="28"
+                    fill="url(#clashGlow)"
+                    style={{ animation: 'sparksAppear 0.3s ease-out 1.05s both' }}
+                    opacity="0"/>
+
+                  {/* Sparks radiating from clash */}
+                  <g style={{ animation: 'sparksAppear 0.35s ease-out 1.05s both' }} opacity="0">
+                    {[0,42,84,126,168,210,252,294,335].map((angle, i) => {
+                      const rad = angle * Math.PI / 180;
+                      const len = 14 + (i % 3) * 7;
+                      return (
+                        <line key={i}
+                          x1="85" y1="65"
+                          x2={85 + Math.cos(rad) * len}
+                          y2={65 + Math.sin(rad) * len}
+                          stroke={i % 2 === 0 ? '#fde68a' : '#fff'}
+                          strokeWidth={i % 3 === 0 ? 2.5 : 1.5}
+                          strokeLinecap="round"
+                        />
+                      );
+                    })}
+                    <circle cx="85" cy="65" r="5" fill="#fde68a" opacity="0.95"/>
+                  </g>
+
+                  {/* Left sword (challenger) — angled NE */}
+                  <g transform="rotate(-40,85,65)" style={{ transformOrigin: '85px 65px' }}>
+                    <polygon points="85,65 78,118 92,118" fill="url(#bGrad1)"/>
+                    <polygon points="85,65 81,10 89,10" fill="url(#bGrad1)"/>
+                    <rect x="71" y="60" width="28" height="7" rx="3.5" fill="#8aadec"/>
+                    <rect x="82" y="67" width="6" height="24" rx="3" fill="#4a6fa5"/>
+                    <circle cx="85" cy="94" r="5.5" fill="#6b8dd6"/>
+                    <line x1="85" y1="10" x2="82" y2="63" stroke="rgba(255,255,255,0.55)" strokeWidth="1.2" strokeLinecap="round"/>
+                  </g>
+
+                  {/* Right sword (opponent) — angled NW */}
+                  <g transform="rotate(40,85,65)" style={{ transformOrigin: '85px 65px' }}>
+                    <polygon points="85,65 78,118 92,118" fill="url(#bGrad2)"/>
+                    <polygon points="85,65 81,10 89,10" fill="url(#bGrad2)"/>
+                    <rect x="71" y="60" width="28" height="7" rx="3.5" fill="#c9a84c"/>
+                    <rect x="82" y="67" width="6" height="24" rx="3" fill="#a07830"/>
+                    <circle cx="85" cy="94" r="5.5" fill="#c9a84c"/>
+                    <line x1="85" y1="10" x2="88" y2="63" stroke="rgba(255,255,255,0.55)" strokeWidth="1.2" strokeLinecap="round"/>
+                  </g>
+                </svg>
+
+                <span style={{
+                  fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)',
+                  letterSpacing: '0.12em', textTransform: 'uppercase',
+                  animation: 'sparksAppear 0.3s ease-out 1.15s both',
+                  opacity: 0,
+                }}>{sport} · {xpWager} XP על הכף</span>
+              </div>
+            </div>
+
+            {/* ── Shockwave ring on sword separation ── */}
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%,-50%)',
+              width: 10, height: 10, borderRadius: '50%',
+              border: '2px solid rgba(255,255,255,0.85)',
+              opacity: 0,
+              animation: 'shockwave 0.65s ease-out 1.88s forwards',
+              pointerEvents: 'none',
+            }}/>
+
+            {/* ── PHASE 2: 3D Avatars face-to-face ── */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              opacity: 0,
+              animation: 'battlePhase2Show 0.45s ease-out 2.1s forwards',
+              gap: '0.75rem',
+            }}>
+              {/* Sport + wager label */}
+              <div style={{
+                fontWeight: 800, fontSize: '0.9rem', letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)',
+                animation: 'battleTitlePop 0.5s cubic-bezier(0.34,1.56,0.64,1) 2.35s both',
+                opacity: 0,
+              }}>⚔️ {sport} · {xpWager} XP</div>
+
+              {/* Avatars row */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.5rem' }}>
+
+                {/* Challenger — mirrored to face right */}
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
+                  animation: 'avatar3dLeft 0.55s cubic-bezier(0.34,1.56,0.64,1) 2.2s both',
+                  opacity: 0,
+                }}>
+                  <div style={{
+                    width: 155, height: 210, position: 'relative',
+                    transform: 'scaleX(-1)',
+                  }}>
+                    <AvatarPodium avatarConfig={challenger.avatarConfig} userXp={challenger.xp}/>
+                    <div style={{
+                      position: 'absolute', inset: 0, borderRadius: '8px',
+                      boxShadow: 'inset 0 0 30px rgba(107,141,214,0.22)',
+                      pointerEvents: 'none',
+                    }}/>
+                  </div>
+                  <span style={{
+                    transform: 'scaleX(-1)',
+                    fontWeight: 800, fontSize: '0.75rem',
+                    color: '#8aadec', letterSpacing: '0.07em', textTransform: 'uppercase',
+                    textShadow: '0 0 8px rgba(107,141,214,0.5)',
+                  }}>{challenger.name.split(' ')[0]}</span>
+                </div>
+
+                {/* VS badge */}
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  marginBottom: '3rem', gap: '0.25rem',
+                  animation: 'vsBadgePop 0.55s cubic-bezier(0.34,1.56,0.64,1) 2.55s both',
+                  opacity: 0,
+                }}>
+                  <div style={{
+                    fontSize: '2.2rem', fontWeight: 900, letterSpacing: '0.04em',
+                    background: 'linear-gradient(135deg, #fde68a, #c9a84c 50%, #8aadec)',
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    filter: 'drop-shadow(0 0 10px rgba(201,168,76,0.55))',
+                  }}>VS</div>
+                  <div style={{
+                    width: 36, height: 1.5,
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)',
+                  }}/>
+                </div>
+
+                {/* Opponent — normal orientation, faces left naturally */}
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
+                  animation: 'avatar3dRight 0.55s cubic-bezier(0.34,1.56,0.64,1) 2.2s both',
+                  opacity: 0,
+                }}>
+                  <div style={{ width: 155, height: 210, position: 'relative' }}>
+                    <AvatarPodium avatarConfig={opponent.avatarConfig} userXp={opponent.xp}/>
+                    <div style={{
+                      position: 'absolute', inset: 0, borderRadius: '8px',
+                      boxShadow: 'inset 0 0 30px rgba(201,168,76,0.18)',
+                      pointerEvents: 'none',
+                    }}/>
+                  </div>
+                  <span style={{
+                    fontWeight: 800, fontSize: '0.75rem',
+                    color: '#c9a84c', letterSpacing: '0.07em', textTransform: 'uppercase',
+                    textShadow: '0 0 8px rgba(201,168,76,0.5)',
+                  }}>{opponent.name.split(' ')[0]}</span>
+                </div>
+              </div>
+
+              {/* Challenge sent badge */}
+              <div style={{
+                marginTop: '0.75rem', padding: '0.38rem 1.2rem',
+                borderRadius: '999px',
+                border: '1px solid rgba(76,175,125,0.35)',
+                background: 'rgba(76,175,125,0.08)',
+                color: '#4caf7d', fontSize: '0.72rem',
+                fontWeight: 700, letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                animation: 'battleTitlePop 0.4s cubic-bezier(0.34,1.56,0.64,1) 3.05s both',
+                opacity: 0,
+              }}>✓ האתגר נשלח בהצלחה</div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* AI REFEREE COURT MODAL */}
       {activeJudgeMatchId && (() => {

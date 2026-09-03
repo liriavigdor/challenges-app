@@ -40,7 +40,7 @@ export const initialUsers = [
     following: ["user_2", "user_4", "user_6"],
     stats: { strength: 78, stamina: 85, agility: 62, zen: 45 },
     mainSport: "ריצה",
-    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#00ffff' }
+    avatarConfig: { id: 'alien_soldier_black' }
   },
   {
     id: "user_2",
