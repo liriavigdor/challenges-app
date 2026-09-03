@@ -1,3 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;700;900&display=swap');
 
 :root {
@@ -5813,67 +5847,322 @@ body {
   min-height: 400px;
 }
 
-/* Floating side buttons (Missions & Mystery) */
-.cr-floating-btn {
+/* --- ARENA ENVIRONMENT EFFECTS --- */
+.arena-spotlight {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1.5px solid rgba(0, 229, 255, 0.4);
-  backdrop-filter: blur(12px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: #fff;
-  cursor: pointer;
-  z-index: 20;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(0, 229, 255, 0.1);
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.cr-floating-btn:hover {
-  transform: translateY(-50%) scale(1.1);
-  border-color: rgba(0, 229, 255, 0.8);
-  box-shadow: 0 8px 32px rgba(0, 229, 255, 0.3), inset 0 0 25px rgba(0, 229, 255, 0.3);
-}
-.cr-floating-btn:active {
-  transform: translateY(-50%) scale(0.95);
-}
-.cr-floating-btn-left {
-  left: 20px;
-}
-.cr-floating-btn-right {
-  right: 20px;
-}
-.cr-btn-icon {
-  font-size: 1.8rem;
-  margin-bottom: 2px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-}
-.cr-btn-label {
-  font-size: 0.65rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  text-align: center;
-  line-height: 1;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 500px;
+  background: radial-gradient(ellipse at top, rgba(0, 229, 255, 0.15) 0%, rgba(138, 43, 226, 0.05) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: spotlight-sweep 10s ease-in-out infinite alternate;
 }
 
-/* Bottom Actions container for HOME & AWAY */
-.cr-bottom-actions {
+@keyframes spotlight-sweep {
+  0% { transform: translateX(-50%) rotate(-5deg); }
+  100% { transform: translateX(-50%) rotate(5deg); }
+}
+
+.arena-particles {
   position: absolute;
-  bottom: 30px;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(0, 229, 255, 0.5) 2px, transparent 2px),
+    radial-gradient(circle at 40% 80%, rgba(255, 41, 117, 0.3) 1.5px, transparent 1.5px);
+  background-size: 100px 100px;
+  opacity: 0.3;
+  animation: dust-float 20s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes dust-float {
+  0% { background-position: 0 0; }
+  100% { background-position: 100px 100px; }
+}
+
+/* --- CR-STYLE BATTLE UI --- */
+.cr-battle-ui {
+  position: absolute;
+  bottom: 25px;
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  align-items: flex-end;
+  gap: 1.5rem;
   z-index: 15;
+  padding: 0 1rem;
+}
+
+/* Primary Battle Button */
+.cr-battle-btn {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  border: 4px solid #fff;
+  box-shadow: 
+    0 10px 25px rgba(234, 179, 8, 0.4),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.2),
+    inset 0 10px 20px rgba(255, 255, 255, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+.cr-battle-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 10%, rgba(255,255,255,0.8) 0%, transparent 60%);
+  opacity: 0.6;
+}
+
+.cr-battle-btn:hover {
+  transform: scale(1.05) translateY(-5px);
+  box-shadow: 
+    0 15px 35px rgba(234, 179, 8, 0.5),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.2),
+    inset 0 10px 20px rgba(255, 255, 255, 0.6);
+}
+
+.cr-battle-btn:active {
+  transform: scale(0.95) translateY(2px);
+  box-shadow: 
+    0 5px 15px rgba(234, 179, 8, 0.4),
+    inset 0 -5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.cr-battle-btn-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.cr-battle-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.cr-battle-sub {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Secondary Buttons (AI & Training) */
+.cr-secondary-btn {
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.cr-secondary-btn:hover {
+  transform: translateY(-5px);
+  border-color: rgba(0, 229, 255, 0.5);
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.cr-sec-icon {
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+}
+
+.cr-sec-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+/* Mystery Box */
+.cr-mystery-box {
+  position: absolute;
+  top: -40px;
+  right: 10px;
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+  border: 2px solid #e9d5ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+  animation: bounce-float 3s ease-in-out infinite;
+}
+
+@keyframes bounce-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 /* We hide the old scrollable active challenges panel in CR view */
 .cr-hidden {
   display: none !important;
+}
+
+/* --- AI MISSIONS CSS --- */
+.ai-missions-panel {
+  max-width: 400px;
+}
+
+.ai-cooldown-banner {
+  background: rgba(255, 77, 77, 0.1);
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.ai-mission-card {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1rem;
+  border-radius: 12px;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+.ai-mission-card.completed {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.ai-mission-icon {
+  font-size: 1.8rem;
+  background: rgba(255,255,255,0.05);
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+}
+.ai-mission-info {
+  flex: 1;
+}
+.ai-mission-info h4 {
+  margin: 0 0 0.2rem 0;
+  color: #fff;
+  font-size: 1rem;
+}
+.ai-mission-xp {
+  color: var(--neon-pink);
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.ai-verify-btn {
+  background: linear-gradient(135deg, var(--cyan), #0077ff);
+  border: none;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3);
+  transition: transform 0.2s;
+}
+.ai-verify-btn:active {
+  transform: scale(0.95);
+}
+.ai-verify-btn:disabled {
+  background: #555;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.ai-mission-done {
+  color: #10b981;
+  font-weight: bold;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+}
+
+.ai-proof-panel {
+  max-width: 350px;
+}
+
+.proof-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.proof-option-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+.proof-option-btn.camera-btn:hover { border-color: var(--cyan); }
+.proof-option-btn.strava-btn:hover { border-color: #fc4c02; }
+.proof-option-btn span {
+  font-size: 1.5rem;
+}
+
+.ai-scanner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 0;
+  text-align: center;
+}
+.ai-scanner-radar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px dashed var(--cyan);
+  animation: radar-spin 3s linear infinite;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 20px rgba(0,229,255,0.2);
+}
+@keyframes radar-spin {
+  100% { transform: rotate(360deg); }
+}
+
+.ai-success-icon {
+  font-size: 4rem;
+  animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  margin-bottom: 1rem;
+}
+@keyframes pop-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
