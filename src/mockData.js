@@ -40,7 +40,7 @@ export const initialUsers = [
     following: ["user_2", "user_4", "user_6"],
     stats: { strength: 78, stamina: 85, agility: 62, zen: 45 },
     mainSport: "ריצה",
-    avatarConfig: { id: 'alien_soldier_black' }
+    avatarConfig: { id: 'alien_soldier_black', avatar3D: '/avatars3d/Xbot.glb' }
   },
   {
     id: "user_2",
@@ -59,7 +59,7 @@ export const initialUsers = [
     following: ["user_1", "user_3", "user_5"],
     stats: { strength: 90, stamina: 70, agility: 80, zen: 30 },
     mainSport: "שחייה",
-    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#a855f7' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#a855f7', avatar3D: '/avatars3d/Soldier.glb' }
   },
   {
     id: "user_3",
@@ -78,7 +78,7 @@ export const initialUsers = [
     following: ["user_1", "user_7"],
     stats: { strength: 65, stamina: 88, agility: 70, zen: 50 },
     mainSport: "אופניים",
-    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#eab308' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#eab308', avatar3D: '/avatars3d/RobotExpressive.glb' }
   },
   {
     id: "user_4",
@@ -96,7 +96,7 @@ export const initialUsers = [
     followers: ["user_1"],
     following: ["user_2", "user_8"],
     stats: { strength: 50, stamina: 60, agility: 55, zen: 95 },
-    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#22c55e' }
+    avatarConfig: { base: 'base_male_1', top: 'tshirt_black', bottom: 'shorts_black', shoes: 'sneakers_white', glowColor: '#22c55e', avatar3D: '/avatars3d/Xbot.glb' }
   },
   {
     id: "user_5",

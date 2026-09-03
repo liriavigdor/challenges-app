@@ -287,8 +287,14 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
 
     if (currentPreset.isGlb) {
       const loader = new GLTFLoader();
-      const glbPath = currentPreset.base === 'female' ? femaleGlbUrl : 
+      let glbPath = currentPreset.base === 'female' ? femaleGlbUrl : 
                       currentPreset.base === 'alien' ? alienGlbUrl : robotGlbUrl;
+      
+      // Override with user's specific 3D model if provided
+      if (avatarConfig && avatarConfig.avatar3D) {
+        glbPath = avatarConfig.avatar3D;
+      }
+
       const scaleVal = currentPreset.base === 'female' ? 0.75 : 
                        currentPreset.base === 'alien' ? 0.8 : 0.85;
 
@@ -333,6 +339,14 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
           });
 
           bodyGroup.add(loadedModel);
+          
+          if (gltf.animations && gltf.animations.length > 0) {
+            mixer = new THREE.AnimationMixer(loadedModel);
+            // Try to find an 'idle' animation, otherwise play the first one
+            const idleAnim = gltf.animations.find(a => a.name.toLowerCase().includes('idle')) || gltf.animations[0];
+            const action = mixer.clipAction(idleAnim);
+            action.play();
+          }
 
         },
         undefined,
@@ -472,6 +486,10 @@ export default function AvatarPodium({ avatarConfig, isCustomizable = false, onA
       // Auto rotation
       if (!isDragging) {
         avatarGroup.rotation.y += 0.007;
+      }
+
+      if (mixer) {
+        mixer.update(delta);
       }
 
       // Pulse effects
