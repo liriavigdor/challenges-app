@@ -6387,3 +6387,693 @@ body {
   100% { transform: translateY(-20vh) scale(0); opacity: 0; }
 }
 
+
+/* --- ULTIMATE CR DESIGN OVERHAUL --- */
+
+/* Colors */
+:root {
+  --cr-royal-blue: #1E2A47;
+  --cr-gold: #FFC700;
+  --cr-amber: #FF8C00;
+  --cr-cyan: #00D2FF;
+  --cr-green: #28C76F;
+  --cr-red: #FF2E2E;
+}
+
+/* Base modal transition */
+.cr-spring-modal {
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+/* Battle Button (Rounded 2xl, Heavy Bevel) */
+.cr-btn-battle-ultimate {
+  background: linear-gradient(180deg, #FFD000 0%, #FF6A00 100%);
+  border: 4px solid #111b2b; /* dark navy */
+  border-radius: 1.5rem; /* rounded-2xl */
+  box-shadow: 
+    inset 0 2px 0 1px #ffdf59, /* bright gold inner stroke / highlight */
+    0 10px 0 0 #b34a00, /* heavy bottom extrusion */
+    0 14px 15px rgba(0,0,0,0.5); /* cast shadow */
+  color: white;
+  text-shadow: 0 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; /* heavy text shadow/stroke */
+  padding: 16px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  animation: breathing 3s infinite ease-in-out;
+  transform-origin: center bottom;
+  width: 260px;
+}
+
+.cr-btn-battle-ultimate::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%; height: 20%;
+  background: radial-gradient(ellipse at top, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.cr-btn-battle-ultimate:active {
+  transform: translateY(8px);
+  box-shadow: 
+    inset 0 2px 0 1px #ffdf59,
+    0 2px 0 0 #b34a00,
+    0 4px 5px rgba(0,0,0,0.5);
+  animation: none;
+}
+
+@keyframes breathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* Top Currency Capsules */
+.cr-currency-capsule {
+  background: linear-gradient(180deg, #2a3b63 0%, #1e2a47 100%);
+  border: 2px solid #111827;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  padding: 2px 4px 2px 2px;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.4);
+  position: relative;
+  height: 36px;
+  min-width: 90px;
+}
+
+.cr-currency-icon {
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  left: -12px;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+  z-index: 2;
+}
+
+.cr-currency-value {
+  margin-left: 28px;
+  margin-right: 28px;
+  color: white;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 0 #000;
+}
+
+.cr-btn-plus {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(180deg, #32e07e 0%, #28c76f 100%);
+  border: 1px solid #115730;
+  border-radius: 6px;
+  position: absolute;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: black;
+  box-shadow: inset 0 2px 2px rgba(255,255,255,0.5), 0 3px 0 0 #1a8248;
+  cursor: pointer;
+  z-index: 2;
+}
+.cr-btn-plus:active {
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 2px rgba(255,255,255,0.5), 0 0px 0 0 #1a8248;
+}
+
+/* Chest Slots */
+.cr-chest-slot {
+  background: linear-gradient(180deg, #17223b 0%, #0d1323 100%);
+  border-radius: 12px;
+  box-shadow: inset 0 4px 10px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 2px solid #2a3b63;
+  aspect-ratio: 3/4;
+}
+
+.cr-chest-slot.empty {
+  background: rgba(13, 19, 35, 0.6);
+  border: 2px dashed #2a3b63;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.cr-timer-badge {
+  background: var(--cr-cyan);
+  color: white;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #005f73;
+  position: absolute;
+  bottom: -8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  white-space: nowrap;
+}
+
+/* Side Icon Badges */
+.cr-side-badge {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #4da9ff 0%, #1e6ed1 100%);
+  border: 2px solid #0b2d56;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 0 0 #154e99, 0 6px 6px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+}
+.cr-side-badge:active {
+  transform: translateY(4px);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 0px 0 0 #154e99, 0 2px 2px rgba(0,0,0,0.4);
+}
+
+.cr-notification-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: var(--cr-red);
+  border: 2px solid white;
+  border-radius: 50%;
+  color: white;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+
+/* ========================================= */
+/* 🚀 MASTER TACTILE BUTTON ENGINE (CR) 🚀   */
+/* ========================================= */
+
+/* 1. Base Structure & Volumetrics */
+.cr-btn-master {
+  position: relative;
+  border-radius: 20px;
+  border: 4px solid #0F172A; /* Layer 1: Outer Navy Stroke */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  transform-origin: center bottom;
+  transition: filter 0.2s ease;
+  /* Micro-texture (Noise simulation via inset shadows) */
+  box-shadow: 
+    inset 0 3px 4px rgba(255, 255, 255, 0.7), /* Top inner light */
+    inset 0 -4px 6px rgba(0, 0, 0, 0.5),      /* Bottom inner shadow */
+    0 10px 0 0 var(--btn-base-color),         /* Layer 3: The 3D Extruded Base */
+    0 12px 15px rgba(0,0,0,0.6);              /* Layer 4: Cast Drop Shadow */
+}
+
+/* Layer 2 (Inner Bevel) and Specular Gloss Mask */
+.cr-btn-master::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 16px; /* Inner to the border */
+  border-top: 1.5px solid rgba(255, 255, 255, 0.8); /* Bright inner rim light */
+  border-left: 1.5px solid rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Glossy Glass/Resin Overlay (Top 45% Curved Mask) */
+.cr-btn-master::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 45%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 100%);
+  border-radius: 16px 16px 50% 50% / 16px 16px 20% 20%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Edge Highlight (Top-Left Flare) */
+.cr-flare {
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 25px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  filter: blur(2px) drop-shadow(0 0 4px #FFFFFF);
+  transform: rotate(-15deg);
+  z-index: 3;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* 2. Color Variations (Dual-Tone Falloff) */
+.cr-btn-battle-master {
+  background: linear-gradient(180deg, #FFE500 0%, #FF9900 50%, #FF5500 100%);
+  --btn-base-color: #B84A00;
+  width: 240px;
+  padding: 16px;
+  animation: cr-breathing 2.5s infinite ease-in-out;
+}
+.cr-btn-battle-master::before {
+  border-top: 2px solid #FFF8C2; /* Gold inner rim */
+}
+
+.cr-btn-blue-master {
+  background: linear-gradient(180deg, #00D2FF 0%, #0088FF 50%, #0044CC 100%);
+  --btn-base-color: #002266;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  /* Adjust base depth for smaller buttons */
+  box-shadow: 
+    inset 0 2px 3px rgba(255, 255, 255, 0.7),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.5),
+    0 8px 0 0 var(--btn-base-color),
+    0 10px 10px rgba(0,0,0,0.5);
+}
+.cr-btn-blue-master:active {
+  transform: translateY(6px);
+  box-shadow: 
+    inset 0 2px 3px rgba(255, 255, 255, 0.7),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.5),
+    0 2px 0 0 var(--btn-base-color),
+    0 4px 5px rgba(0,0,0,0.5) !important;
+}
+
+.cr-btn-green-master {
+  background: linear-gradient(180deg, #34D399 0%, #10B981 50%, #059669 100%);
+  --btn-base-color: #024A33;
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.7),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.5),
+    0 4px 0 0 var(--btn-base-color),
+    0 5px 6px rgba(0,0,0,0.5);
+}
+.cr-btn-green-master:active {
+  transform: translateY(4px);
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.7),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.5),
+    0 0px 0 0 var(--btn-base-color),
+    0 2px 3px rgba(0,0,0,0.5) !important;
+}
+
+/* 3. Typography & Text Styling */
+.cr-text-master {
+  font-family: 'Lilita One', sans-serif; /* Impact/Geometric alternative */
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #FFFFFF;
+  transform: rotate(-2.5deg); /* Energy tilt */
+  /* Inner solid black outline (simulated) + Outer 3D block shadow */
+  text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000, /* 1px black outline */
+     0    3px 0 #1E1000, /* Heavy 3D block shadow */
+     0    4px 0 #1E1000;
+  z-index: 10;
+  position: relative;
+}
+
+/* 4. State Machine & Animations */
+
+/* A. Idle Breathing */
+@keyframes cr-breathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+/* B. Hover / Focus */
+.cr-btn-master:hover {
+  filter: brightness(1.12) saturate(1.15);
+}
+.cr-btn-master:hover .cr-flare {
+  transform: rotate(-15deg) scale(1.2);
+  filter: blur(2px) drop-shadow(0 0 6px #FFFFFF);
+}
+
+/* C. Active Press (The "Juicy" Push) */
+.cr-btn-master:active {
+  animation: none; /* Stop breathing */
+  transform: translateY(8px) scaleX(1.04) scaleY(0.94); /* Mechanical push + Scale squish */
+  box-shadow: 
+    inset 0 3px 4px rgba(255, 255, 255, 0.7),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.5),
+    0 2px 0 0 var(--btn-base-color), /* Collapsed 3D base */
+    0 4px 5px rgba(0,0,0,0.6);       /* Tighter cast shadow */
+}
+
+/* Reset scale squish for children so text doesn't warp too much if unwanted, 
+   but usually it's desired for the "rubbery" feel */
+
+/* ========================================= */
+/* 🏅 ATHLETIC DAILY CHALLENGE BADGES 🏅     */
+/* ========================================= */
+
+.cr-daily-badge {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #0F172A;
+  background: linear-gradient(180deg, #17223b 0%, #0d1323 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset 0 4px 6px rgba(0, 0, 0, 0.8),
+    0 4px 0 0 #070a14,
+    0 6px 8px rgba(0,0,0,0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cr-daily-badge::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+
+.cr-daily-badge.active {
+  background: linear-gradient(180deg, #34D399 0%, #059669 100%);
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.4),
+    inset 0 -4px 6px rgba(0,0,0,0.5),
+    0 4px 0 0 #024A33,
+    0 6px 8px rgba(0,0,0,0.5),
+    0 0 15px rgba(52, 211, 153, 0.4);
+}
+
+.cr-daily-badge.active::before {
+  border-top: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.cr-daily-badge.active .cr-flare {
+  display: block;
+  top: 4px; left: 8px;
+  width: 20px; height: 6px;
+}
+
+.cr-daily-badge:active {
+  transform: translateY(4px);
+  box-shadow: 
+    inset 0 4px 6px rgba(0, 0, 0, 0.8),
+    0 0px 0 0 #070a14,
+    0 2px 4px rgba(0,0,0,0.5);
+}
+
+.cr-daily-badge.active:active {
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.4),
+    inset 0 -4px 6px rgba(0,0,0,0.5),
+    0 0px 0 0 #024A33,
+    0 2px 4px rgba(0,0,0,0.5);
+}
+
+.cr-daily-progress-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #34D399;
+  border-right-color: #34D399;
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
+.cr-daily-badge-label {
+  position: absolute;
+  bottom: -18px;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 10px;
+  color: white;
+  text-shadow: 0 2px 2px rgba(0,0,0,0.8);
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+/* ========================================= */
+/* ⭕ CIRCULAR BUTTON MASTER (Orbit Layout) ⭕ */
+/* ========================================= */
+
+.cr-btn-circle-master {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid #0F172A;
+  background: linear-gradient(180deg, #008ba3 0%, #003c47 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset 0 4px 6px rgba(0, 0, 0, 0.4),
+    0 8px 0 0 #002266,
+    0 10px 15px rgba(0,0,0,0.5);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  overflow: visible;
+}
+
+.cr-btn-circle-master::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.cr-btn-circle-master::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: radial-gradient(ellipse at top, rgba(255,255,255,0.25) 0%, transparent 80%);
+  border-top-left-radius: 50%;
+  border-top-right-radius: 50%;
+  pointer-events: none;
+}
+
+.cr-btn-circle-master:active {
+  transform: translateY(8px) scaleX(1.02) scaleY(0.96);
+  box-shadow: 
+    inset 0 6px 10px rgba(0, 0, 0, 0.6),
+    0 0px 0 0 #002266,
+    0 2px 4px rgba(0,0,0,0.5);
+}
+
+.cr-btn-circle-master:hover {
+  filter: brightness(1.1);
+}
+
+/* ========================================= */
+/* 👑 THE ULTIMATE HEADER (Zone 1) 👑        */
+/* ========================================= */
+
+.cr-top-header {
+  background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+}
+
+.cr-level-shield {
+  width: 36px;
+  height: 40px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  clip-path: polygon(50% 0%, 100% 20%, 100% 80%, 50% 100%, 0% 80%, 0% 20%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 2px solid #93c5fd;
+  box-shadow: 
+    inset 0 4px 6px rgba(255,255,255,0.4),
+    inset 0 -4px 6px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 10;
+}
+
+.cr-level-shield::before {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px; right: 2px; bottom: 2px;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  clip-path: polygon(50% 0%, 100% 20%, 100% 80%, 50% 100%, 0% 80%, 0% 20%);
+  z-index: -1;
+}
+
+.cr-xp-container {
+  background: #0f172a;
+  border: 2px solid #1e293b;
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  height: 24px;
+  margin-left: -12px;
+  padding-left: 16px;
+  display: flex;
+  align-items: center;
+  width: 120px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.cr-segmented-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  width: 100%;
+}
+
+.cr-segment {
+  flex: 1;
+  background: #1e293b;
+  border-radius: 2px;
+}
+
+.cr-segment.filled {
+  background: #00E5FF;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
+}
+
+.cr-coin-3d {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fef08a 0%, #eab308 50%, #854d0e 100%);
+  border: 1px solid #713f12;
+  box-shadow: 
+    inset -2px -2px 4px rgba(0,0,0,0.4),
+    inset 2px 2px 4px rgba(255,255,255,0.8),
+    0 2px 4px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: black;
+  color: #fff;
+  text-shadow: 1px 1px 0px #a16207;
+}
+
+.cr-gem-3d {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #6ee7b7 0%, #10b981 100%);
+  transform: rotate(45deg);
+  border: 1px solid #047857;
+  box-shadow: 
+    inset -2px -2px 4px rgba(0,0,0,0.4),
+    inset 2px 2px 4px rgba(255,255,255,0.8),
+    2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.cr-plus-btn {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+  border-radius: 4px;
+  border: 1px solid #14532d;
+  box-shadow: 
+    inset 0 2px 2px rgba(255,255,255,0.4),
+    0 2px 0 #14532d,
+    0 3px 4px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: black;
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: -6px; /* Overlap slightly */
+  z-index: 10;
+}
+
+.cr-plus-btn:active {
+  transform: translateY(2px);
+  box-shadow: 
+    inset 0 2px 2px rgba(255,255,255,0.4),
+    0 0px 0 #14532d,
+    0 1px 2px rgba(0,0,0,0.3);
+}
+
+.cr-currency-pill {
+  display: flex;
+  align-items: center;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid #334155;
+  border-radius: 100px;
+  padding: 2px 6px 2px 2px;
+  min-width: 90px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* ========================================= */
+/* 🚀 DENSE UI ELEMENTS (Zone 1 Overhaul)🚀  */
+/* ========================================= */
+
+.cr-menu-btn {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
+  border: 1px solid #475569;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset 0 1px 1px rgba(255,255,255,0.2),
+    0 2px 4px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+
+.cr-menu-btn:active {
+  transform: translateY(2px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.4),
+    0 0px 0 rgba(0,0,0,0);
+}
+
+.cr-pass-banner {
+  background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+  border: 2px solid #a16207;
+  padding: 4px 12px;
+  clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.6),
+    0 4px 6px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}

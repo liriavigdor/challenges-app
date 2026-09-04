@@ -1,89 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Swords, Dumbbell, Map as MapIconComponent, Gift, Flame, Target } from 'lucide-react';
+import { Swords, Dumbbell, Map as MapIconComponent, Gift, Flame, Target, Users, Bell, Menu } from 'lucide-react';
 import AvatarPodium from '../../AvatarPodium';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-// import { MapIcon, TargetIcon } from '../../icons';
-
-// Keeping the old animation as an option per user request
-const launchXpOrbs = (sourceEl, xpAmount, onComplete) => {
-  const targetTrack = document.getElementById('challenges-xp-track');
-  const targetFill = document.getElementById('challenges-xp-fill');
-  if (!targetTrack || !sourceEl) {
-    onComplete?.();
-    return;
-  }
-  const sourceRect = sourceEl.getBoundingClientRect();
-  const targetRect = targetTrack.getBoundingClientRect();
-  const targetX = targetRect.left + targetRect.width / 2;
-  const targetY = targetRect.top + targetRect.height / 2;
-  
-  const pop = document.createElement('div');
-  pop.className = 'xp-score-pop';
-  pop.textContent = `+${xpAmount} XP`;
-  pop.style.left = (sourceRect.left + sourceRect.width / 2 - 28) + 'px';
-  pop.style.top = (sourceRect.top + sourceRect.height / 2 - 12) + 'px';
-  document.body.appendChild(pop);
-  pop.addEventListener('animationend', () => pop.remove());
-  
-  const orbCount = Math.min(3 + Math.ceil(xpAmount / 20), 7);
-  let arrivedCount = 0;
-  
-  for (let i = 0; i < orbCount; i++) {
-    setTimeout(() => {
-      const orb = document.createElement('div');
-      orb.className = 'xp-orb-fly';
-      orb.textContent = '⚡';
-      const jitterX = (Math.random() - 0.5) * 32;
-      const jitterY = (Math.random() - 0.5) * 20;
-      const startX = sourceRect.left + sourceRect.width / 2 + jitterX;
-      const startY = sourceRect.top + sourceRect.height / 2 + jitterY;
-      orb.style.cssText = [
-        `left:${startX - 13}px`,
-        `top:${startY - 13}px`,
-        'transform:scale(0.5)',
-        'opacity:1',
-        'transition:none',
-      ].join(';');
-      document.body.appendChild(orb);
-      
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          orb.style.transition = 'transform 0.18s cubic-bezier(0.34,1.56,0.64,1)';
-          orb.style.transform = 'scale(1.2)';
-          setTimeout(() => {
-            const dx = targetX - startX;
-            const dy = targetY - startY;
-            const delay = i * 55;
-            orb.style.transition = [
-              `transform 0.55s cubic-bezier(0.55,0,0.45,1) ${delay}ms`,
-              `opacity   0.15s ease ${0.5 + delay / 1000}s`,
-            ].join(',');
-            orb.style.transform = `translate(${dx}px,${dy}px) scale(0.25)`;
-            orb.style.opacity = '0';
-            setTimeout(() => {
-              orb.remove();
-              arrivedCount++;
-              if (arrivedCount === orbCount) {
-                targetTrack.classList.add('xp-received');
-                setTimeout(() => targetTrack.classList.remove('xp-received'), 700);
-                if (targetFill) {
-                  targetFill.classList.add('xp-fill-bump');
-                  setTimeout(() => targetFill.classList.remove('xp-fill-bump'), 500);
-                }
-                onComplete?.();
-              }
-            }, 700 + delay);
-          }, 200);
-        });
-      });
-    }, i * 60);
-  }
-};
 
 export default function ChallengesTab({
   currentUser,
@@ -102,17 +21,10 @@ export default function ChallengesTab({
   const [showModernXp, setShowModernXp] = useState(false);
 
   const handleMysteryBox = (e) => {
-    // Retained the old orb animation
-    launchXpOrbs(e.currentTarget, 50, () => {});
-    
-    // Modern Framer-motion alternative trigger (can replace later)
     setShowModernXp(true);
     setTimeout(() => setShowModernXp(false), 2000);
   };
 
-  // When map is active, we render nothing here and let App.jsx render MapRender,
-  // OR we could have a placeholder. Since App.jsx originally handles map when viewMode === 'map',
-  // we just return null or a back button if we want to handle it here.
   if (challengesViewMode === 'map') {
     return (
       <motion.div 
@@ -136,175 +48,217 @@ export default function ChallengesTab({
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="relative flex flex-col h-full w-full overflow-hidden bg-slate-900 cr-font"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="relative flex flex-col h-full w-full overflow-hidden bg-slate-950 cr-font cr-spring-modal"
+      dir="ltr"
     >
-      {/* Background pattern similar to CR Arena with slow pulse */}
+      {/* Background pattern */}
       <motion.div 
-        animate={{ opacity: [0.05, 0.15, 0.05] }}
+        animate={{ opacity: [0.03, 0.08, 0.03] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none" 
       />
 
-      {/* Floating Particles */}
-      <div className="cr-particles">
-        {[...Array(15)].map((_, i) => (
-          <div 
-            key={i} 
-            className="cr-particle" 
-            style={{ 
-              left: `${Math.random() * 100}%`, 
-              animationDelay: `${Math.random() * 4}s`,
-              animationDuration: `${3 + Math.random() * 3}s`
-            }} 
-          />
-        ))}
-      </div>
-
-      {/* TOP HEADER (Resources Style) */}
+      {/* ZONE 1: THE DENSE HEADER (Zero Dead Space) */}
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
-        className="relative z-10 flex items-center justify-between p-4 pt-6 w-full pointer-events-none"
+        className="relative z-20 flex flex-col pt-8 pb-4 w-full pointer-events-none cr-top-header"
       >
-        {/* Left: Player Level / Rank & XP */}
-        <div className="cr-top-bar-item pointer-events-auto flex items-center h-10 w-48 p-0 pr-3 relative">
-          <div className="cr-top-bar-icon-wrapper absolute -left-2 z-10 w-12 h-12">
-            <span className="text-xl font-black cr-text-stroke">
-              {currentRank?.name?.charAt(0) || '1'}
-            </span>
-          </div>
-          {/* XP Bar Background */}
-          <div className="ml-8 w-full h-5 bg-gray-900 rounded-full border border-gray-700 p-0.5 overflow-hidden">
-            {/* XP Bar Fill */}
+        <div className="flex justify-between items-start w-full px-2 pointer-events-auto">
+          
+          {/* Left Column: Player Banner & Fused XP */}
+          <div className="flex flex-col gap-1 w-[45%]">
+            
+            {/* Player Banner */}
             <div 
-              className="cr-xp-bar-inner h-full rounded-full" 
-              style={{ width: `${Math.max(10, progressPercentage || 0)}%` }}
-            ></div>
+              className="bg-slate-800 border-2 border-slate-600 rounded-lg p-1 shadow-lg flex items-center relative overflow-hidden h-14 cursor-pointer hover:border-slate-400 transition-colors"
+              onClick={() => {}}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-slate-900 z-0"></div>
+              <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" className="w-12 h-12 z-10 bg-slate-700 rounded-md border border-slate-500" />
+              <div className="flex flex-col z-10 ml-2">
+                <span className="text-white font-black text-xs cr-text-stroke-sm uppercase leading-tight">{currentUser?.username || 'ATHLETE'}</span>
+                <div className="flex items-center gap-1">
+                  <Flame className="w-3 h-3 text-green-400 filter drop-shadow-[0_0_4px_#4ade80]" />
+                  <span className="text-[10px] font-black cr-text-stroke leading-tight text-white">{currentUser?.stats?.streakDays || 12}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Fused Level Shield + XP Bar */}
+            <div className="flex items-center -mt-2 z-20">
+              <div className="cr-level-shield transform scale-90 origin-left z-20">
+                <span className="text-white font-black text-lg drop-shadow-md">{currentRank?.name?.charAt(0) || '1'}</span>
+              </div>
+              <div className="cr-xp-container -ml-4 flex-1 h-5 transform scale-[0.85] origin-left border-l-0 rounded-l-none z-10 bg-slate-900 border-slate-600">
+                <div className="cr-segmented-bar h-2.5">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className={`cr-segment ${(progressPercentage || 0) > (i * 20) ? 'filled' : ''}`}></div>
+                  ))}
+                </div>
+                <span className="absolute right-2 text-[8px] font-bold text-white drop-shadow-md">
+                  {currentUser?.xp?.toLocaleString()} / {nextRank ? nextRank.xpRequired.toLocaleString() : '—'}
+                </span>
+              </div>
+            </div>
           </div>
-          {/* XP Text overlay */}
-          <div className="absolute inset-0 flex items-center justify-center ml-8 z-10 pointer-events-none">
-            <span className="text-[10px] font-black cr-text-stroke-sm text-white drop-shadow-md">
-              {currentUser?.xp?.toLocaleString()} / {nextRank ? nextRank.xpRequired.toLocaleString() : '—'}
-            </span>
-          </div>
-        </div>
 
-        {/* Right: Resources (Day Streak) */}
-        <motion.div 
-          whileHover={{ scale: 1.05 }}
-          className="cr-top-bar-item pointer-events-auto bg-green-900/40 border-green-800"
-        >
-          <div className="flex flex-col items-end mr-2">
-            <span className="text-sm font-black cr-text-stroke leading-tight text-green-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-              {currentUser?.stats?.streakDays || 12}
-            </span>
-            <span className="text-[10px] leading-tight text-gray-300 font-bold uppercase tracking-wider">Streak</span>
+          {/* Right Column: Menus, Currencies, Pass */}
+          <div className="flex flex-col gap-1.5 items-end w-[50%]">
+            
+            {/* Top Menu Icons */}
+            <div className="flex gap-1.5">
+              <div className="cr-menu-btn"><Users className="w-4 h-4 text-white" /></div>
+              <div className="cr-menu-btn relative">
+                <Bell className="w-4 h-4 text-white" />
+                <div className="absolute -top-1 -right-1 bg-red-500 text-[8px] font-bold text-white rounded-full w-3.5 h-3.5 flex items-center justify-center border border-slate-900 shadow-md">1</div>
+              </div>
+              <div className="cr-menu-btn"><Menu className="w-4 h-4 text-white" /></div>
+            </div>
+
+            {/* Currencies (Stacked Tightly) */}
+            <div className="flex flex-col gap-1 w-full items-end mt-1">
+              <div className="cr-currency-pill transform scale-90 origin-right w-full max-w-[130px]">
+                <div className="cr-coin-3d z-10"></div>
+                <span className="text-white font-black text-xs ml-1 mr-1 flex-1 text-center drop-shadow-md">12.4K</span>
+                <div className="cr-plus-btn" onClick={handleMysteryBox}>+</div>
+              </div>
+              
+              <div className="cr-currency-pill transform scale-90 origin-right w-full max-w-[130px]">
+                <div className="cr-gem-3d z-10"></div>
+                <span className="text-white font-black text-xs ml-1 mr-1 flex-1 text-center drop-shadow-md">250</span>
+                <div className="cr-plus-btn" onClick={handleMysteryBox}>+</div>
+              </div>
+            </div>
+
+            {/* Pro Pass Badge */}
+            <div className="cr-pass-banner mt-0.5 transform scale-90 origin-right cursor-pointer">
+              <span className="text-[7px] text-yellow-900 font-bold uppercase mb-0.5 tracking-widest">Pro Pass</span>
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-yellow-600 rounded-sm border border-yellow-800 flex items-center justify-center shadow-inner">
+                  <span className="text-[9px] text-white font-black">48</span>
+                </div>
+                <span className="text-[10px] font-black text-white cr-text-stroke-sm">10/15</span>
+              </div>
+            </div>
+
           </div>
-          <div className="cr-top-bar-icon-wrapper bg-gradient-to-b from-green-400 to-green-600 border-green-800 shadow-green-900">
-            <Flame className="w-5 h-5 text-white" />
-          </div>
-        </motion.div>
+
+        </div>
       </motion.div>
 
-      {/* THE ARENA (Center Focus) */}
-      <div className="relative flex-1 flex items-center justify-center w-full z-0">
+      {/* ZONE 2: CENTRAL ARENA (Orbit Layout) */}
+      <div className="relative flex-1 flex items-center justify-center w-full z-0 mt-[-20px]">
         {/* Spotlight Effect */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/20 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full pointer-events-none" />
         
+        {/* Avatar */}
         <motion.div 
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", bounce: 0.5, delay: 0.2 }}
-          className="relative z-10 w-full h-[60vh] max-h-[500px] flex items-center justify-center pointer-events-none"
+          className="relative z-10 w-full flex items-center justify-center pointer-events-none"
         >
-          <AvatarPodium avatarConfig={currentUser?.avatarConfig} userXp={currentUser?.xp} />
+          <div className="transform scale-90">
+            <AvatarPodium avatarConfig={currentUser?.avatarConfig} userXp={currentUser?.xp} />
+          </div>
         </motion.div>
+
+        {/* Orbiting Side Buttons (Tight Frame) */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-between w-[340px] pointer-events-none z-20">
+          {/* Left Orbit */}
+          <div className="flex flex-col gap-6 pointer-events-auto">
+            <motion.div
+              initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', delay: 0.3 }}
+              className="cr-btn-circle-master"
+              onClick={() => setChallengesViewMode('map')}
+            >
+              <div className="cr-flare"></div>
+              <MapIconComponent className="w-6 h-6 filter drop-shadow-md z-10 relative text-white" />
+            </motion.div>
+
+            <motion.div
+              initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', delay: 0.4 }}
+              className="cr-btn-circle-master"
+              onClick={handleMysteryBox}
+            >
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-[#0F172A] z-20 shadow-md">!</div>
+              <div className="cr-flare"></div>
+              <Gift className="w-6 h-6 filter drop-shadow-md z-10 relative text-white" />
+            </motion.div>
+          </div>
+
+          {/* Right Orbit */}
+          <div className="flex flex-col gap-6 pointer-events-auto">
+            <motion.div
+              initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', delay: 0.3 }}
+              className="cr-btn-circle-master"
+              onClick={() => setIsMachineMissionsOpen(true)}
+            >
+              <div className="absolute -top-1 -right-1 bg-[#FFC700] text-black text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-[#0F172A] z-20 shadow-md">3</div>
+              <div className="cr-flare"></div>
+              <Target className="w-6 h-6 filter drop-shadow-md z-10 relative text-white" />
+            </motion.div>
+
+            <motion.div
+              initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', delay: 0.4 }}
+              className="cr-btn-circle-master"
+              onClick={() => setIsHomeModeModalOpen(true)}
+            >
+              <div className="cr-flare"></div>
+              <Dumbbell className="w-6 h-6 filter drop-shadow-md z-10 relative text-white" />
+            </motion.div>
+          </div>
+        </div>
       </div>
 
-      {/* FLOATING SIDE BUTTONS (Events, Shop, etc. style) */}
-      
-      {/* Top Left: Map */}
-      <motion.button
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
-        className="cr-btn-side cr-btn-side-left cr-btn-purple"
-        style={{ top: '15%' }}
-        onClick={() => setChallengesViewMode('map')}
-      >
-        <MapIconComponent className="w-7 h-7 mb-1 filter drop-shadow-md" />
-        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">מפה</span>
-      </motion.button>
-
-      {/* Middle Left: Mystery Box */}
-      <motion.button
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.4 }}
-        className="cr-btn-side cr-btn-side-left cr-btn-green"
-        style={{ top: '35%' }}
-        onClick={handleMysteryBox}
-      >
-        <Gift className="w-7 h-7 mb-1 filter drop-shadow-md" />
-        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">הפתעה</span>
-      </motion.button>
-
-      {/* Top Right: AI Missions */}
-      <motion.button
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
-        className="cr-btn-side cr-btn-side-right"
-        style={{ top: '15%' }}
-        onClick={() => setIsMachineMissionsOpen(true)}
-      >
-        <Bot className="w-7 h-7 mb-1 filter drop-shadow-md" />
-        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">משימות</span>
-      </motion.button>
-
-      {/* Middle Right: Training */}
-      <motion.button
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.4 }}
-        className="cr-btn-side cr-btn-side-right"
-        style={{ top: '35%' }}
-        onClick={() => setIsHomeModeModalOpen(true)}
-      >
-        <Dumbbell className="w-7 h-7 mb-1 filter drop-shadow-md" />
-        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">אימון</span>
-      </motion.button>
-
-
-      {/* MAIN BATTLE BUTTON (Bottom Center) */}
+      {/* ZONE 3: CONTROL DECK (Bottom Panel) */}
       <motion.div 
-        initial={{ y: 150, scale: 0.8 }}
-        animate={{ y: 0, scale: 1 }}
-        transition={{ type: 'spring', bounce: 0.6, delay: 0.5 }}
-        className="absolute bottom-10 left-0 right-0 flex justify-center z-20 pointer-events-none"
+        initial={{ y: 150, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', bounce: 0.4, delay: 0.5 }}
+        className="relative z-20 flex flex-col items-center gap-5 pt-8 pb-8 px-4 w-full bg-slate-900/80 backdrop-blur-xl rounded-t-[40px] border-t border-slate-700/50 shadow-[0_-15px_30px_rgba(0,0,0,0.6)]"
       >
-        <div className="relative pointer-events-auto">
-          {/* Continuous pulse glow behind the button */}
-          <motion.div 
-            animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute -inset-4 bg-yellow-500 rounded-full blur-xl z-[-1]"
-          />
+        {/* Athletic Daily Challenge Rings */}
+        <div className="flex justify-center gap-6 w-full">
+          
+          {/* Active / Completed Goal */}
+          <div className="cr-daily-badge active">
+            <div className="cr-flare"></div>
+            <div className="cr-daily-progress-ring"></div>
+            <Flame className="w-7 h-7 text-white filter drop-shadow-md z-10" />
+            <span className="cr-daily-badge-label text-[#34D399]">CARDIO</span>
+          </div>
+
+          {/* Incomplete Goal 1 */}
+          <div className="cr-daily-badge">
+            <Dumbbell className="w-7 h-7 text-slate-500 filter drop-shadow-md z-10" />
+            <span className="cr-daily-badge-label text-slate-300">STRENGTH</span>
+          </div>
+
+          {/* Incomplete Goal 2 */}
+          <div className="cr-daily-badge">
+            <Target className="w-7 h-7 text-slate-500 filter drop-shadow-md z-10" />
+            <span className="cr-daily-badge-label text-slate-300">NUTRITION</span>
+          </div>
+          
+        </div>
+
+        {/* Main Battle CTA Button */}
+        <div className="relative pointer-events-auto mt-2 w-full px-4">
           <button 
-            className="cr-btn-battle group overflow-hidden"
+            className="cr-btn-master cr-btn-battle-master group w-full"
             onClick={() => setIsRadarOpen(true)}
           >
-            {/* Subtle shine animation on the button via CSS class defined in index.css */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent cr-shine-anim" />
-            
-            <span className="text-3xl font-black cr-text-stroke tracking-wider mb-1 z-10 relative">BATTLE</span>
-            <div className="flex items-center gap-1 z-10 relative">
-              <Swords className="w-4 h-4 text-white filter drop-shadow-sm" />
-              <span className="text-xs font-bold cr-text-stroke-sm">התחל קרב</span>
+            <div className="cr-flare"></div>
+            <span className="cr-text-master text-4xl mb-1">BATTLE</span>
+            <div className="flex items-center gap-2 z-10 relative">
+              <Swords className="w-5 h-5 text-white filter drop-shadow-md" />
+              <span className="text-[10px] font-bold cr-text-stroke-sm tracking-widest uppercase text-white">Let's Go!</span>
             </div>
           </button>
         </div>
@@ -317,13 +271,12 @@ export default function ChallengesTab({
             initial={{ opacity: 0, y: 50, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-white font-black text-2xl px-6 py-2 rounded-full shadow-2xl z-50 pointer-events-none border-4 border-amber-300 cr-text-stroke"
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#FF8C00] text-white font-black text-3xl px-8 py-3 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 pointer-events-none border-4 border-[#FFC700] cr-text-stroke"
           >
             +50 XP
           </motion.div>
         )}
       </AnimatePresence>
-
     </motion.div>
   );
 }
