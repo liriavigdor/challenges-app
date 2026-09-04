@@ -139,123 +139,176 @@ export default function ChallengesTab({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative flex flex-col h-full w-full overflow-hidden bg-background"
+      className="relative flex flex-col h-full w-full overflow-hidden bg-slate-900 cr-font"
     >
-      {/* Background glow effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[300px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Background pattern similar to CR Arena with slow pulse */}
+      <motion.div 
+        animate={{ opacity: [0.05, 0.15, 0.05] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none" 
+      />
 
-      {/* TOP HEADER */}
-      <div className="relative z-10 flex flex-col gap-4 p-6 pt-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-black tracking-tight text-foreground">Challenges</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="secondary" className="rounded-full px-3 font-semibold text-primary/80 bg-primary/10 border-primary/20">
-                <Flame className="w-4 h-4 mr-1 text-orange-500 fill-orange-500" />
-                Day Streak 12
-              </Badge>
-            </div>
+      {/* Floating Particles */}
+      <div className="cr-particles">
+        {[...Array(15)].map((_, i) => (
+          <div 
+            key={i} 
+            className="cr-particle" 
+            style={{ 
+              left: `${Math.random() * 100}%`, 
+              animationDelay: `${Math.random() * 4}s`,
+              animationDuration: `${3 + Math.random() * 3}s`
+            }} 
+          />
+        ))}
+      </div>
+
+      {/* TOP HEADER (Resources Style) */}
+      <motion.div 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+        className="relative z-10 flex items-center justify-between p-4 pt-6 w-full pointer-events-none"
+      >
+        {/* Left: Player Level / Rank & XP */}
+        <div className="cr-top-bar-item pointer-events-auto flex items-center h-10 w-48 p-0 pr-3 relative">
+          <div className="cr-top-bar-icon-wrapper absolute -left-2 z-10 w-12 h-12">
+            <span className="text-xl font-black cr-text-stroke">
+              {currentRank?.name?.charAt(0) || '1'}
+            </span>
+          </div>
+          {/* XP Bar Background */}
+          <div className="ml-8 w-full h-5 bg-gray-900 rounded-full border border-gray-700 p-0.5 overflow-hidden">
+            {/* XP Bar Fill */}
+            <div 
+              className="cr-xp-bar-inner h-full rounded-full" 
+              style={{ width: `${Math.max(10, progressPercentage || 0)}%` }}
+            ></div>
+          </div>
+          {/* XP Text overlay */}
+          <div className="absolute inset-0 flex items-center justify-center ml-8 z-10 pointer-events-none">
+            <span className="text-[10px] font-black cr-text-stroke-sm text-white drop-shadow-md">
+              {currentUser?.xp?.toLocaleString()} / {nextRank ? nextRank.xpRequired.toLocaleString() : '—'}
+            </span>
           </div>
         </div>
 
-        {/* Status Card */}
-        <Card className="p-4 rounded-2xl border-border bg-card/60 backdrop-blur-md shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-bold flex items-center gap-2">
-              <span className="text-xl">🎖</span> {currentRank?.name || 'Rank'}
-            </span>
-            <span className="text-sm font-medium text-muted-foreground">
-              {currentUser?.xp?.toLocaleString()} / {nextRank ? nextRank.xpRequired.toLocaleString() : '—'} XP
-            </span>
-          </div>
-          <div id="challenges-xp-track" className="relative w-full h-3 rounded-full overflow-hidden bg-secondary">
-            <Progress 
-              id="challenges-xp-fill"
-              value={progressPercentage || 0} 
-              className="h-full bg-primary"
-            />
-          </div>
-        </Card>
-      </div>
-
-      {/* AVATAR ARENA */}
-      <div className="relative flex-1 flex flex-col items-center justify-center w-full min-h-[40vh]">
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent z-0 pointer-events-none" />
-        
-        {/* Podium Area */}
+        {/* Right: Resources (Day Streak) */}
         <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
+          whileHover={{ scale: 1.05 }}
+          className="cr-top-bar-item pointer-events-auto bg-green-900/40 border-green-800"
+        >
+          <div className="flex flex-col items-end mr-2">
+            <span className="text-sm font-black cr-text-stroke leading-tight text-green-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+              {currentUser?.stats?.streakDays || 12}
+            </span>
+            <span className="text-[10px] leading-tight text-gray-300 font-bold uppercase tracking-wider">Streak</span>
+          </div>
+          <div className="cr-top-bar-icon-wrapper bg-gradient-to-b from-green-400 to-green-600 border-green-800 shadow-green-900">
+            <Flame className="w-5 h-5 text-white" />
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* THE ARENA (Center Focus) */}
+      <div className="relative flex-1 flex items-center justify-center w-full z-0">
+        {/* Spotlight Effect */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/20 blur-3xl rounded-full pointer-events-none" />
+        
+        <motion.div 
+          initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", bounce: 0.4 }}
-          className="relative z-10 w-full h-full max-h-[300px] flex items-center justify-center pointer-events-none"
+          transition={{ type: "spring", bounce: 0.5, delay: 0.2 }}
+          className="relative z-10 w-full h-[60vh] max-h-[500px] flex items-center justify-center pointer-events-none"
         >
           <AvatarPodium avatarConfig={currentUser?.avatarConfig} userXp={currentUser?.xp} />
         </motion.div>
-
-        {/* BOTTOM ACTION BAR */}
-        <div className="absolute bottom-6 left-0 right-0 px-6 z-20 flex items-end justify-center gap-4">
-          
-          {/* AI Missions */}
-          <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}>
-            <Button 
-              variant="outline" 
-              className="flex flex-col h-16 w-20 rounded-2xl border-border bg-card/80 backdrop-blur gap-1 shadow-sm hover:border-primary/50 hover:bg-primary/5"
-              onClick={() => setIsMachineMissionsOpen(true)}
-            >
-              <Bot className="w-5 h-5 text-primary" />
-              <span className="text-xs font-semibold text-foreground">משימות</span>
-            </Button>
-          </motion.div>
-
-          {/* BATTLE BUTTON (Primary) */}
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative group">
-            {/* Pulse effect */}
-            <div className="absolute inset-0 rounded-3xl bg-primary/30 animate-ping group-hover:bg-primary/50" style={{ animationDuration: '2s' }} />
-            
-            <Button 
-              size="lg"
-              className="relative flex flex-col h-20 w-24 rounded-3xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 gap-1 border border-primary-foreground/10 overflow-hidden"
-              onClick={() => setIsRadarOpen(true)}
-            >
-              <Swords className="w-7 h-7 mb-1" />
-              <span className="text-sm font-black tracking-widest z-10">BATTLE</span>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-            </Button>
-          </motion.div>
-
-          {/* TRAINING */}
-          <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}>
-            <Button 
-              variant="outline" 
-              className="flex flex-col h-16 w-20 rounded-2xl border-border bg-card/80 backdrop-blur gap-1 shadow-sm hover:border-primary/50 hover:bg-primary/5"
-              onClick={() => setIsHomeModeModalOpen(true)}
-            >
-              <Dumbbell className="w-5 h-5 text-primary" />
-              <span className="text-xs font-semibold text-foreground">אימון</span>
-            </Button>
-          </motion.div>
-
-          {/* MYSTERY BOX */}
-          <motion.button 
-            whileHover={{ y: -5, rotate: [0, -10, 10, -10, 10, 0] }} 
-            whileTap={{ scale: 0.9 }}
-            className="absolute -top-12 right-12 w-12 h-12 bg-gradient-to-tr from-amber-400 to-amber-600 rounded-xl shadow-lg flex items-center justify-center border-2 border-amber-200 cursor-pointer"
-            onClick={handleMysteryBox}
-          >
-            <Gift className="w-6 h-6 text-white" />
-          </motion.button>
-        </div>
       </div>
 
-      {/* Map FAB */}
+      {/* FLOATING SIDE BUTTONS (Events, Shop, etc. style) */}
+      
+      {/* Top Left: Map */}
       <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="absolute top-8 left-6 w-12 h-12 rounded-full bg-card/80 backdrop-blur border border-border shadow-md flex items-center justify-center text-foreground z-20 hover:text-primary hover:border-primary/50 transition-colors"
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
+        className="cr-btn-side cr-btn-side-left cr-btn-purple"
+        style={{ top: '15%' }}
         onClick={() => setChallengesViewMode('map')}
       >
-        <MapIconComponent className="w-5 h-5" />
+        <MapIconComponent className="w-7 h-7 mb-1 filter drop-shadow-md" />
+        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">מפה</span>
       </motion.button>
+
+      {/* Middle Left: Mystery Box */}
+      <motion.button
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.4 }}
+        className="cr-btn-side cr-btn-side-left cr-btn-green"
+        style={{ top: '35%' }}
+        onClick={handleMysteryBox}
+      >
+        <Gift className="w-7 h-7 mb-1 filter drop-shadow-md" />
+        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">הפתעה</span>
+      </motion.button>
+
+      {/* Top Right: AI Missions */}
+      <motion.button
+        initial={{ x: 100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
+        className="cr-btn-side cr-btn-side-right"
+        style={{ top: '15%' }}
+        onClick={() => setIsMachineMissionsOpen(true)}
+      >
+        <Bot className="w-7 h-7 mb-1 filter drop-shadow-md" />
+        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">משימות</span>
+      </motion.button>
+
+      {/* Middle Right: Training */}
+      <motion.button
+        initial={{ x: 100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.4 }}
+        className="cr-btn-side cr-btn-side-right"
+        style={{ top: '35%' }}
+        onClick={() => setIsHomeModeModalOpen(true)}
+      >
+        <Dumbbell className="w-7 h-7 mb-1 filter drop-shadow-md" />
+        <span className="text-[9px] font-bold cr-text-stroke-sm uppercase">אימון</span>
+      </motion.button>
+
+
+      {/* MAIN BATTLE BUTTON (Bottom Center) */}
+      <motion.div 
+        initial={{ y: 150, scale: 0.8 }}
+        animate={{ y: 0, scale: 1 }}
+        transition={{ type: 'spring', bounce: 0.6, delay: 0.5 }}
+        className="absolute bottom-10 left-0 right-0 flex justify-center z-20 pointer-events-none"
+      >
+        <div className="relative pointer-events-auto">
+          {/* Continuous pulse glow behind the button */}
+          <motion.div 
+            animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute -inset-4 bg-yellow-500 rounded-full blur-xl z-[-1]"
+          />
+          <button 
+            className="cr-btn-battle group overflow-hidden"
+            onClick={() => setIsRadarOpen(true)}
+          >
+            {/* Subtle shine animation on the button via CSS class defined in index.css */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent cr-shine-anim" />
+            
+            <span className="text-3xl font-black cr-text-stroke tracking-wider mb-1 z-10 relative">BATTLE</span>
+            <div className="flex items-center gap-1 z-10 relative">
+              <Swords className="w-4 h-4 text-white filter drop-shadow-sm" />
+              <span className="text-xs font-bold cr-text-stroke-sm">התחל קרב</span>
+            </div>
+          </button>
+        </div>
+      </motion.div>
 
       {/* MODERN XP TOAST */}
       <AnimatePresence>
@@ -264,7 +317,7 @@ export default function ChallengesTab({
             initial={{ opacity: 0, y: 50, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-white font-black text-2xl px-6 py-2 rounded-full shadow-2xl z-50 pointer-events-none border-4 border-amber-300"
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-white font-black text-2xl px-6 py-2 rounded-full shadow-2xl z-50 pointer-events-none border-4 border-amber-300 cr-text-stroke"
           >
             +50 XP
           </motion.div>
