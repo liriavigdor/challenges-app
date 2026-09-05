@@ -1929,7 +1929,7 @@ export default function App() {
       </header>
 
       {/* CONTENT AREA */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: activeTab === 'feed' ? 'hidden' : 'auto', padding: activeTab === 'feed' ? '0' : '1rem 1.5rem', minHeight: 0 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: (activeTab === 'feed' || activeTab === 'challenges') ? 'hidden' : 'auto', padding: (activeTab === 'feed' || activeTab === 'challenges') ? '0' : '1rem 1.5rem', minHeight: 0 }}>
         
         {currentUser.isBlocked && (
           <div className="glass-card" style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '1rem', margin: '1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ff4d4d' }}>
