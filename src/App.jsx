@@ -1847,7 +1847,7 @@ export default function App() {
   return (
     <div className="app-container">
       {/* HEADER */}
-      <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100, padding: '0.75rem 1.5rem', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--glass-border)' }}>
+      <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '56px', paddingInline: '16px', position: 'sticky', top: 0, zIndex: 100, background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--glass-border)' }}>
         {/* Left side: Symbol & Theme Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 10 }}>
           <div 

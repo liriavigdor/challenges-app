@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Flame, Users, Lock, CheckCircle, Swords, ArrowRight, Zap, Trophy, Medal, Star, Calendar, Clock, Activity, Map as MapIcon, Compass, Dumbbell, ChevronDown, Sparkles, TrendingUp, Moon, Plus, Camera, UploadCloud, ScanLine, X } from 'lucide-react';
+import { Target, Flame, Users, Lock, CheckCircle, Swords, ArrowRight, Zap, Trophy, Medal, Star, Calendar, Clock, Activity, Map as MapIcon, Compass, Dumbbell, ChevronDown, ChevronRight, Sparkles, TrendingUp, Moon, Plus, Camera, UploadCloud, ScanLine, X, Heart, MessageCircle, Share2, UserPlus, Search, Copy, Check } from 'lucide-react';
 
 /* ── Elite Commercial Theme V5 (Addiction/Dopamine Tier) ──
    Canvas Base: #000000 with subtle radial glows
@@ -42,6 +42,99 @@ const FloatingParticles = ({ active }) => {
         />
       ))}
     </div>
+  );
+};
+
+const MOCK_FRIENDS = [
+  { id: 1, name: 'חושן', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Hoshen' },
+  { id: 2, name: 'shahaf', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Shahaf' },
+  { id: 3, name: 'עדה :)', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Ada' },
+  { id: 4, name: 'ליאור פייגנבוים', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Lior' },
+  { id: 5, name: 'האיפואים 🥊', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Ifuim' },
+  { id: 6, name: 'reels', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Reels' }
+];
+
+const ChallengeShareSheet = ({ isOpen, onClose }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/60 z-[100] backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="absolute bottom-0 left-0 right-0 bg-[#27272A] rounded-t-[24px] z-[101] flex flex-col p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
+            style={{ maxHeight: '80vh' }}
+            dir="rtl"
+          >
+            {/* Header Handle */}
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+            
+            <p className="text-white/60 text-[12px] text-center px-4 mb-4 leading-tight font-bold">
+              הקישורים שבחרת לשתף ייחודיים לך וייתכן שהם ישמשו לצורך שיפור ההצעות והמודעות המוצגות לך. <span className="text-[#38BDF8]">מידע נוסף</span>
+            </p>
+
+            {/* Search Bar */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 bg-white/5 rounded-[12px] flex items-center px-4 h-10 border border-white/5">
+                <Search className="w-4 h-4 text-white/50 mr-2" />
+                <input type="text" placeholder="חיפוש" className="bg-transparent text-white w-full text-[14px] outline-none placeholder:text-white/40 px-2" />
+              </div>
+            </div>
+
+            {/* Friends Grid */}
+            <div className="grid grid-cols-3 gap-y-6 gap-x-2 mb-6 max-h-[300px] overflow-y-auto custom-scrollbar">
+              {MOCK_FRIENDS.map(friend => (
+                <div key={friend.id} className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={onClose}>
+                  <img src={friend.avatar} className="w-[60px] h-[60px] rounded-full bg-[#1E2638] object-cover border border-white/10" />
+                  <span className="text-white text-[13px] font-bold text-center">{friend.name}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions Row */}
+            <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5 pb-2 overflow-x-auto gap-4 custom-scrollbar">
+              <div className="flex flex-col items-center gap-2 cursor-pointer shrink-0">
+                 <div className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center">
+                    <MessageCircle className="w-6 h-6 text-white" />
+                 </div>
+                 <span className="text-white text-[11px] font-bold">WhatsApp</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 cursor-pointer shrink-0">
+                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                    <Plus className="w-6 h-6 text-white" />
+                 </div>
+                 <span className="text-white text-[11px] font-bold text-center leading-tight">הוספה<br/>לסטורי</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 cursor-pointer shrink-0">
+                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                    <Share2 className="w-6 h-6 text-white" />
+                 </div>
+                 <span className="text-white text-[11px] font-bold">שיתוף</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 cursor-pointer shrink-0">
+                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                    <Copy className="w-6 h-6 text-white" />
+                 </div>
+                 <span className="text-white text-[11px] font-bold text-center leading-tight">העתקת<br/>קישור</span>
+              </div>
+            </div>
+
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 
@@ -212,6 +305,7 @@ const MyChallengeCard = ({
 
   const sortedParticipants = [...localParticipants].sort((a, b) => b.score - a.score);
   const myParticipant = localParticipants.find(p => p.isMe) || localParticipants[0];
+  const opponent = type === '1v1' ? localParticipants.find(p => !p.isMe) : null;
   const myPercent = Math.min(100, Math.round((myParticipant.score / maxScore) * 100));
   const isNearCompletion = myPercent >= 70 && myPercent < 100;
   const isCompleted = myPercent >= 100;
@@ -225,14 +319,14 @@ const MyChallengeCard = ({
       variants={itemVariants}
       transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }}
       onClick={() => setIsExpanded(!isExpanded)}
-      className="bg-[#121212] rounded-[24px] border border-white/5 relative flex flex-col shadow-lg overflow-visible cursor-pointer hover:bg-[#151515] transition-colors duration-300"
+      className="bg-[#121212] rounded-[24px] border border-white/5 relative flex flex-col shadow-lg overflow-hidden cursor-pointer hover:bg-[#151515] transition-colors duration-300"
     >
       <FloatingParticles active={triggerParticles} />
       
       {/* Deep Ambient Glow */}
       <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
       
-      <div className="p-5 flex flex-col relative z-10">
+      <div className="flex flex-col relative z-10" style={{ padding: '24px' }}>
         
         {/* Trigger (Top) - Time sensitivity / Hook Model */}
         <div className="flex justify-between items-center mb-5">
@@ -242,7 +336,10 @@ const MyChallengeCard = ({
                 🔥 רצף {daysLeft} ימים נותר!
              </span>
           </div>
-          <div className="flex items-center gap-1.5 text-[13px] font-black text-[#F5D061] bg-[#F5D061]/10 px-3 py-1.5 rounded-full border border-[#F5D061]/20">
+          <div 
+            className="flex items-center gap-1.5 text-[13px] font-black text-[#F5D061] bg-[#F5D061]/10 px-3 py-1.5 rounded-full border border-[#F5D061]/20"
+            style={{ position: 'relative', overflow: 'visible', marginInlineStart: 0 }}
+          >
             <Zap className="w-4 h-4 fill-[#F5D061]" />
             <span style={{ fontFeatureSettings: '"tnum"' }}>+{xpReward} XP</span>
           </div>
@@ -262,26 +359,79 @@ const MyChallengeCard = ({
         </div>
 
         {/* Reward (Center): Progress Metric + Bar (Element 2) */}
-        <div className="flex flex-col gap-4 mb-8">
-          <div className="flex items-baseline gap-2 tabular-nums" style={{ fontFeatureSettings: '"tnum"' }}>
-            <span className="text-[44px] font-black text-white leading-none drop-shadow-md">{myParticipant.score}</span>
-            <span className="text-[22px] font-black text-[#A1A1AA]">/ {maxScore}</span>
-            <span className="text-[18px] font-bold text-[#71717A] ml-1">{unit}</span>
+        {type === '1v1' && opponent ? (
+          <div className="flex flex-col gap-5 mb-8 bg-black/40 p-5 rounded-[20px] border border-white/10 shadow-inner">
+            <div className="flex items-center justify-between mb-1 relative">
+              
+              {/* Me */}
+              <div className="flex flex-col items-center gap-3 relative z-10">
+                <div className="relative">
+                  <img src={myParticipant.avatar} className="w-[60px] h-[60px] rounded-full border-[3px] border-[#F5D061] shadow-[0_0_20px_rgba(245,208,97,0.4)] bg-[#1E2638] object-cover" />
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#F5D061] text-black text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-md whitespace-nowrap border border-black/20">אתה</div>
+                </div>
+                <span className="text-[28px] font-black text-white tabular-nums leading-none">{myParticipant.score}</span>
+              </div>
+              
+              {/* VS Banner */}
+              <div className="flex flex-col items-center gap-1 absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-0">
+                 <div className="text-[20px] font-black text-white/30 italic px-4 py-1.5 bg-white/5 rounded-full border border-white/10 tracking-[0.2em]">VS</div>
+                 <span className="text-[12px] font-bold text-[#A1A1AA] bg-black/50 px-2 py-0.5 rounded-full border border-white/5">יעד: {maxScore}</span>
+              </div>
+              
+              {/* Opponent */}
+              <div className="flex flex-col items-center gap-3 relative z-10">
+                <div className="relative">
+                  <img src={opponent.avatar} className="w-[60px] h-[60px] rounded-full border-[3px] border-[#EF4444] shadow-[0_0_20px_rgba(239,68,68,0.4)] bg-[#1E2638] object-cover" />
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); /* Navigation to chat */ }}
+                    className="absolute -bottom-3 -left-4 bg-[#27272A] hover:bg-[#3F3F46] text-white text-[11px] font-black px-2.5 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10 transition-colors shadow-xl z-20 group"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-[#06B6D4] group-hover:scale-110 transition-transform" /> לצ'אט
+                  </button>
+                </div>
+                <span className="text-[28px] font-black text-[#EF4444] tabular-nums leading-none">{opponent.score}</span>
+              </div>
+            </div>
+            
+            {/* Split Progress Bar */}
+            <div className="w-full bg-[#000] h-4 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_5px_rgba(0,0,0,0.8)] flex relative p-[2px] mt-2">
+              <motion.div 
+                className="h-full rounded-r-full shadow-[0_0_10px_rgba(245,208,97,0.5)] bg-gradient-to-l from-[#F5D061] to-[#E6A213]"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, Math.round((myParticipant.score / maxScore) * 100))}%` }}
+                transition={{ type: "spring", stiffness: 80, damping: 15 }}
+              />
+              <div className="flex-1 bg-transparent min-w-[2px]" />
+              <motion.div 
+                className="h-full rounded-l-full shadow-[0_0_10px_rgba(239,68,68,0.5)] bg-gradient-to-r from-[#EF4444] to-[#B91C1C]"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, Math.round((opponent.score / maxScore) * 100))}%` }}
+                transition={{ type: "spring", stiffness: 80, damping: 15 }}
+              />
+            </div>
           </div>
-          <div className="w-full bg-[#000] h-3.5 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] p-[2px]">
-            <motion.div 
-              className="h-full rounded-full shadow-[0_0_10px_rgba(245,208,97,0.5)]"
-              style={{
-                background: isCompleted 
-                  ? 'linear-gradient(90deg, #10B981, #34D399)'
-                  : 'linear-gradient(90deg, #F5D061, #E6A213)',
-              }}
-              initial={{ width: 0 }}
-              animate={{ width: `${myPercent}%` }}
-              transition={{ type: "spring", stiffness: 80, damping: 15 }}
-            />
+        ) : (
+          <div className="flex flex-col gap-4 mb-8">
+            <div className="flex items-baseline gap-2 tabular-nums" style={{ fontFeatureSettings: '"tnum"' }}>
+              <span className="text-[44px] font-black text-white leading-none drop-shadow-md">{myParticipant.score}</span>
+              <span className="text-[22px] font-black text-[#A1A1AA]">/ {maxScore}</span>
+              <span className="text-[18px] font-bold text-[#71717A] ml-1">{unit}</span>
+            </div>
+            <div className="w-full bg-[#000] h-3.5 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] p-[2px]">
+              <motion.div 
+                className="h-full rounded-full shadow-[0_0_10px_rgba(245,208,97,0.5)]"
+                style={{
+                  background: isCompleted 
+                    ? 'linear-gradient(90deg, #10B981, #34D399)'
+                    : 'linear-gradient(90deg, #F5D061, #E6A213)',
+                }}
+                initial={{ width: 0 }}
+                animate={{ width: `${myPercent}%` }}
+                transition={{ type: "spring", stiffness: 80, damping: 15 }}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Action (Bottom): Primary CTA (Element 3) */}
         {!isCompleted && (
@@ -417,7 +567,7 @@ const QuestCard = ({ quest, type, onClick }) => {
       variants={itemVariants}
       whileHover={!isCompleted ? { scale: 1.02, y: -2 } : {}}
       onClick={() => !isCompleted && onClick()}
-      className={`relative rounded-[20px] p-4 ps-[16px] flex flex-col gap-3 cursor-pointer overflow-visible transition-all duration-300 border shadow-lg ${
+      className={`relative rounded-[20px] flex flex-col cursor-pointer transition-all duration-300 border shadow-lg ${
         isCompleted 
           ? 'bg-white/5 border-white/10 opacity-70' 
           : type === 'daily'
@@ -426,39 +576,53 @@ const QuestCard = ({ quest, type, onClick }) => {
               ? 'bg-gradient-to-br from-[#06B6D4]/10 to-transparent border-[#06B6D4]/30 hover:bg-[#06B6D4]/15'
               : 'bg-gradient-to-br from-[#F5D061]/20 to-[#E6A213]/5 border-[#F5D061]/40 hover:bg-[#F5D061]/25'
       }`}
+      style={{ paddingInline: '16px', paddingBlock: '16px', overflow: 'visible', gap: '4px' }}
     >
       {/* Background Icon */}
       <div className="absolute -top-2 -left-2 p-3 opacity-10 text-[60px] leading-none pointer-events-none transform -rotate-12 blur-sm filter">{quest.icon}</div>
       
-      <div className="flex justify-start items-start relative z-10 min-h-[36px]">
-        <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-[18px] bg-white/[0.06] shadow-sm ${isCompleted ? 'grayscale opacity-50' : ''}`}>
+      {/* XP Badge on top-left */}
+      <div 
+        className={`absolute flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-black z-20 ${isCompleted ? 'bg-[#10B981]/20 border-[#10B981]/30 text-[#10B981]' : 'bg-black/40 border-white/20 text-white'}`}
+        style={{ top: '12px', left: '12px' }}
+      >
+        {isCompleted ? <CheckCircle className="w-3 h-3" /> : <Zap className="w-3 h-3 text-[#F5D061]" />}
+        <span>+{quest.xp}</span>
+      </div>
+
+      <div className="flex justify-start items-start relative z-10 min-h-[36px] mb-2">
+        <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-[18px] shadow-sm ${isCompleted ? 'grayscale opacity-50' : ''}`} style={{ background: 'rgba(255,255,255,0.06)' }}>
           {quest.icon}
-        </div>
-        <div className={`absolute top-[12px] left-[12px] flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-black ${isCompleted ? 'bg-[#10B981]/20 border-[#10B981]/30 text-[#10B981]' : 'bg-black/40 border-white/20 text-white'}`}>
-          {isCompleted ? <CheckCircle className="w-3 h-3" /> : <Zap className="w-3 h-3 text-[#F5D061]" />}
-          <span>+{quest.xp}</span>
         </div>
       </div>
       
-      <div className="relative z-10 mt-1">
-        <h4 className={`font-black text-[14px] leading-tight mb-1 ${isCompleted ? 'text-[#A1A1AA] line-through' : 'text-white'}`}>{quest.title}</h4>
+      <div className="relative z-10 flex flex-col gap-1">
+        <h4 className={`font-black text-[14px] leading-tight ${isCompleted ? 'text-[#A1A1AA] line-through' : 'text-white'}`}>{quest.title}</h4>
         
         {quest.max > 1 ? (
-          <div className="mt-2.5">
+          <div className="mt-1.5">
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] text-[#A1A1AA] font-bold tracking-wider" dir="ltr">{quest.progress} / {quest.max}</span>
-              <span className={`text-[10px] font-black bg-white/[0.08] px-2 py-0.5 rounded-[6px] ${type === 'weekly' ? 'text-[#06B6D4]' : 'text-[#F5D061]'}`}>{Math.round(percent)}%</span>
+              <span className="text-[#A1A1AA] font-bold tracking-wider" style={{ fontSize: '12px', unicodeBidi: 'isolate' }}>
+                <bdi>{quest.progress} / {quest.max}</bdi>
+              </span>
+              <span 
+                className={`font-black ${type === 'weekly' ? 'text-[#06B6D4]' : 'text-[#F5D061]'}`}
+                style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '6px', fontSize: '12px' }}
+              >
+                {Math.round(percent)}%
+              </span>
             </div>
-            <div className="w-full bg-black/50 h-2 rounded-full overflow-hidden shadow-inner">
+            <div className="w-full bg-black/50 overflow-hidden shadow-inner" style={{ height: '8px', borderRadius: '9999px', marginTop: '8px' }}>
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${percent}%` }}
                 className={`h-full rounded-full ${type === 'weekly' ? 'bg-gradient-to-r from-[#38BDF8] to-[#0284C7]' : 'bg-[#F5D061]'}`}
+                style={{ borderRadius: '9999px' }}
               />
             </div>
           </div>
         ) : (
-          <div className="mt-2 text-[12px] font-bold text-[#9CA3AF] flex items-center gap-1.5">
+          <div className="text-[12px] font-bold text-[#9CA3AF] flex items-center gap-1.5">
             {!isCompleted && <Camera className="w-3.5 h-3.5 text-[#F97316]" />}
             {isCompleted ? 'הושלם' : 'דרוש תיעוד'}
           </div>
@@ -468,6 +632,185 @@ const QuestCard = ({ quest, type, onClick }) => {
   );
 };
 
+
+const FeedItem = ({ type, title, subtitle, videoUrl, challenger, opponent, challengeScore, opponentScore, maxScore, onShare }) => {
+  const [liked, setLiked] = useState(false);
+  const challengerPercent = challenger ? Math.min(100, (challengeScore / maxScore) * 100) : 0;
+  const opponentPercent = opponent ? Math.min(100, (opponentScore / maxScore) * 100) : 0;
+
+  return (
+    <motion.div 
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.2}
+      onDragEnd={(e, info) => {
+        // Trigger share if dragged right strongly (in RTL this means negative x offset depending on container, but let's just trigger on high absolute velocity or sufficient offset)
+        if (Math.abs(info.offset.x) > 100 || Math.abs(info.velocity.x) > 500) {
+          if (onShare) onShare();
+        }
+      }}
+      className="w-full h-full snap-start snap-always relative overflow-hidden flex flex-col justify-end pb-[110px] pt-20 px-6 shrink-0"
+    >
+      <div className="absolute inset-0 z-0 bg-black">
+        <video src={videoUrl} autoPlay loop muted playsInline className="w-full h-full object-cover opacity-60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent h-32" />
+      </div>
+
+      <div className="relative z-10 flex justify-between items-end w-full">
+        <div className="flex-1 pr-4 pl-2 flex flex-col gap-3 min-w-0">
+          {type === 'matchup' && (
+            <div className="bg-[#EF4444] text-white text-[11px] font-black px-2 py-1 rounded-sm w-max animate-pulse flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+              <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+              LIVE MATCHUP
+            </div>
+          )}
+          {type === 'invite' && (
+            <div className="bg-[#06B6D4] text-black text-[11px] font-black px-2 py-1 rounded-sm w-max flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+              <Star className="w-3 h-3" />
+              אתגר קהילתי
+            </div>
+          )}
+          
+          <h3 className="text-[28px] font-black text-white drop-shadow-lg leading-tight break-words">{title}</h3>
+          <p className="text-white/90 text-[14px] font-bold line-clamp-2">{subtitle}</p>
+          
+          {type === 'matchup' && challenger && opponent && (
+            <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 border border-white/10 mt-2">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col items-center gap-1.5">
+                  <img src={challenger.avatar} className="w-9 h-9 rounded-full border-2 border-[#F5D061] shadow-[0_0_10px_#F5D061]" />
+                  <span className="text-white font-black text-[11px]">{challenger.name}</span>
+                </div>
+                <div className="text-[14px] font-black text-white/80 italic px-2 tracking-widest drop-shadow-md">VS</div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <img src={opponent.avatar} className="w-9 h-9 rounded-full border-2 border-[#06B6D4] shadow-[0_0_10px_#06B6D4]" />
+                  <span className="text-white font-black text-[11px]">{opponent.name}</span>
+                </div>
+              </div>
+              <div className="w-full bg-[#000] h-2.5 rounded-full overflow-hidden flex relative shadow-inner">
+                <div className="h-full bg-gradient-to-l from-[#F5D061] to-[#E6A213]" style={{ width: `${challengerPercent}%` }} />
+                <div className="h-full bg-transparent flex-1" />
+                <div className="h-full bg-gradient-to-r from-[#06B6D4] to-[#0284C7]" style={{ width: `${opponentPercent}%` }} />
+              </div>
+              <div className="flex justify-between text-[11px] font-black mt-2 text-white/80">
+                <span className="text-[#F5D061] text-[13px]">{challengeScore}</span>
+                <span className="text-[#A1A1AA]">יעד: {maxScore}</span>
+                <span className="text-[#06B6D4] text-[13px]">{opponentScore}</span>
+              </div>
+            </div>
+          )}
+
+          {type === 'invite' && (
+             <motion.button 
+               whileTap={{ scale: 0.95 }}
+               className="bg-gradient-to-br from-[#F5D061] to-[#E6A213] text-black font-black px-6 py-3.5 rounded-[16px] text-[16px] shadow-[0_0_25px_rgba(245,208,97,0.4)] mt-3 flex items-center justify-center gap-2 w-max transition-all hover:scale-105"
+             >
+                <UserPlus className="w-5 h-5" />
+                החלק להצטרף
+             </motion.button>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-5 items-center mr-2">
+          <button className="flex flex-col items-center gap-1.5 group" onClick={() => setLiked(!liked)}>
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition-transform shadow-lg">
+              <Heart className={`w-5 h-5 ${liked ? 'fill-[#EF4444] text-[#EF4444]' : 'text-white'}`} />
+            </div>
+            <span className="text-[11px] font-black text-white drop-shadow-md">{liked ? '12.1K' : '12K'}</span>
+          </button>
+          
+          <button className="flex flex-col items-center gap-1.5 group">
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition-transform shadow-lg">
+              <MessageCircle className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[11px] font-black text-white drop-shadow-md">342</span>
+          </button>
+
+          <button className="flex flex-col items-center gap-1.5 group" onClick={onShare}>
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition-transform shadow-lg">
+              <Share2 className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[11px] font-black text-white drop-shadow-md">שתף</span>
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const CrewDashboard = () => {
+  return (
+    <div className="flex flex-col gap-6 pt-0 px-0 pb-2">
+      {/* Stories/Squads Bar */}
+      <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+        <div className="flex flex-col items-center gap-2 min-w-[72px] cursor-pointer hover:scale-105 transition-transform">
+           <div className="w-16 h-16 rounded-full border-[3px] border-[#F5D061] p-0.5 relative shadow-[0_0_15px_rgba(245,208,97,0.3)]">
+             <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Squad1" className="w-full h-full rounded-full object-cover bg-[#1E2638]" />
+             <div className="absolute -bottom-1 -right-1 bg-[#F5D061] w-5 h-5 rounded-full flex items-center justify-center border-2 border-black shadow-lg">
+                <span className="text-black text-[10px] font-black">3</span>
+             </div>
+           </div>
+           <span className="text-[12px] font-black text-white text-center tracking-wide">המשפחה</span>
+        </div>
+        <div className="flex flex-col items-center gap-2 min-w-[72px] cursor-pointer hover:scale-105 transition-transform">
+           <div className="w-16 h-16 rounded-full border-[3px] border-[#06B6D4] p-0.5 relative shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+             <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Squad2" className="w-full h-full rounded-full object-cover bg-[#1E2638]" />
+           </div>
+           <span className="text-[12px] font-black text-white text-center tracking-wide">ריצה ת"א</span>
+        </div>
+        <div className="flex flex-col items-center gap-2 min-w-[72px] cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+           <div className="w-16 h-16 rounded-full border-[2px] border-dashed border-white/30 flex items-center justify-center bg-white/5 hover:bg-white/10 transition-colors">
+             <Plus className="w-6 h-6 text-white/50" />
+           </div>
+           <span className="text-[12px] font-bold text-white text-center">קבוצה חדשה</span>
+        </div>
+      </div>
+
+      {/* Squad Progress Meter */}
+      <div className="bg-[#121212] rounded-[24px] border border-white/10 p-5 shadow-xl relative overflow-hidden group cursor-pointer hover:bg-[#151515] transition-colors">
+         <div className="absolute top-0 right-0 w-32 h-32 bg-[#06B6D4]/10 blur-[40px] rounded-full pointer-events-none" />
+         <div className="relative z-10">
+           <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center gap-2">
+               <div className="w-8 h-8 rounded-full bg-[#06B6D4]/20 flex items-center justify-center border border-[#06B6D4]/30">
+                 <Target className="w-4 h-4 text-[#06B6D4]" />
+               </div>
+               <h4 className="font-black text-[16px] text-white">יעד קבוצתי: 500 ק"מ</h4>
+             </div>
+             <button className="text-[11px] font-black bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition-colors flex items-center gap-1.5 border border-white/5 shadow-sm">
+               <MessageCircle className="w-3.5 h-3.5" />
+               לצ'אט
+             </button>
+           </div>
+
+           <div className="flex items-end gap-2 mb-3">
+             <span className="text-4xl font-black text-[#06B6D4] leading-none drop-shadow-md">342</span>
+             <span className="text-sm font-bold text-[#A1A1AA] mb-1">/ 500 ק"מ</span>
+           </div>
+
+           <div className="w-full h-3 bg-black rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] mb-5 flex p-[2px] border border-white/5">
+             <div className="h-full bg-gradient-to-r from-[#06B6D4] to-[#0284C7] rounded-r-full" style={{width: '40%'}} />
+             <div className="h-full bg-gradient-to-r from-[#F5D061] to-[#E6A213]" style={{width: '20%'}} />
+             <div className="h-full bg-gradient-to-r from-[#10B981] to-[#059669] rounded-l-full" style={{width: '8%'}} />
+           </div>
+
+           <div className="flex items-center justify-between pt-1 border-t border-white/5">
+              <div className="flex -space-x-2 -space-x-reverse">
+                <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Squad1" className="w-7 h-7 rounded-full border-2 border-[#121212] bg-[#1E2638] relative z-30" />
+                <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Squad2" className="w-7 h-7 rounded-full border-2 border-[#121212] bg-[#1E2638] relative z-20" />
+                <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Squad3" className="w-7 h-7 rounded-full border-2 border-[#121212] bg-[#1E2638] relative z-10" />
+                <div className="w-7 h-7 rounded-full border-2 border-[#121212] bg-white/10 flex items-center justify-center text-[10px] font-black text-white relative z-0">+2</div>
+              </div>
+              <button className="text-[#A1A1AA] text-[12px] font-bold underline decoration-white/20 hover:text-white transition-colors">
+                פירוט תרומות
+              </button>
+           </div>
+         </div>
+      </div>
+    </div>
+  );
+};
 
 export default function ChallengesTab({
   currentUser,
@@ -483,7 +826,8 @@ export default function ChallengesTab({
   setIsAIMentorOpen,
   setActiveTab
 }) {
-  const [activeInnerTab, setActiveInnerTab] = useState('my_challenges');
+  const [activeInnerTab, setActiveInnerTab] = useState('feed');
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   
   // Categorized Quests State
   const [quests, setQuests] = useState({
@@ -555,15 +899,20 @@ export default function ChallengesTab({
     <div className="flex flex-col h-full w-full min-h-0 bg-[#000000] font-sans text-white relative overflow-hidden" dir="rtl">
       
       {/* Global Ambient Lighting - Softened */}
-      <div className={`absolute top-[-20%] left-[-10%] w-[120%] h-[50%] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000 ${activeInnerTab === 'training_ground' ? 'bg-[#EF4444]/5' : 'bg-[#F5D061]/5'}`} />
-      <div className={`absolute bottom-[-20%] right-[-10%] w-[120%] h-[50%] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000 ${activeInnerTab === 'training_ground' ? 'bg-[#F97316]/5' : 'bg-[#06B6D4]/5'}`} />
+      {activeInnerTab !== 'feed' && (
+        <>
+          <div className={`absolute top-[-20%] left-[-10%] w-[120%] h-[50%] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000 ${activeInnerTab === 'vs_app' ? 'bg-[#EF4444]/5' : 'bg-[#F5D061]/5'}`} />
+          <div className={`absolute bottom-[-20%] right-[-10%] w-[120%] h-[50%] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000 ${activeInnerTab === 'vs_app' ? 'bg-[#F97316]/5' : 'bg-[#06B6D4]/5'}`} />
+        </>
+      )}
 
       {/* ── Spatial Header & Nav ── */}
-      <div className="relative z-20 pt-8 pb-5 px-6 bg-gradient-to-b from-black via-black/90 to-transparent">
-        <div className="flex justify-between items-end mb-6">
+      <div className={`absolute top-0 left-0 right-0 z-50 pt-8 pb-5 px-6 transition-colors duration-500 pointer-events-none ${activeInnerTab === 'feed' ? 'bg-gradient-to-b from-black/80 to-transparent' : 'bg-black/90 backdrop-blur-md border-b border-white/5'}`}>
+        <div className="flex justify-between items-end mb-6 pointer-events-auto relative">
           <h2 className="text-[32px] font-black tracking-tight text-white drop-shadow-sm">
             אתגרים
           </h2>
+
           <div className="flex items-center gap-2 bg-[#1A1A1A]/80 backdrop-blur-xl px-4 py-2 rounded-[14px] border border-white/10 shadow-sm cursor-default hover:bg-[#222] transition-colors">
             <Flame className="w-5 h-5 text-[#F5D061] fill-[#F5D061] opacity-90" />
             <span className="text-[15px] font-black text-white tabular-nums tracking-wide">{currentUser?.stats?.streakDays || 7} רצף</span>
@@ -571,25 +920,27 @@ export default function ChallengesTab({
         </div>
 
         {/* Premium Segmented Control - Softer contrast */}
-        <div className="relative p-1.5 bg-[#121212]/80 backdrop-blur-[30px] rounded-[22px] flex items-center border border-white/5 shadow-sm">
+        <div className="relative pointer-events-auto" style={{ display: 'flex', alignItems: 'center', height: '48px', padding: '4px', background: 'rgba(18, 24, 38, 0.8)', borderRadius: '9999px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
           {[
-            { id: 'explore',          label: 'זירה' },
-            { id: 'my_challenges',    label: 'שלי' },
-            { id: 'training_ground',  label: 'אימונים' },
+            { id: 'community',        label: 'קהילה' },
+            { id: 'feed',             label: 'גלה' },
+            { id: 'vs_app',           label: 'אימונים' },
           ].map(({ id, label }) => {
             const isActive = activeInnerTab === id;
             return (
               <button
                 key={id}
                 onClick={() => setActiveInnerTab(id)}
-                className={`relative flex-1 h-12 flex items-center justify-center z-10 rounded-[18px] font-bold text-[15px] tracking-wide transition-colors ${
+                className={`relative flex-1 flex items-center justify-center z-10 font-bold text-[15px] tracking-wide transition-colors ${
                   isActive ? 'text-white' : 'text-[#888] hover:text-[#bbb]'
                 }`}
+                style={{ height: '100%', paddingInline: '16px', borderRadius: '9999px' }}
               >
                 {isActive && (
                   <motion.div
                     layoutId="spatialTab"
-                    className="absolute inset-0 bg-white/10 border border-white/10 rounded-[18px] shadow-sm"
+                    className="absolute inset-0 bg-white/10 border border-white/10"
+                    style={{ height: '100%', borderRadius: '9999px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -601,42 +952,34 @@ export default function ChallengesTab({
       </div>
 
       {/* ── Dynamic Content Area ── */}
-      <div className="flex-1 overflow-y-auto pb-[110px] px-5 pt-2 custom-scrollbar relative z-10">
+      <div className={`flex-1 overflow-y-auto custom-scrollbar relative z-10 ${activeInnerTab === 'feed' ? 'pb-0 px-0 pt-0 snap-y snap-mandatory' : 'pb-[110px] px-5 pt-[160px]'}`}>
         <AnimatePresence mode="wait">
           
-          {/* TAB 1: MY CHALLENGES */}
-          {activeInnerTab === 'my_challenges' && (
+          {/* TAB 1: COMMUNITY HUB */}
+          {activeInnerTab === 'community' && (
             <motion.div 
-              key="tab_my"
+              key="tab_community"
               variants={containerVariants}
               initial="hidden"
               animate="show"
               exit="hidden"
-              className="flex flex-col gap-5"
+              className="flex flex-col gap-6"
             >
-              {/* Breakthrough Banner */}
-              <motion.div 
-                variants={itemVariants}
-                whileTap={{ scale: 0.96 }}
-                className="relative overflow-hidden rounded-[24px] p-4 flex flex-row items-center justify-between bg-[#161616] border border-white/5 shadow-md cursor-pointer active:bg-[#1A1A1A] transition-colors" 
-                dir="rtl"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#F5D061]/10 to-transparent opacity-80" />
-                
-                <div className="relative z-10 flex flex-col gap-0.5">
-                  <h4 className="text-[17px] font-black text-white tracking-wide flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-[#F5D061] fill-[#F5D061] opacity-90" />
-                    קרוב לפריצת דרך!
-                  </h4>
-                  <p className="text-[14px] text-[#888] font-bold">
-                    מטרת על: ירידה באחוזי שומן
-                  </p>
-                </div>
-                
-                <div className="relative z-10 bg-white/10 px-2.5 py-1 rounded-[8px] mr-auto">
-                  <span className="font-black text-[15px] text-white">40%</span>
-                </div>
-              </motion.div>
+              {/* Crew Dashboard / Squad Stories */}
+              <div className="-mx-5 mb-2">
+                 <CrewDashboard />
+              </div>
+
+              {/* Action: Challenge a friend */}
+              <div className="bg-gradient-to-r from-[#F5D061]/20 to-[#E6A213]/20 border border-[#F5D061]/30 rounded-[20px] p-5 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors shadow-lg">
+                 <div className="flex flex-col">
+                   <h3 className="font-black text-white text-[16px]">במי תרצה להתחרות?</h3>
+                   <span className="text-[#A1A1AA] text-[13px] font-bold">מצא חברים לאתגר</span>
+                 </div>
+                 <div className="w-10 h-10 rounded-full bg-[#F5D061] text-black flex items-center justify-center shadow-md">
+                   <Swords className="w-5 h-5" />
+                 </div>
+              </div>
 
               <MyChallengeCard 
                 title={'100 ק"מ ריצה'}
@@ -676,29 +1019,51 @@ export default function ChallengesTab({
             </motion.div>
           )}
 
-          {/* TAB 2: EXPLORE */}
-          {activeInnerTab === 'explore' && (
+          {/* TAB 2: FEED (REELS STYLE) */}
+          {activeInnerTab === 'feed' && (
             <motion.div 
-              key="tab_explore"
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              exit="hidden"
-              className="flex flex-col gap-5"
+              key="tab_feed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col h-full w-full relative"
             >
-              <MatchupFeedCard 
+              {/* Swipe Hint */}
+              <div className="absolute top-[40%] right-2 z-50 pointer-events-none flex flex-col items-center opacity-60 animate-pulse drop-shadow-md">
+                 <ChevronRight className="w-8 h-8 text-white drop-shadow-lg" />
+                 <span className="text-white text-[10px] font-black rotate-90 tracking-widest mt-4">קהילה</span>
+              </div>
+              
+              <FeedItem 
+                type="matchup"
                 title='הראשון ל-50 ק"מ'
-                subtitle="תחרות ריצה שבועית"
+                subtitle="דניאל ורועי ראש בראש ברחובות תל אביב!"
+                videoUrl="https://assets.mixkit.co/videos/preview/mixkit-girl-doing-running-exercise-on-a-treadmill-40283-large.mp4"
                 challenger={{ name: 'דניאל', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Daniel' }}
                 opponent={{ name: 'רועי', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Roi' }}
                 challengeScore={35}
                 opponentScore={28}
                 maxScore={50}
+                onShare={() => setShareSheetOpen(true)}
               />
-
-              <MatchupFeedCard 
+              <FeedItem 
+                type="matchup"
+                title="טיפוס הרים ראש בראש"
+                subtitle="דוד ואלירן מתחרים מי יגיע לפסגה ראשון!"
+                videoUrl="https://assets.mixkit.co/videos/preview/mixkit-man-runs-past-ground-level-shot-32809-large.mp4"
+                challenger={{ name: 'דוד', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=David' }}
+                opponent={{ name: 'אלירן', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Eliran' }}
+                challengeScore={15}
+                opponentScore={12}
+                maxScore={30}
+                onShare={() => setShareSheetOpen(true)}
+              />
+              <FeedItem 
+                type="matchup"
                 title="מלך הכוח"
-                subtitle="הכי הרבה משקל באימון"
+                subtitle="מיכל נגד אנה, קרב סקווטים"
+                videoUrl="https://assets.mixkit.co/videos/preview/mixkit-young-athletic-woman-doing-plank-exercise-43160-large.mp4"
                 challenger={{ name: 'אנה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Anna' }}
                 opponent={{ name: 'מיכל', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Michal' }}
                 challengeScore={4500}
@@ -708,8 +1073,8 @@ export default function ChallengesTab({
             </motion.div>
           )}
 
-          {/* TAB 3: TRAINING GROUND (THE FORGE) */}
-          {activeInnerTab === 'training_ground' && (
+          {/* TAB 3: VS APP (THE FORGE) */}
+          {activeInnerTab === 'vs_app' && (
             <motion.div 
               key="tab_training"
               variants={containerVariants}
@@ -719,18 +1084,18 @@ export default function ChallengesTab({
               className="flex flex-col gap-5 pb-4"
             >
               {/* Top Section: Daily Boss Progress */}
-              <motion.div variants={itemVariants} className="flex items-center bg-black/40 backdrop-blur-[40px] rounded-[24px] border border-white/10 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <h3 className="text-[20px] font-black text-white tracking-wide">הבוס היומי</h3>
+              <motion.div variants={itemVariants} style={{ display: 'flex', direction: 'rtl', justifyContent: 'space-between', alignItems: 'center', padding: '20px', background: 'rgba(22, 27, 34, 0.75)', borderRadius: '16px' }} className="shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800 }} className="text-white tracking-wide">הבוס היומי</h3>
                   <p className="text-[#9CA3AF] text-[12px] font-bold tracking-[0.1em] uppercase">שריפת 500 קק"ל</p>
-                  <div className="mt-2 flex items-center gap-1.5 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1 rounded-[10px] w-fit border border-[#D4AF37]/20">
+                  <div className="flex items-center gap-1.5 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1 rounded-[10px] w-fit border border-[#D4AF37]/20">
                     <Flame className="w-3.5 h-3.5 fill-[#D4AF37]" />
                     <span className="text-[12px] font-black tabular-nums">{Math.round(500 * (machineBossProgress/100))} קק"ל</span>
                   </div>
                 </div>
                 
                 {/* Compact Progress Ring */}
-                <div className="relative w-24 h-24 flex items-center justify-center ms-auto">
+                <div className="relative w-24 h-24 flex items-center justify-center" style={{ marginInlineStart: 'auto', minWidth: '80px' }}>
                   <svg className="w-full h-full -rotate-90 transform drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
                     <motion.circle 
@@ -771,7 +1136,7 @@ export default function ChallengesTab({
                     {quests.daily.filter(q => q.completed).length}/{quests.daily.length} הושלמו
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                   {quests.daily.map(quest => (
                     <QuestCard key={quest.id} quest={quest} type="daily" onClick={() => openEvidenceModal(quest, 'daily')} />
                   ))}
@@ -893,6 +1258,8 @@ export default function ChallengesTab({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ChallengeShareSheet isOpen={shareSheetOpen} onClose={() => setShareSheetOpen(false)} />
     </div>
   );
 }
