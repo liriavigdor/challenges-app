@@ -1,19 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Flame, Users, Lock, CheckCircle, Swords, ArrowRight, Zap, Trophy, Medal, Star, Calendar, Clock, Activity, Map as MapIcon, Compass, Dumbbell, ChevronDown, Sparkles, TrendingUp, Moon, Footprints, Shield, Eye } from 'lucide-react';
-import { initialFeed, initialUsers } from '../../mockData';
+import { Target, Flame, Users, Lock, CheckCircle, Swords, ArrowRight, Zap, Trophy, Medal, Star, Calendar, Clock, Activity, Map as MapIcon, Compass, Dumbbell, ChevronDown, Sparkles, TrendingUp, Moon, Plus, Camera, UploadCloud, ScanLine, X } from 'lucide-react';
 
-/* ── Modern Minimalist Neutral / Japandi Theme Palette ──
-   Background: #141517 (Deep matte graphite)
-   Card Surface: #1B1D20 (Matte charcoal surface)
-   Card Elevated: #23262B (Subtle elevated neutral)
-   Borders: rgba(255,255,255,0.07)
-   Warm Accent (Wood/Linen/Warm sand): #C5B4A5, #B09E8F
-   Muted Mocha: #4A443F
-   Text Primary (Off-white / Bone): #F4F4F0
-   Text Secondary (Muted warm gray): #9E9D97
-   Text Dim: #696863
+/* ── Elite Commercial Theme V5 (Addiction/Dopamine Tier) ──
+   Canvas Base: #000000 with subtle radial glows
+   Glass Surfaces: rgba(255, 255, 255, 0.02) blur(30px)
+   Borders: rgba(255, 255, 255, 0.05)
+   Primary Accent (Hyper Gold): linear-gradient(135deg, #F5D061, #E6A213)
+   Secondary Accent (Neon Teal): #06B6D4
 */
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 350, damping: 25 } }
+};
+
+const FloatingParticles = ({ active }) => {
+  if (!active) return null;
+  return (
+    <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden rounded-[24px]">
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 1, scale: 0, x: 0, y: 0 }}
+          animate={{
+            opacity: 0,
+            scale: [0, 1.5, 2],
+            x: (Math.random() - 0.5) * 100,
+            y: (Math.random() - 1) * 150
+          }}
+          transition={{ duration: 1 + Math.random(), ease: "easeOut" }}
+          className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full bg-[#F5D061] shadow-[0_0_10px_#F5D061]"
+        />
+      ))}
+    </div>
+  );
+};
 
 const MatchupFeedCard = ({ challenger, opponent, title, subtitle, challengeScore, opponentScore, maxScore }) => {
   const [hasJoined, setHasJoined] = useState(false);
@@ -22,135 +52,124 @@ const MatchupFeedCard = ({ challenger, opponent, title, subtitle, challengeScore
 
   return (
     <motion.div 
-      whileHover={{ y: -2 }}
-      className="bg-[#131927] rounded-xl border border-white/10 p-4 shadow-lg shadow-black/40 hover:border-teal-500/30 transition-all group/card relative overflow-hidden"
+      variants={itemVariants}
+      whileHover={{ scale: 1.02, y: -4 }}
+      className="relative rounded-[24px] p-[2px] overflow-hidden group shadow-2xl transition-all duration-300"
     >
-      {/* Subtle depth glow */}
-      <div className="absolute top-0 right-0 w-48 h-48 bg-teal-500/[0.04] rounded-full blur-3xl pointer-events-none" />
+      {/* Animated Border Glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-white/5 opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
       
-      {/* Matchup Header */}
-      <div className="text-center mb-5 relative z-10">
-        <h4 className="text-slate-100 font-extrabold tracking-tight text-lg">{title}</h4>
-        <p className="text-xs text-slate-400 font-normal mt-1 leading-relaxed">{subtitle}</p>
-      </div>
-
-      {/* Avatars & Versus */}
-      <div className="flex items-center justify-between mb-5 relative px-4 z-10">
-        {/* Challenger */}
-        <div className="flex flex-col items-center gap-1.5 w-1/3">
-          <div className="relative">
-             <img src={challenger.avatar} alt={challenger.name} className="relative w-13 h-13 rounded-full border-2 border-emerald-500/40 bg-[#1E2638] object-cover shadow-sm" />
-          </div>
-          <span className="text-xs font-semibold text-slate-200 tracking-wide truncate max-w-full">{challenger.name}</span>
-        </div>
+      {/* Card Content Surface */}
+      <div className="relative bg-[#161616] rounded-[22px] p-5 h-full overflow-visible flex flex-col justify-between border border-white/5">
         
-        {/* VS Badge */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(50%+10px)] z-20">
-          <div className="bg-[#090D16] border border-white/15 text-slate-300 text-xs font-black px-3 py-1 rounded-xl flex items-center gap-1 shadow-md">
-            <Swords className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-slate-100">VS</span>
+        {/* Diagonal Split Background Mesh */}
+        <div className="absolute inset-0 rounded-[22px] overflow-hidden opacity-20 transition-opacity duration-700 group-hover:opacity-40">
+          <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-gradient-to-br from-[#06B6D4]/30 via-transparent to-[#F5D061]/30 blur-[50px] animate-[spin_20s_linear_infinite]" />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        </div>
+
+        {/* Header */}
+        <div className="text-center mb-8 relative z-10">
+          <h4 className="text-white font-black tracking-tight text-[22px] leading-tight drop-shadow-md">{title}</h4>
+          <p className="text-[#A1A1AA] text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5">{subtitle}</p>
+        </div>
+
+        {/* Arena Avatars & VS */}
+        <div className="flex items-center justify-center mb-10 relative z-10 h-16 w-full">
+          {/* Challenger */}
+          <motion.div 
+            initial={{ x: -30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
+            className="relative z-10 translate-x-5"
+          >
+             <div className="w-[72px] h-[72px] rounded-full border-[3px] border-[#F5D061] p-0.5 bg-[#000] shadow-[0_0_25px_rgba(245,208,97,0.4)] relative group-hover:scale-105 transition-transform duration-500">
+               <img src={challenger.avatar} alt={challenger.name} className="w-full h-full rounded-full object-cover bg-[#1E2638]" />
+             </div>
+             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#F5D061] text-black text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
+               {challenger.name}
+             </div>
+          </motion.div>
+          
+          {/* VS Badge */}
+          <div className="z-20 relative px-3">
+            <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-[2]" />
+            <motion.div 
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              className="w-12 h-12 rounded-full bg-black border border-white/20 flex items-center justify-center relative shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-xl"
+            >
+              <span className="bg-gradient-to-br from-white to-gray-400 bg-clip-text text-transparent font-black text-[15px] italic tracking-widest ml-0.5 drop-shadow-sm">VS</span>
+            </motion.div>
+          </div>
+
+          {/* Opponent */}
+          <motion.div 
+            initial={{ x: 30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.3 }}
+            className="relative z-10 -translate-x-5"
+          >
+             <div className="w-[72px] h-[72px] rounded-full border-[3px] border-[#06B6D4] p-0.5 bg-[#000] shadow-[0_0_25px_rgba(6,182,212,0.4)] relative group-hover:scale-105 transition-transform duration-500">
+               <img src={opponent.avatar} alt={opponent.name} className="w-full h-full rounded-full object-cover bg-[#1E2638]" />
+             </div>
+             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#06B6D4] text-black text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
+               {opponent.name}
+             </div>
+          </motion.div>
+        </div>
+
+        {/* Scores & Progress */}
+        <div className="relative z-10 mt-2">
+          <div className="flex justify-between items-end mb-2.5 px-1.5">
+            <span className="font-black text-lg text-[#F5D061] drop-shadow-[0_0_8px_rgba(245,208,97,0.5)]">{challengeScore}</span>
+            <span className="text-[#71717A] text-[10px] font-black tracking-[0.2em] uppercase">יעד: {maxScore}</span>
+            <span className="font-black text-lg text-[#06B6D4] drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">{opponentScore}</span>
+          </div>
+          
+          <div className="w-full h-[14px] bg-[#000] rounded-full overflow-hidden border border-white/10 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] p-[2px]">
+             {/* Challenger Bar */}
+             <motion.div 
+               initial={{ width: 0 }} 
+               animate={{ width: `${challengerPercent}%` }} 
+               transition={{ duration: 1.5, ease: "easeOut" }} 
+               className="absolute top-[2px] right-[2px] bottom-[2px] bg-gradient-to-l from-[#F5D061] to-[#E6A213] rounded-full z-20 shadow-[0_0_10px_rgba(245,208,97,0.5)]" 
+             />
+             {/* Opponent Bar */}
+             <motion.div 
+               initial={{ width: 0 }} 
+               animate={{ width: `${opponentPercent}%` }} 
+               transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }} 
+               className="absolute top-[2px] left-[2px] bottom-[2px] bg-gradient-to-r from-[#06B6D4] to-[#0284C7] rounded-full z-10 shadow-[0_0_10px_rgba(6,182,212,0.5)]" 
+             />
           </div>
         </div>
 
-        {/* Opponent */}
-        <div className="flex flex-col items-center gap-1.5 w-1/3">
-          <div className="relative">
-             <img src={opponent.avatar} alt={opponent.name} className="relative w-13 h-13 rounded-full border-2 border-white/15 bg-[#1E2638] object-cover shadow-sm" />
-          </div>
-          <span className="text-xs font-semibold text-slate-200 tracking-wide truncate max-w-full">{opponent.name}</span>
-        </div>
-      </div>
-
-      {/* Score / Progress Comparison */}
-      <div className="relative z-10">
-        <div className="flex justify-between text-xs font-semibold mb-2 px-1">
-          <span className="font-mono tracking-wider text-emerald-400 font-bold">{challengeScore}</span>
-          <span className="text-slate-400 text-[11px] font-normal">מתוך {maxScore}</span>
-          <span className="font-mono tracking-wider text-slate-300">{opponentScore}</span>
-        </div>
-        
-        {/* Dual Progress Bar */}
-        <div className="relative w-full h-2.5 bg-slate-900 rounded-full overflow-hidden mb-5 border border-white/[0.04]">
-           {/* Challenger Progress (Right to Left) */}
-           <div className="absolute top-0 right-0 h-full bg-gradient-to-l from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(16,185,129,0.4)]" style={{ width: `${challengerPercent}%` }} />
-           {/* Opponent Progress (Left to Right) */}
-           <div className="absolute top-0 left-0 h-full bg-slate-600 rounded-full transition-all duration-1000 ease-out" style={{ width: `${opponentPercent}%` }} />
-        </div>
-
-        {/* Call to Action */}
+        {/* Action Button */}
         <motion.button 
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.92 }}
           onClick={() => setHasJoined(!hasJoined)}
-          className={`w-full py-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+          className={`w-full mt-7 h-14 rounded-[16px] font-black text-[15px] flex items-center justify-center gap-3 transition-all duration-300 relative overflow-hidden ${
             hasJoined 
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
-              : 'border-white/10 bg-white/[0.05] text-slate-200 hover:bg-white/[0.09] hover:text-white'
+              ? 'bg-white/5 text-white border border-white/10 shadow-inner' 
+              : 'bg-white text-black border border-transparent hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] group/join'
           }`}
         >
           {hasJoined ? (
             <>
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
-              <span>הצטרפת לתחרות הזו! 🥊</span>
+              <CheckCircle className="w-5 h-5 text-[#10B981]" />
+              <span>הצטרפת בהצלחה</span>
             </>
           ) : (
             <>
-              <Target className="w-4 h-4 text-slate-400 group-hover/card:text-white transition-colors" />
-              <span>הצטרף לאתגר הזה או הזמן חבר</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-[150%] group-hover/join:animate-[shimmer_1.5s_infinite] opacity-50" />
+              <span className="relative z-10 tracking-wide font-extrabold">היכנס לזירה</span>
+              <Swords className="w-5 h-5 relative z-10 group-hover/join:rotate-12 transition-transform" />
             </>
           )}
         </motion.button>
       </div>
     </motion.div>
-  );
-};
-
-const ChallengeCard = ({ title, description, xp, progress, total, isCompleted, onClick = () => {} }) => {
-  const percentage = Math.min(100, Math.round((progress / total) * 100));
-  
-  return (
-    <div className={`relative overflow-hidden bg-[#131927]/80 backdrop-blur-xl rounded-2xl border ${isCompleted ? 'border-emerald-500/30' : 'border-white/10'} p-5 shadow-lg shadow-black/40 transition-all hover:border-white/20`}>
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className="flex-1 ml-4">
-          <h4 className="font-extrabold tracking-tight text-[16px] flex items-center gap-2 text-slate-100">
-            {title}
-            {isCompleted && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-          </h4>
-          <p className="text-xs text-slate-400 font-normal mt-1.5 leading-relaxed">{description}</p>
-        </div>
-        <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-500/20 shrink-0">
-          <Zap className="w-3.5 h-3.5 fill-emerald-400/40" />
-          <span className="font-mono tracking-wider font-bold text-sm">{xp} XP</span>
-        </div>
-      </div>
-
-      <div className="relative z-10 mt-4">
-        <div className="flex justify-between text-xs mb-2.5">
-           <span className="text-slate-400 font-normal">{isCompleted ? 'הושלם!' : `${progress} מתוך ${total}`}</span>
-           <span className={`${isCompleted ? 'text-emerald-400' : 'font-mono tracking-wider text-amber-400 font-bold'}`}>{percentage}%</span>
-        </div>
-        
-        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-4">
-          <div 
-            className={`h-full transition-all duration-1000 ease-out rounded-full ${isCompleted ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-gradient-to-r from-slate-500 to-slate-400'}`} 
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
-
-        {!isCompleted ? (
-          <button 
-            onClick={onClick}
-            className="w-full py-3 rounded-xl text-sm font-medium bg-white/[0.05] text-slate-200 hover:bg-white/[0.09] hover:text-white transition-all border border-white/10 active:scale-[0.98]"
-          >
-            עדכן התקדמות
-          </button>
-        ) : (
-          <div className="w-full py-2.5 rounded-xl text-sm font-medium bg-emerald-500/10 text-emerald-400 text-center border border-emerald-500/30 flex items-center justify-center gap-2">
-            <Trophy className="w-4 h-4" />
-            כל הכבוד! הושלם בהצלחה
-          </div>
-        )}
-      </div>
-    </div>
   );
 };
 
@@ -170,11 +189,17 @@ const MyChallengeCard = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [localParticipants, setLocalParticipants] = useState(participants);
   const [showRewardEffect, setShowRewardEffect] = useState(false);
+  const [triggerParticles, setTriggerParticles] = useState(false);
 
   const isGroup = type === 'group';
   
   const handleQuickUpdate = (e) => {
     e.stopPropagation();
+    
+    // Addiction Trigger: Flash & Particles
+    setTriggerParticles(true);
+    setTimeout(() => setTriggerParticles(false), 2000);
+    
     setLocalParticipants(prev => prev.map(p => {
       if (p.isMe) {
         return { ...p, score: Math.min(maxScore, p.score + stepIncrement) };
@@ -182,7 +207,7 @@ const MyChallengeCard = ({
       return p;
     }));
     setShowRewardEffect(true);
-    setTimeout(() => setShowRewardEffect(false), 2000);
+    setTimeout(() => setShowRewardEffect(false), 2500);
   };
 
   const sortedParticipants = [...localParticipants].sort((a, b) => b.score - a.score);
@@ -197,243 +222,183 @@ const MyChallengeCard = ({
   return (
     <motion.div 
       layout
-      className="bg-[#131927] rounded-xl border border-white/10 shadow-lg shadow-black/40 transition-all duration-300 hover:border-white/20 hover:shadow-xl overflow-hidden relative group w-full"
+      variants={itemVariants}
+      transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }}
+      onClick={() => setIsExpanded(!isExpanded)}
+      className="bg-[#121212] rounded-[24px] border border-white/5 relative flex flex-col shadow-lg overflow-visible cursor-pointer hover:bg-[#151515] transition-colors duration-300"
     >
-      {/* Ambient depth glow */}
-      <div className="absolute top-0 right-0 w-48 h-32 bg-teal-500/[0.04] rounded-full blur-3xl pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity" />
+      <FloatingParticles active={triggerParticles} />
       
-      {/* Main Interactive Card Body */}
-      <div className="w-full p-5 select-none box-border">
+      {/* Deep Ambient Glow */}
+      <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+      
+      <div className="p-5 flex flex-col relative z-10">
         
-        {/* Top Meta Row - Inset from rounded corners */}
-        <div className="flex items-center justify-between gap-2 mb-3.5 pt-0.5 px-0.5 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
-            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 truncate max-w-[120px]">
-              {category}
-            </span>
-            <span className="text-[10px] text-slate-400 flex items-center gap-1 shrink-0">
-              <Clock className="w-3 h-3 text-slate-400" />
-              {daysLeft}d left
-            </span>
-            {isNearCompletion && (
-              <span className="text-[9px] font-bold text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-1 animate-pulse shrink-0">
-                <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-                קרוב לסיום!
-              </span>
-            )}
+        {/* Trigger (Top) - Time sensitivity / Hook Model */}
+        <div className="flex justify-between items-center mb-5">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#EF4444]/10 rounded-full border border-[#EF4444]/20 shadow-sm">
+             <Flame className="w-4 h-4 fill-[#EF4444] text-[#EF4444] animate-pulse" />
+             <span className="text-[12px] font-black text-[#EF4444] tracking-wide" style={{ fontFeatureSettings: '"tnum"' }}>
+                🔥 רצף {daysLeft} ימים נותר!
+             </span>
           </div>
-
-          <div className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 shrink-0">
-            <Zap className="w-3 h-3 fill-amber-400/40 text-amber-400" />
-            <span className="font-mono font-bold">+{xpReward} XP</span>
+          <div className="flex items-center gap-1.5 text-[13px] font-black text-[#F5D061] bg-[#F5D061]/10 px-3 py-1.5 rounded-full border border-[#F5D061]/20">
+            <Zap className="w-4 h-4 fill-[#F5D061]" />
+            <span style={{ fontFeatureSettings: '"tnum"' }}>+{xpReward} XP</span>
           </div>
         </div>
 
-        {/* Title & Subtitle + Type Icon */}
-        <div className="flex items-start justify-between gap-2.5 mb-3 min-w-0">
+        {/* Primary Focus: Challenge Title (Element 1) */}
+        <div className="flex items-center justify-between gap-5 mb-6">
           <div className="flex-1 min-w-0">
-            <h4 className="font-bold tracking-tight text-slate-100 text-base leading-tight flex items-center gap-1.5 truncate">
-              <span className="truncate">{title}</span>
-              {isCompleted && <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />}
+            <h4 className="font-black text-white text-[24px] leading-tight tracking-tight truncate flex items-center gap-2">
+              {title}
+              {isCompleted && <motion.div initial={{scale:0}} animate={{scale:1}}><CheckCircle className="w-6 h-6 text-[#10B981] shrink-0 drop-shadow-[0_0_8px_#10B981]" /></motion.div>}
             </h4>
-            <p className="text-[11px] text-slate-400 font-normal mt-1 leading-snug truncate">
-              {subtitle}
-            </p>
           </div>
-
-          <div className="w-9 h-9 rounded-xl bg-[#1E2638] border border-white/10 flex items-center justify-center text-teal-400 shrink-0 shadow-sm">
-            <CardIcon className="w-4.5 h-4.5" />
+          <div className="w-12 h-12 rounded-[14px] bg-white/5 flex items-center justify-center text-white shrink-0 shadow-inner border border-white/5">
+            <CardIcon className="w-6 h-6 opacity-80" />
           </div>
         </div>
 
-        {/* Participants Avatar Stack & User Position */}
-        <div className="flex items-center justify-between text-xs mb-3 pt-0.5 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex items-center -space-x-1.5 space-x-reverse overflow-hidden shrink-0">
-              {localParticipants.slice(0, 4).map((p, idx) => (
-                <img
-                  key={p.id || idx}
-                  src={p.avatar}
-                  alt={p.name}
-                  className="w-5.5 h-5.5 rounded-full border border-[#131927] object-cover bg-[#1E2638]"
-                />
-              ))}
-              {localParticipants.length > 4 && (
-                <div className="w-5.5 h-5.5 rounded-full border border-[#131927] bg-[#1E2638] text-slate-400 text-[8px] font-bold flex items-center justify-center">
-                  +{localParticipants.length - 4}
-                </div>
-              )}
-            </div>
-            <span className="text-[10px] text-slate-400 truncate">
-              {isGroup ? `${localParticipants.length} מתחרים` : '1 נגד 1'}
-            </span>
+        {/* Reward (Center): Progress Metric + Bar (Element 2) */}
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex items-baseline gap-2 tabular-nums" style={{ fontFeatureSettings: '"tnum"' }}>
+            <span className="text-[44px] font-black text-white leading-none drop-shadow-md">{myParticipant.score}</span>
+            <span className="text-[22px] font-black text-[#A1A1AA]">/ {maxScore}</span>
+            <span className="text-[18px] font-bold text-[#71717A] ml-1">{unit}</span>
           </div>
-
-          <div className="flex items-center gap-1 font-bold text-[10px] text-slate-200 bg-white/[0.04] px-2 py-0.5 rounded border border-white/5 shrink-0">
-            <span>{rankLabel}</span>
+          <div className="w-full bg-[#000] h-3.5 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] p-[2px]">
+            <motion.div 
+              className="h-full rounded-full shadow-[0_0_10px_rgba(245,208,97,0.5)]"
+              style={{
+                background: isCompleted 
+                  ? 'linear-gradient(90deg, #10B981, #34D399)'
+                  : 'linear-gradient(90deg, #F5D061, #E6A213)',
+              }}
+              initial={{ width: 0 }}
+              animate={{ width: `${myPercent}%` }}
+              transition={{ type: "spring", stiffness: 80, damping: 15 }}
+            />
           </div>
         </div>
 
-        {/* Rich Progress Bar */}
-        <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden p-0.5 border border-white/[0.05] relative shadow-inner">
-          <motion.div 
-            className="h-full rounded-full"
-            style={{
-              background: isCompleted 
-                ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
-                : 'linear-gradient(90deg, #059669 0%, #10b981 70%, #34d399 100%)',
-              boxShadow: '0 0 8px rgba(16, 185, 129, 0.35)',
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${myPercent}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          />
-        </div>
+        {/* Action (Bottom): Primary CTA (Element 3) */}
+        {!isCompleted && (
+          <motion.button 
+            whileTap={{ scale: 0.95 }}
+            onClick={handleQuickUpdate}
+            className="w-full min-h-[56px] rounded-[16px] bg-gradient-to-br from-[#F5D061] to-[#E6A213] text-black font-[900] text-[18px] flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(245,208,97,0.3)] hover:shadow-[0_4px_25px_rgba(245,208,97,0.5)] transition-all relative overflow-hidden"
+            dir="ltr"
+          >
+            <Zap className="w-5 h-5 fill-black" />
+            <span className="tracking-tight" style={{ fontFeatureSettings: '"tnum"' }}>+{stepIncrement} תעד עכשיו</span>
+          </motion.button>
+        )}
 
-        {/* Progress Numbers & Actions */}
-        <div className="flex items-center justify-between text-[11px] mt-2.5 pt-0.5 min-w-0">
-          <span className="text-slate-400 font-normal truncate max-w-[170px]">
-            התקדמות: <strong className="font-mono font-bold text-slate-100">{myParticipant.score}</strong> / {maxScore} {unit}
-          </span>
-          
-          <div className="flex items-center gap-1.5 shrink-0">
-            {!isCompleted && (
-              <motion.button 
-                whileTap={{ scale: 0.95 }}
-                onClick={handleQuickUpdate}
-                className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] flex items-center gap-1 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-              >
-                <span>+{stepIncrement}</span>
-                <Zap className="w-3 h-3 fill-emerald-400" />
-              </motion.button>
-            )}
-
-            <button 
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-0.5 px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-slate-200 border border-white/5 transition-all text-[11px] cursor-pointer shrink-0"
-            >
-              <span>{isExpanded ? 'סגור' : 'דירוג'}</span>
-              <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                <ChevronDown className="w-3 h-3" />
-              </motion.div>
-            </button>
-          </div>
-        </div>
-
-        {/* Instant Reward Feedback Popup */}
+        {/* Magnetic Dopamine Feedback */}
         <AnimatePresence>
           {showRewardEffect && (
             <motion.div 
-              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              initial={{ opacity: 0, y: 15, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.95 }}
-              className="mt-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px] text-emerald-300 font-bold shadow-lg"
+              exit={{ opacity: 0, y: -15, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className="absolute inset-x-4 top-4 bg-gradient-to-r from-[#10B981]/95 to-[#34D399]/95 rounded-[16px] p-4 flex items-center justify-between text-black font-black backdrop-blur-xl shadow-[0_10px_40px_rgba(16,185,129,0.6)] z-50 border border-white/20"
             >
-              <div className="flex items-center gap-1.5 truncate">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin shrink-0" />
-                <span className="truncate">התקדמות עודכנה! (+{stepIncrement} {unit})</span>
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-6 h-6 animate-spin text-black" />
+                <span className="text-[14px] drop-shadow-sm">פעולה הושלמה!</span>
               </div>
-              <span className="font-mono text-emerald-200 text-[10px] bg-emerald-500/30 px-1.5 py-0.5 rounded shrink-0">+{stepIncrement * 10} XP</span>
+              <span className="font-mono text-black text-[15px] bg-black/20 px-3 py-1.5 rounded-[10px] border border-black/10 shadow-inner" style={{ fontFeatureSettings: '"tnum"' }}>
+                +{stepIncrement * 10} XP
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
 
-      {/* Expanded Content - Accordion Leaderboard */}
+      {/* Expanded Leaderboard (Progressive Disclosure Drawer) */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
+            layout
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="border-t border-white/[0.06] bg-[#090D16]/90 backdrop-blur-md"
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
+            className="border-t border-white/5 bg-black/50 overflow-hidden"
           >
-            <div className="p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">דירוג המתחרים בלייב</span>
-                <span className="text-[10px] text-slate-400 font-normal">יעד: {maxScore} {unit}</span>
-              </div>
+            <div className="p-5 flex flex-col gap-6">
               
-              <div className="flex flex-col gap-1.5">
+              {/* Hidden Metadata */}
+              <div className="flex flex-col gap-3">
+                <p className="text-[15px] text-[#9CA3AF] font-bold tracking-wide">
+                  {subtitle}
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-[8px] border border-white/10">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#06B6D4]" />
+                    <span className="text-[12px] font-black text-[#E2E8F0] tracking-wide">{category}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-[8px] border border-white/10">
+                    <span className="text-[12px] font-black text-[#E2E8F0] tracking-wide">{isGroup ? `${localParticipants.length} מתחרים` : '1 נגד 1'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-[8px] border border-white/10 mr-auto">
+                     <span className="text-[12px] font-black text-white">{rankLabel}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Leaderboard */}
+              <div className="flex flex-col gap-3">
                 {sortedParticipants.map((p, index) => {
                   const pPercent = Math.min(100, Math.round((p.score / maxScore) * 100));
                   const isLeader = index === 0;
                   
                   return (
-                    <div 
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 + 0.1, type: "spring", stiffness: 300, damping: 25 }}
                       key={p.id || index} 
-                      className={`relative flex items-center gap-2.5 p-2.5 rounded-xl border transition-all ${
+                      className={`flex items-center gap-4 p-3 rounded-[16px] border ${
                         p.isMe 
-                          ? 'bg-emerald-500/10 border-emerald-500/30 shadow-sm' 
-                          : 'bg-white/[0.03] border-white/[0.05]'
+                          ? 'bg-white/10 border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.1)]' 
+                          : 'bg-white/[0.02] border-transparent'
                       }`}
                     >
-                      {/* Rank */}
-                      <div className="w-4 text-center text-xs font-bold shrink-0">
-                        {isLeader ? (
-                          <span>🥇</span>
-                        ) : index === 1 ? (
-                          <span>🥈</span>
-                        ) : index === 2 ? (
-                          <span>🥉</span>
-                        ) : (
-                          <span className="text-slate-500 text-[11px]">#{index + 1}</span>
-                        )}
+                      <div className="w-7 text-center text-[18px] font-black flex justify-center">
+                        {isLeader ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : <span className="text-[#71717A] text-[14px]">#{index + 1}</span>}
                       </div>
-
-                      {/* Avatar */}
-                      <img 
-                        src={p.avatar} 
-                        alt={p.name} 
-                        className="w-8 h-8 rounded-full border border-white/[0.1] bg-[#1E2638] object-cover shrink-0" 
-                      />
-                      
-                      {/* Name & Progress bar */}
+                      <div className="relative">
+                        <img 
+                          src={p.avatar} 
+                          alt={p.name} 
+                          className={`w-10 h-10 rounded-full border-[2px] ${isLeader ? 'border-[#F5D061] shadow-[0_0_10px_#F5D061]' : 'border-[#0A0A0A]'} bg-[#1E2638] object-cover`} 
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[11px] font-medium text-slate-100 flex items-center gap-1 truncate">
-                            <span className="truncate">{p.name}</span>
-                            {p.isMe && (
-                              <span className="text-[8px] bg-emerald-500 text-white px-1 py-0.2 rounded font-bold shrink-0">
-                                אתה
-                              </span>
-                            )}
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[14px] font-black text-white flex items-center gap-2 truncate">
+                            {p.name}
+                            {p.isMe && <span className="text-[10px] bg-white text-black px-2 py-0.5 rounded-[6px] font-black tracking-wide shadow-sm">אתה</span>}
                           </span>
-                          <span className="font-mono text-[11px] font-bold text-slate-200 shrink-0">
-                            {p.score} <span className="text-[9px] text-slate-500 font-normal">{unit}</span>
-                          </span>
+                          <span className="text-[14px] font-black text-white tabular-nums drop-shadow-sm" style={{ fontFeatureSettings: '"tnum"' }}>{p.score}</span>
                         </div>
-                        
-                        <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ease-out ${
-                              isLeader 
-                                ? 'bg-gradient-to-r from-amber-500 to-yellow-400' 
-                                : p.isMe 
-                                  ? 'bg-gradient-to-r from-emerald-500 to-teal-400' 
-                                  : 'bg-slate-600'
-                            }`}
-                            style={{ width: `${pPercent}%` }}
+                        <div className="w-full bg-[#000] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_4px_rgba(0,0,0,0.8)]">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pPercent}%` }}
+                            transition={{ duration: 1, ease: "easeOut" }}
+                            className={`h-full rounded-full ${isLeader ? 'bg-[#F5D061]' : p.isMe ? 'bg-white' : 'bg-[#71717A]'}`}
                           />
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
-              
-              {!isCompleted && (
-                <motion.button 
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleQuickUpdate}
-                  className="mt-1 w-full py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 transition-all duration-200 shadow-md shadow-emerald-500/20 active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5 fill-white" />
-                  <span>עדכן התקדמות באתגר (+{stepIncrement} {unit})</span>
-                </motion.button>
-              )}
             </div>
           </motion.div>
         )}
@@ -441,6 +406,68 @@ const MyChallengeCard = ({
     </motion.div>
   );
 };
+
+// Sub-component for individual grid quests
+const QuestCard = ({ quest, type, onClick }) => {
+  const isCompleted = quest.completed || quest.progress >= quest.max;
+  const percent = Math.min(100, (quest.progress / quest.max) * 100);
+  
+  return (
+    <motion.div 
+      variants={itemVariants}
+      whileHover={!isCompleted ? { scale: 1.02, y: -2 } : {}}
+      onClick={() => !isCompleted && onClick()}
+      className={`relative rounded-[20px] p-4 ps-[16px] flex flex-col gap-3 cursor-pointer overflow-visible transition-all duration-300 border shadow-lg ${
+        isCompleted 
+          ? 'bg-white/5 border-white/10 opacity-70' 
+          : type === 'daily'
+            ? 'bg-gradient-to-br from-white/10 to-white/5 border-white/20 hover:bg-white/15'
+            : type === 'weekly'
+              ? 'bg-gradient-to-br from-[#06B6D4]/10 to-transparent border-[#06B6D4]/30 hover:bg-[#06B6D4]/15'
+              : 'bg-gradient-to-br from-[#F5D061]/20 to-[#E6A213]/5 border-[#F5D061]/40 hover:bg-[#F5D061]/25'
+      }`}
+    >
+      {/* Background Icon */}
+      <div className="absolute -top-2 -left-2 p-3 opacity-10 text-[60px] leading-none pointer-events-none transform -rotate-12 blur-sm filter">{quest.icon}</div>
+      
+      <div className="flex justify-start items-start relative z-10 min-h-[36px]">
+        <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-[18px] bg-white/[0.06] shadow-sm ${isCompleted ? 'grayscale opacity-50' : ''}`}>
+          {quest.icon}
+        </div>
+        <div className={`absolute top-[12px] left-[12px] flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-black ${isCompleted ? 'bg-[#10B981]/20 border-[#10B981]/30 text-[#10B981]' : 'bg-black/40 border-white/20 text-white'}`}>
+          {isCompleted ? <CheckCircle className="w-3 h-3" /> : <Zap className="w-3 h-3 text-[#F5D061]" />}
+          <span>+{quest.xp}</span>
+        </div>
+      </div>
+      
+      <div className="relative z-10 mt-1">
+        <h4 className={`font-black text-[14px] leading-tight mb-1 ${isCompleted ? 'text-[#A1A1AA] line-through' : 'text-white'}`}>{quest.title}</h4>
+        
+        {quest.max > 1 ? (
+          <div className="mt-2.5">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-[10px] text-[#A1A1AA] font-bold tracking-wider" dir="ltr">{quest.progress} / {quest.max}</span>
+              <span className={`text-[10px] font-black bg-white/[0.08] px-2 py-0.5 rounded-[6px] ${type === 'weekly' ? 'text-[#06B6D4]' : 'text-[#F5D061]'}`}>{Math.round(percent)}%</span>
+            </div>
+            <div className="w-full bg-black/50 h-2 rounded-full overflow-hidden shadow-inner">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${percent}%` }}
+                className={`h-full rounded-full ${type === 'weekly' ? 'bg-gradient-to-r from-[#38BDF8] to-[#0284C7]' : 'bg-[#F5D061]'}`}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 text-[12px] font-bold text-[#9CA3AF] flex items-center gap-1.5">
+            {!isCompleted && <Camera className="w-3.5 h-3.5 text-[#F97316]" />}
+            {isCompleted ? 'הושלם' : 'דרוש תיעוד'}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 
 export default function ChallengesTab({
   currentUser,
@@ -457,181 +484,210 @@ export default function ChallengesTab({
   setActiveTab
 }) {
   const [activeInnerTab, setActiveInnerTab] = useState('my_challenges');
-  const [isMysteryRevealed, setIsMysteryRevealed] = useState(false);
-  const [mysteryProgress, setMysteryProgress] = useState(0);
+  
+  // Categorized Quests State
+  const [quests, setQuests] = useState({
+    daily: [
+      { id: 'd1', title: 'אימון כוח', xp: 150, completed: false, icon: '🏋️', progress: 0, max: 1 },
+      { id: 'd2', title: '10,000 צעדים', xp: 100, completed: false, icon: '👣', progress: 0, max: 1 },
+      { id: 'd3', title: 'מדיטציה', xp: 50, completed: false, icon: '🧘', progress: 0, max: 1 },
+      { id: 'd4', title: 'שתיית מים', xp: 30, completed: false, icon: '💧', progress: 0, max: 1 },
+    ],
+    weekly: [
+      { id: 'w1', title: '3 אימוני אירובי', xp: 400, completed: false, icon: '🏃', progress: 1, max: 3 },
+      { id: 'w2', title: 'ללא מתוקים', xp: 300, completed: false, icon: '🚫', progress: 4, max: 7 },
+    ],
+    monthly: [
+      { id: 'm1', title: 'אתגר המרתון (42 ק"מ מצטבר)', xp: 1500, completed: false, icon: '🏅', progress: 12, max: 42 }
+    ]
+  });
+
+  const [machineBossProgress, setMachineBossProgress] = useState(45);
+  
+  // Evidence Verification State
+  const [evidenceTask, setEvidenceTask] = useState(null); // { id, title, xp, type: 'daily'|'weekly'|'monthly' }
+  const [evidenceStatus, setEvidenceStatus] = useState('idle'); // idle | scanning | success
+
+  const openEvidenceModal = (task, type) => {
+    setEvidenceTask({ ...task, type });
+    setEvidenceStatus('idle');
+  };
+
+  const closeEvidenceModal = () => {
+    if (evidenceStatus === 'scanning') return; // block close during scan
+    setEvidenceTask(null);
+    setEvidenceStatus('idle');
+  };
+
+  const simulateEvidenceUpload = () => {
+    setEvidenceStatus('scanning');
+    
+    // Simulate AI verification delay (dopamine anticipation)
+    setTimeout(() => {
+      setEvidenceStatus('success');
+      
+      // Apply the actual rewards after success
+      setQuests(prev => {
+        const updatedCategory = prev[evidenceTask.type].map(q => {
+          if (q.id === evidenceTask.id) {
+            const newProgress = q.progress + 1;
+            return { ...q, progress: newProgress, completed: newProgress >= q.max };
+          }
+          return q;
+        });
+        return { ...prev, [evidenceTask.type]: updatedCategory };
+      });
+      
+      // Also slightly boost the daily boss as a side effect
+      if (evidenceTask.type === 'daily') {
+         setMachineBossProgress(prev => Math.min(100, prev + 15));
+      }
+      
+      // Auto close after showing success
+      setTimeout(() => {
+        closeEvidenceModal();
+      }, 1500);
+
+    }, 2500); // 2.5s scan time
+  };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#090D16] font-sans text-[#F4F4F0]" dir="rtl">
+    <div className="flex flex-col h-full w-full min-h-0 bg-[#000000] font-sans text-white relative overflow-hidden" dir="rtl">
       
-      {/* ── Premium Header & Floating Pill Navigation ── */}
-      <div className="sticky top-0 z-20 bg-[#090D16]/95 backdrop-blur-md border-b border-white/[0.06] pt-6 pb-4 px-5">
-        <div className="flex justify-between items-end mb-4">
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-100">
+      {/* Global Ambient Lighting - Softened */}
+      <div className={`absolute top-[-20%] left-[-10%] w-[120%] h-[50%] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000 ${activeInnerTab === 'training_ground' ? 'bg-[#EF4444]/5' : 'bg-[#F5D061]/5'}`} />
+      <div className={`absolute bottom-[-20%] right-[-10%] w-[120%] h-[50%] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000 ${activeInnerTab === 'training_ground' ? 'bg-[#F97316]/5' : 'bg-[#06B6D4]/5'}`} />
+
+      {/* ── Spatial Header & Nav ── */}
+      <div className="relative z-20 pt-8 pb-5 px-6 bg-gradient-to-b from-black via-black/90 to-transparent">
+        <div className="flex justify-between items-end mb-6">
+          <h2 className="text-[32px] font-black tracking-tight text-white drop-shadow-sm">
             אתגרים
           </h2>
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-normal text-slate-400">{currentUser?.stats?.streakDays || 7} ימים</span>
+          <div className="flex items-center gap-2 bg-[#1A1A1A]/80 backdrop-blur-xl px-4 py-2 rounded-[14px] border border-white/10 shadow-sm cursor-default hover:bg-[#222] transition-colors">
+            <Flame className="w-5 h-5 text-[#F5D061] fill-[#F5D061] opacity-90" />
+            <span className="text-[15px] font-black text-white tabular-nums tracking-wide">{currentUser?.stats?.streakDays || 7} רצף</span>
           </div>
         </div>
 
-        {/* Floating Pill Tab — Premium Gaming Style */}
-        <div className="relative flex flex-col items-center mt-1">
-          <div className="relative flex items-center w-full rounded-full p-1 bg-[#1E2638] border border-white/5">
-            {[
-              { id: 'explore',          label: 'אקספלור', icon: Compass },
-              { id: 'my_challenges',    label: 'אתגרים',  icon: Trophy },
-              { id: 'training_ground',  label: 'אימונים', icon: Dumbbell },
-            ].map(({ id, label, icon: Icon }) => {
-              const isActive = activeInnerTab === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => setActiveInnerTab(id)}
-                  className={`relative flex-1 py-2 flex flex-col items-center justify-center gap-0.5 z-10 transition-all duration-300 rounded-full ${
-                    isActive
-                      ? 'text-white font-bold shadow-md shadow-emerald-500/20'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                  style={isActive ? {
-                    background: 'linear-gradient(to right, #10b981, #14b8a6)',
-                  } : {}}
-                >
-                  <Icon className={`w-4 h-4 transition-transform duration-200 ${isActive ? 'scale-110' : 'opacity-70'}`} />
-                  <span className={`text-[11px] tracking-wide ${isActive ? 'font-bold' : 'font-normal'}`}>
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Premium Segmented Control - Softer contrast */}
+        <div className="relative p-1.5 bg-[#121212]/80 backdrop-blur-[30px] rounded-[22px] flex items-center border border-white/5 shadow-sm">
+          {[
+            { id: 'explore',          label: 'זירה' },
+            { id: 'my_challenges',    label: 'שלי' },
+            { id: 'training_ground',  label: 'אימונים' },
+          ].map(({ id, label }) => {
+            const isActive = activeInnerTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveInnerTab(id)}
+                className={`relative flex-1 h-12 flex items-center justify-center z-10 rounded-[18px] font-bold text-[15px] tracking-wide transition-colors ${
+                  isActive ? 'text-white' : 'text-[#888] hover:text-[#bbb]'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="spatialTab"
+                    className="absolute inset-0 bg-white/10 border border-white/10 rounded-[18px] shadow-sm"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-20">{label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto pb-20 pt-4 px-4 custom-scrollbar">
+      {/* ── Dynamic Content Area ── */}
+      <div className="flex-1 overflow-y-auto pb-[110px] px-5 pt-2 custom-scrollbar relative z-10">
         <AnimatePresence mode="wait">
           
-          {/* TAB 1: MY CHALLENGES (אתגרים) */}
+          {/* TAB 1: MY CHALLENGES */}
           {activeInnerTab === 'my_challenges' && (
             <motion.div 
-              key="app_challenges"
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col gap-4"
+              key="tab_my"
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              className="flex flex-col gap-5"
             >
-              
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Activity className="w-4.5 h-4.5 text-[#C5B4A5] shrink-0" />
-                  <div className="min-w-0">
-                    <h3 className="text-base font-bold text-[#F4F4F0] tracking-wide truncate">האתגרים הפעילים שלי</h3>
-                    <p className="text-[11px] text-[#9E9D97] font-light mt-0.5 truncate">עדכן התקדמות בלחיצה מהירה או פתח דירוג.</p>
-                  </div>
+              {/* Breakthrough Banner */}
+              <motion.div 
+                variants={itemVariants}
+                whileTap={{ scale: 0.96 }}
+                className="relative overflow-hidden rounded-[24px] p-4 flex flex-row items-center justify-between bg-[#161616] border border-white/5 shadow-md cursor-pointer active:bg-[#1A1A1A] transition-colors" 
+                dir="rtl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F5D061]/10 to-transparent opacity-80" />
+                
+                <div className="relative z-10 flex flex-col gap-0.5">
+                  <h4 className="text-[17px] font-black text-white tracking-wide flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-[#F5D061] fill-[#F5D061] opacity-90" />
+                    קרוב לפריצת דרך!
+                  </h4>
+                  <p className="text-[14px] text-[#888] font-bold">
+                    מטרת על: ירידה באחוזי שומן
+                  </p>
                 </div>
-              </div>
+                
+                <div className="relative z-10 bg-white/10 px-2.5 py-1 rounded-[8px] mr-auto">
+                  <span className="font-black text-[15px] text-white">40%</span>
+                </div>
+              </motion.div>
 
-              {/* Zeigarnik Near Completion Motivation Banner */}
-              <div className="bg-[#131927] border border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-lg shadow-emerald-950/20 gap-2 min-w-0">
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className="w-8.5 h-8.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                    <Sparkles className="w-4 h-4 animate-pulse text-emerald-300" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1 truncate">
-                      קרוב לפריצת דרך! 🔥
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-                      "30 יום ללא סוכר": 12 מתוך 30 ימים
-                    </p>
-                  </div>
-                </div>
-                <div className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 shrink-0">
-                  40%
-                </div>
-              </div>
-
-              {/* Group Challenge 1: Running */}
               <MyChallengeCard 
-                title={'100 ק"מ ריצה החודש'}
-                subtitle="מי יסיים ראשון את המרחק המצטבר?"
-                category="ריצה וסיבולת"
+                title={'100 ק"מ ריצה'}
+                subtitle="מרוץ נגד השעון והחברים"
+                category="ריצה"
                 icon={TrendingUp}
                 daysLeft={17}
                 xpReward={600}
                 unit='ק"מ'
                 type="group"
                 maxScore={100}
+                stepIncrement={5}
                 participants={[
                   { id: 1, name: 'אתה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Felix', score: 42, isMe: true },
-                  { id: 2, name: 'דנה קגן', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Dana', score: 65, isMe: false },
-                  { id: 3, name: 'אמיר כהן', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Amir', score: 20, isMe: false },
-                  { id: 4, name: 'נועה לוי', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Noa', score: 55, isMe: false },
+                  { id: 2, name: 'דנה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Dana', score: 65, isMe: false },
+                  { id: 3, name: 'אמיר', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Amir', score: 20, isMe: false },
+                  { id: 4, name: 'נועה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Noa', score: 55, isMe: false },
                 ]}
               />
 
-              {/* 1v1 Challenge: Sugar-free */}
               <MyChallengeCard 
-                title="30 יום ללא סוכר ומתוקים"
-                subtitle="ראש בראש: מי מחזיק מעמד רצוף בלי להישבר"
-                category="תזונה ובריאות"
+                title="30 יום ללא סוכר"
+                subtitle="ראש בראש: מי מחזיק יותר זמן"
+                category="תזונה"
                 icon={Swords}
                 daysLeft={18}
                 xpReward={500}
                 unit="ימים"
                 type="1v1"
                 maxScore={30}
+                stepIncrement={1}
                 participants={[
                   { id: 1, name: 'אתה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Felix', score: 12, isMe: true },
-                  { id: 2, name: 'רועי שחר', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Roi', score: 12, isMe: false },
+                  { id: 2, name: 'רועי', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Roi', score: 12, isMe: false },
                 ]}
               />
-
-              {/* Mega Group Challenge: 5AM Club */}
-              <MyChallengeCard 
-                title="מועדון ה-5 בבוקר"
-                subtitle="לקום 20 פעמים החודש לפני 6:00 בבוקר לאימון זריחה"
-                category="משמעת ואורח חיים"
-                icon={Sparkles}
-                daysLeft={9}
-                xpReward={750}
-                unit="ימים"
-                type="group"
-                maxScore={20}
-                participants={[
-                  { id: 1, name: 'אתה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Felix', score: 8, isMe: true },
-                  { id: 2, name: 'מיכאל ברק', avatar: 'https://api.dicebear.com/9.x/bottts/svg?seed=Micha', score: 15, isMe: false },
-                  { id: 3, name: 'שירן פרי', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Shiran', score: 14, isMe: false },
-                  { id: 4, name: 'אביב גל', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Aviv', score: 10, isMe: false },
-                  { id: 5, name: 'גיא נווה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Guy', score: 7, isMe: false },
-                ]}
-              />
-
             </motion.div>
           )}
 
-          {/* TAB 2: EXPLORE (אקספלור) */}
+          {/* TAB 2: EXPLORE */}
           {activeInnerTab === 'explore' && (
             <motion.div 
-              key="friend_challenges"
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col gap-6"
+              key="tab_explore"
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              className="flex flex-col gap-5"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-5 h-5 text-[#C5B4A5]" />
-                <div>
-                  <h3 className="text-lg font-medium text-[#F4F4F0] tracking-wide">זירת התחרויות</h3>
-                  <p className="text-xs text-[#9E9D97] font-light mt-0.5">תראה מה אחרים עושים, ותזמין את החברים שלך לאותו אתגר.</p>
-                </div>
-              </div>
-
               <MatchupFeedCard 
-                title="הראשון ל-50 ק&quot;מ"
+                title='הראשון ל-50 ק"מ'
                 subtitle="תחרות ריצה שבועית"
                 challenger={{ name: 'דניאל', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Daniel' }}
                 opponent={{ name: 'רועי', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Roi' }}
@@ -642,280 +698,229 @@ export default function ChallengesTab({
 
               <MatchupFeedCard 
                 title="מלך הכוח"
-                subtitle="מי מרים יותר משקל באימון אחד"
+                subtitle="הכי הרבה משקל באימון"
                 challenger={{ name: 'אנה', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Anna' }}
                 opponent={{ name: 'מיכל', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Michal' }}
                 challengeScore={4500}
                 opponentScore={5200}
                 maxScore={6000}
               />
-
-              <MatchupFeedCard 
-                title="שבוע ללא סוכר"
-                subtitle="מי נשבר ראשון"
-                challenger={{ name: 'יואב', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Yoav' }}
-                opponent={{ name: 'נדב', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Nadav' }}
-                challengeScore={5}
-                opponentScore={4}
-                maxScore={7}
-              />
-
             </motion.div>
           )}
 
-          {/* TAB 3: TRAINING GROUND (מגרש אימונים) */}
+          {/* TAB 3: TRAINING GROUND (THE FORGE) */}
           {activeInnerTab === 'training_ground' && (
             <motion.div 
-              key="training_ground"
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col gap-10"
+              key="tab_training"
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              className="flex flex-col gap-5 pb-4"
             >
-              {/* Interactive Radar/Map Hero CTA — LIVE GPS Banner */}
-              <section className="mb-2">
-                <button 
-                  onClick={() => setChallengesViewMode('map')}
-                  className="w-full bg-[#131927]/80 backdrop-blur-xl border border-teal-500/20 hover:border-teal-500/40 rounded-2xl p-4 flex items-center justify-between transition-all duration-300 group overflow-hidden relative shadow-lg shadow-black/40 active:scale-[0.99]"
-                >
-                  {/* Left: Arrow */}
-                  <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-white/[0.08] transition-all">
-                    <ArrowRight className="w-4 h-4 rotate-180" />
+              {/* Top Section: Daily Boss Progress */}
+              <motion.div variants={itemVariants} className="flex items-center bg-black/40 backdrop-blur-[40px] rounded-[24px] border border-white/10 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <h3 className="text-[20px] font-black text-white tracking-wide">הבוס היומי</h3>
+                  <p className="text-[#9CA3AF] text-[12px] font-bold tracking-[0.1em] uppercase">שריפת 500 קק"ל</p>
+                  <div className="mt-2 flex items-center gap-1.5 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1 rounded-[10px] w-fit border border-[#D4AF37]/20">
+                    <Flame className="w-3.5 h-3.5 fill-[#D4AF37]" />
+                    <span className="text-[12px] font-black tabular-nums">{Math.round(500 * (machineBossProgress/100))} קק"ל</span>
                   </div>
-
-                  {/* Center: Text */}
-                  <div className="flex flex-col items-center text-center">
-                    <h3 className="text-sm font-bold text-teal-300 tracking-tight">מפת האתגרים</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">אתגרים ומסלולים בלעדיים בסביבה שלך.</p>
-                  </div>
-
-                  {/* Right: Map icon + LIVE badge */}
-                  <div className="flex items-center gap-2 z-10">
-                    {/* Pulsing LIVE GPS badge */}
-                    <span className="animate-pulse bg-red-500/20 text-red-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-500/30">
-                      LIVE GPS
-                    </span>
-                    <div className="w-11 h-11 rounded-xl bg-teal-500/10 p-3 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-105 transition-all">
-                      <MapIcon className="w-5 h-5" />
-                    </div>
-                  </div>
-                </button>
-              </section>
-
-              {/* 1. HERO: Daily Mystery Challenge — Gaming Dark Card */}
-              <section className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Star className="w-4 h-4 text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.6)]" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">DAILY SPECIAL MISSION</h3>
-                  </div>
-                  <span className="text-[11px] text-slate-500">מתאפסת בחצות</span>
                 </div>
                 
-                <div className="bg-gradient-to-br from-[#1A1F30] to-[#111523] rounded-2xl border border-purple-500/30 p-5 relative overflow-hidden shadow-xl shadow-black/50 shadow-[0_0_20px_rgba(168,85,247,0.08)] transition-all">
-                  {/* Purple ambient glow */}
-                  <div className="absolute -top-12 -right-12 w-40 h-40 bg-purple-600/[0.08] rounded-full blur-3xl pointer-events-none" />
-                  
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className="flex-1 ml-4 flex gap-3.5 items-center">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
-                        mysteryProgress >= 100 
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' 
-                          : 'bg-purple-900/30 text-purple-400 border-purple-500/20'
-                      }`}>
-                        {mysteryProgress >= 100 ? <CheckCircle className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-slate-100 text-[17px] tracking-tight">אתגר ההפתעה היומי</h4>
-                          <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono text-[10px] px-2 py-0.5 rounded-md">DAILY</span>
-                        </div>
-                        <p className="text-xs text-slate-400 font-normal mt-1 leading-relaxed">מבחן יומי שמשתנה כל יום. גריינד מול עצמך.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-purple-900/30 text-purple-300 px-3 py-1.5 rounded-xl border border-purple-500/30 shadow-inner shrink-0">
-                      <Zap className="w-3.5 h-3.5 fill-purple-400/40" />
-                      <span className="text-xs font-bold tracking-wide">100 XP</span>
-                    </div>
+                {/* Compact Progress Ring */}
+                <div className="relative w-24 h-24 flex items-center justify-center ms-auto">
+                  <svg className="w-full h-full -rotate-90 transform drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
+                    <motion.circle 
+                      cx="50" cy="50" r="42" 
+                      fill="none" 
+                      stroke="url(#bossGradient)" 
+                      strokeWidth="12" 
+                      strokeLinecap="round"
+                      strokeDasharray="264"
+                      initial={{ strokeDashoffset: 264 }}
+                      animate={{ strokeDashoffset: 264 - (264 * machineBossProgress) / 100 }}
+                      transition={{ type: "spring", stiffness: 60, damping: 15 }}
+                    />
+                    <defs>
+                      <linearGradient id="bossGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#EF4444" />
+                        <stop offset="100%" stopColor="#F97316" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute flex items-center justify-center text-center">
+                    <span className="text-[22px] font-black text-white tabular-nums tracking-tighter">
+                      {machineBossProgress}%
+                    </span>
                   </div>
+                </div>
+              </motion.div>
 
-                  {!isMysteryRevealed ? (
-                    <button 
-                      onClick={() => setIsMysteryRevealed(true)}
-                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-lg shadow-purple-600/30 border border-purple-400/30 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer relative z-10"
-                    >
-                      <Lock className="w-4 h-4 transition-transform group-hover:rotate-12" />
-                      <span>לחץ לחשיפת משימת היום המסתורית</span>
-                    </button>
-                  ) : (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col gap-3 relative z-10 mt-1">
-                      <div className="bg-[#0D1020] rounded-xl p-3.5 border border-purple-500/15 flex items-center justify-between">
-                        <div>
-                          <h5 className="font-bold text-slate-100 text-sm mb-0.5">100 שכיבות סמיכה</h5>
-                          <span className="text-[11px] text-slate-500">ניתן לפצל במהלך היום, העיקר לסיים עד חצות.</span>
-                        </div>
-                        <span className="text-xs font-mono font-bold text-purple-300">{mysteryProgress}/100</span>
+              {/* The Grid / Gallery of Quests */}
+              
+              {/* Daily Quests (2 Column Grid) */}
+              <section className="flex flex-col gap-4">
+                <div className="flex items-center justify-between px-2">
+                  <h4 className="text-[16px] font-black tracking-wide text-white flex items-center gap-2">
+                    <Sun className="w-4 h-4 text-[#F5D061]" /> מטלות להיום
+                  </h4>
+                  <span className="text-[12px] text-[#A1A1AA] bg-white/10 px-3 py-1 rounded-[10px] shadow-inner font-bold">
+                    {quests.daily.filter(q => q.completed).length}/{quests.daily.length} הושלמו
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {quests.daily.map(quest => (
+                    <QuestCard key={quest.id} quest={quest} type="daily" onClick={() => openEvidenceModal(quest, 'daily')} />
+                  ))}
+                </div>
+              </section>
+
+              {/* Weekly Quests (Full Width) */}
+              <section className="flex flex-col gap-4">
+                <div className="flex items-center justify-between px-2">
+                  <h4 className="text-[16px] font-black tracking-wide text-white flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#06B6D4]" /> יעדים שבועיים
+                  </h4>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {quests.weekly.map(quest => (
+                    <QuestCard key={quest.id} quest={quest} type="weekly" onClick={() => openEvidenceModal(quest, 'weekly')} />
+                  ))}
+                </div>
+              </section>
+
+              {/* Monthly Quests (Hero Style) */}
+              <section className="flex flex-col gap-4">
+                <div className="flex items-center justify-between px-2">
+                  <h4 className="text-[16px] font-black tracking-wide text-white flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-[#F5D061]" /> מטרות חודשיות
+                  </h4>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {quests.monthly.map(quest => (
+                    <QuestCard key={quest.id} quest={quest} type="monthly" onClick={() => openEvidenceModal(quest, 'monthly')} />
+                  ))}
+                </div>
+              </section>
+
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Evidence Verification Modal ── */}
+      <AnimatePresence>
+        {evidenceTask && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          >
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeEvidenceModal} />
+            
+            <motion.div 
+              initial={{ scale: 0.9, y: 30, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 30, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 350, damping: 25 }}
+              className="bg-[#0A0A0A] border border-white/10 rounded-[28px] p-6 w-full max-w-sm relative z-10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden"
+            >
+              {/* Dynamic Status Glow */}
+              <div className={`absolute -top-32 -left-32 w-64 h-64 blur-[80px] rounded-full transition-colors duration-1000 pointer-events-none ${
+                evidenceStatus === 'success' ? 'bg-[#10B981]/30' : 
+                evidenceStatus === 'scanning' ? 'bg-[#06B6D4]/30' : 'bg-[#EF4444]/20'
+              }`} />
+
+              {/* Close Button */}
+              {evidenceStatus === 'idle' && (
+                <button onClick={closeEvidenceModal} className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors z-20">
+                  <X className="w-5 h-5 text-[#A1A1AA]" />
+                </button>
+              )}
+
+              <div className="flex flex-col items-center text-center mt-2 relative z-10">
+                <h3 className="text-[20px] font-black text-white tracking-wide mb-2">{evidenceTask.title}</h3>
+                <p className="text-[#A1A1AA] text-[13px] font-bold mb-6">יש להעלות תמונה או צילום מסך כהוכחה לביצוע המשימה לקבלת {evidenceTask.xp} נקודות.</p>
+
+                {/* Upload Area / Scanning Area */}
+                <div className={`w-full h-48 rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all duration-500 relative overflow-hidden ${
+                  evidenceStatus === 'success' ? 'border-[#10B981] bg-[#10B981]/10' :
+                  evidenceStatus === 'scanning' ? 'border-[#06B6D4] bg-[#06B6D4]/10' :
+                  'border-white/20 bg-white/5 hover:bg-white/10 cursor-pointer'
+                }`}>
+                  
+                  {evidenceStatus === 'idle' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center w-full h-full justify-center" onClick={simulateEvidenceUpload}>
+                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                        <UploadCloud className="w-8 h-8 text-[#A1A1AA]" />
                       </div>
+                      <span className="font-bold text-[14px] text-white">לחץ להעלאת הוכחה</span>
+                      <span className="text-[11px] text-[#71717A] mt-1">מצלמה או גלריה</span>
+                    </motion.div>
+                  )}
+
+                  {evidenceStatus === 'scanning' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center w-full h-full justify-center">
+                      <ScanLine className="w-12 h-12 text-[#06B6D4] animate-pulse mb-4" />
+                      <span className="font-black text-[15px] text-[#06B6D4] tracking-widest uppercase">מאמת הוכחה...</span>
                       
-                      <div>
-                        <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/[0.05] mb-3">
-                          <div 
-                            className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-600 to-indigo-400 shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
-                            style={{ width: `${mysteryProgress}%` }} 
-                          />
-                        </div>
+                      {/* Scanning Laser Effect */}
+                      <motion.div 
+                        initial={{ top: 0 }}
+                        animate={{ top: "100%" }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                        className="absolute left-0 right-0 h-[2px] bg-[#06B6D4] shadow-[0_0_15px_#06B6D4] z-20"
+                      />
+                    </motion.div>
+                  )}
 
-                        {!Boolean(mysteryProgress >= 100) ? (
-                          <button 
-                            onClick={() => setMysteryProgress(p => Math.min(p + 25, 100))}
-                            className="w-full py-2.5 rounded-xl text-xs font-bold transition-all bg-purple-600 text-white hover:bg-purple-500 active:scale-[0.98] shadow-md shadow-purple-600/25"
-                          >
-                            עדכן ביצוע (+25)
-                          </button>
-                        ) : (
-                          <div className="w-full py-2.5 rounded-xl text-xs font-medium bg-purple-900/30 text-purple-300 text-center border border-purple-500/30 flex items-center justify-center gap-2">
-                            <Trophy className="w-4 h-4" />
-                            המשימה הושלמה! +100 XP
-                          </div>
-                        )}
+                  {evidenceStatus === 'success' && (
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center w-full h-full justify-center">
+                      <div className="w-16 h-16 rounded-full bg-[#10B981] flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+                        <CheckCircle className="w-8 h-8 text-black" />
                       </div>
+                      <span className="font-black text-[18px] text-[#10B981] tracking-wide">הוכחה אושרה!</span>
+                      <span className="text-[13px] font-bold text-white mt-1">+{evidenceTask.xp} XP</span>
                     </motion.div>
                   )}
                 </div>
-              </section>
-
-              {/* 2. Weekly Routine Goals — 2-Column Grid with Glowing Progress Bars */}
-              <section className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-emerald-400" />
-                    <h3 className="text-sm font-bold text-slate-100 tracking-wide">יעדי שגרה שבועיים</h3>
-                  </div>
-                  <span className="text-[11px] text-slate-500">2 יעדים פעילים</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Card A: Strength Training */}
-                  <div className="bg-[#131927]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-4 flex flex-col justify-between shadow-lg shadow-black/40 hover:border-emerald-500/20 transition-all">
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                          <Dumbbell className="w-4 h-4" />
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                          +300 XP
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-200 leading-snug">אימון כוח שבועי</h4>
-                      <p className="text-[11px] text-slate-400 font-normal mt-1 leading-relaxed">2 אימונים השבוע</p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-white/[0.05]">
-                      <div className="flex justify-between items-center text-[10px] mb-1.5">
-                        <span className="text-slate-400">התקדמות</span>
-                        <span className="font-bold text-slate-200">1 / 2</span>
-                      </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '50%' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card B: Sleep Routine */}
-                  <div className="bg-[#131927]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-4 flex flex-col justify-between shadow-lg shadow-black/40 hover:border-blue-500/20 transition-all">
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                          <Moon className="w-4 h-4" />
-                        </div>
-                        <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                          +250 XP
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-200 leading-snug">שגרת שינה טובה</h4>
-                      <p className="text-[11px] text-slate-400 font-normal mt-1 leading-relaxed">7.5 שעות בלילה</p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-white/[0.05]">
-                      <div className="flex justify-between items-center text-[10px] mb-1.5">
-                        <span className="text-slate-400">התקדמות</span>
-                        <span className="font-bold text-slate-200">3 / 5</span>
-                      </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" style={{ width: '60%' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* 3. GRAND BANNER: Master Monthly Challenge — Epic Quest */}
-              <section className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Medal className="w-4 h-4 text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]" />
-                    <h3 className="text-sm font-bold text-slate-100 tracking-wide">מטרת החודש המרכזית</h3>
-                  </div>
-                  <span className="text-[11px] font-bold text-amber-400">פרס גדול</span>
-                </div>
-
-                <div className="bg-gradient-to-br from-[#1C1A27] via-[#151928] to-[#0F131F] rounded-2xl border border-amber-500/40 p-5 relative overflow-hidden shadow-2xl shadow-amber-500/10">
-                  {/* Amber ambient glow */}
-                  <div className="absolute top-0 left-0 w-44 h-44 bg-amber-500/[0.07] rounded-full blur-2xl pointer-events-none" />
-
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div>
-                      {/* Prestige Badge */}
-                      <div className="bg-amber-500/20 text-amber-300 text-[11px] font-bold px-3 py-1 rounded-full border border-amber-500/30 flex items-center gap-1.5 w-fit mb-2">
-                        <Trophy className="w-3 h-3" />
-                        MONTHLY MASTER CHALLENGE
-                      </div>
-                      <h4 className="text-lg font-extrabold text-slate-100 tracking-tight">100 ק&quot;מ ריצה בחודש</h4>
-                      <p className="text-xs text-slate-400 font-normal mt-1 leading-relaxed max-w-[220px]">
-                        האתגר האולטימטיבי לחודש זה. כל קילומטר נחשב בדירוג הכללי!
-                      </p>
-                    </div>
-
-                    {/* 1000XP Trophy */}
-                    <div className="w-14 h-14 rounded-2xl bg-[#0F131F] border border-amber-500/30 flex flex-col items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
-                      <Trophy className="w-6 h-6 text-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
-                      <span className="text-[10px] font-extrabold text-amber-400 font-mono mt-0.5 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">1000 XP</span>
-                    </div>
-                  </div>
-
-                  <div className="relative z-10 pt-2">
-                    {/* Progress header */}
-                    <div className="flex justify-between text-xs mb-2">
-                      <span className="font-mono tracking-wider text-amber-400 font-bold">42%</span>
-                      <span className="text-slate-400">הושלמו 42 מתוך 100 ק&quot;מ</span>
-                    </div>
-
-                    {/* Master Progress Bar with Shimmer */}
-                    <div className="w-full bg-slate-900 rounded-full h-3.5 p-0.5 border border-white/5 mb-4 overflow-hidden">
-                      <div 
-                        className="h-full rounded-full bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-400 shadow-[0_0_12px_rgba(245,158,11,0.6)] relative overflow-hidden"
-                        style={{ width: '42%' }}
-                      >
-                        {/* Shimmer effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-                      </div>
-                    </div>
-
-                    {/* Primary CTA Button — Rich Amber Gradient */}
-                    <button className="w-full mt-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm py-3.5 px-6 rounded-xl shadow-lg shadow-amber-500/25 border border-amber-300/40 flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 active:scale-[0.98] active:translate-y-0.5 hover:shadow-amber-500/40 hover:-translate-y-0.5">
-                      <Zap className="w-4 h-4" />
-                      <span>עדכן ריצה אחרונה למאסטר</span>
-                    </button>
-                  </div>
-                </div>
-              </section>
-
+              </div>
             </motion.div>
-          )}
-
-        </AnimatePresence>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// Missing Lucide Icon
+function Sun(props) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
+      <path d="m4.93 4.93 1.41 1.41" />
+      <path d="m17.66 17.66 1.41 1.41" />
+      <path d="M2 12h2" />
+      <path d="M20 12h2" />
+      <path d="m6.34 17.66-1.41 1.41" />
+      <path d="m19.07 4.93-1.41 1.41" />
+    </svg>
   );
 }

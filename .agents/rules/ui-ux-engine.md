@@ -30,8 +30,21 @@ To ensure you use external libraries correctly without inventing broken syntax:
 2. **Library Documentation**: If using a new library, rely strictly on official documentation or types.
 3. **Use Official CLI**: Always use official package installation commands (like `npx shadcn@latest add [component]`) rather than trying to write complex off-the-shelf components from scratch. Let the tools do the heavy lifting.
 
-## 4. Polish Verification Protocol
-Before marking any UI task as complete, you MUST verify:
-- **Contrast**: Check contrast levels for readability.
-- **Consistency**: Ensure consistent rounded corners (`rounded-xl` or predefined tokens) across all cards/modals.
-- **Micro-Interactions**: Verify all interactive elements have transition duration (e.g., `duration-200`) and appropriate hover/active states.
+## 4. Extreme Pixel-Perfect QA (The Micro-to-Macro Framework)
+Before marking any UI task as complete, you MUST invoke 'The Photographer' to capture screenshots and 'The Professor' to review them. You must use the **Micro-to-Macro** logical scanning method to identify aesthetic flaws:
+
+### Step 1: The Micro Level (Inner Elements & Proportions)
+- **Icons & Text inside Buttons/Badges**: Are icons perfectly centered vertically and horizontally relative to the text? Is the padding equal on both sides?
+- **Typography & RTL**: Are numbers in RTL (like fractions or percentages) rendering correctly without flipping? 
+- **Corners & Boundaries**: Do rounded corners (`border-radius`) clip or touch inner content? (e.g., check if a 24px corner radius cuts into a badge placed in the corner).
+
+### Step 2: The Component Level (Cards, Rows, Containers)
+- **Spacing & Gaps**: Is the gap between elements uniform? (e.g., all flex rows using `gap-3` consistently). 
+- **Alignment**: Are flex items aligned securely on the same axis (`items-center`, `baseline`) without drifting up or down?
+- **Overflow**: Is any content spilling out of the card bounds or triggering unwanted scrollbars?
+
+### Step 3: The Macro Level (Page Layout & Hierarchy)
+- **Visual Weight**: Is the primary Call-To-Action immediately obvious? Does the hierarchy flow naturally?
+- **Breathing Room**: Is there enough whitespace (padding/margins) between distinct sections of the page?
+
+**Action:** If ANY flaw is detected at ANY level during the scan, fix the underlying code, recapture the screenshot, and restart the Micro-to-Macro scan. Do NOT present the output until it passes perfectly.

@@ -21,7 +21,7 @@ if (!executablePath) {
   process.exit(1);
 }
 
-const artifactDir = 'C:\\Users\\Chen\\.gemini\\antigravity-ide\\brain\\8a4a4e27-2de0-47e0-a16f-20669f1f604b\\';
+const artifactDir = 'C:\\Users\\Chen\\.gemini\\antigravity-ide\\brain\\f8354a99-c86a-4816-b6b3-a25b0f6279ab\\';
 
 (async () => {
   try {
@@ -32,9 +32,9 @@ const artifactDir = 'C:\\Users\\Chen\\.gemini\\antigravity-ide\\brain\\8a4a4e27-
     // Set viewport to mobile size
     await page.setViewport({ width: 375, height: 812 });
     
-    // NOTE: using port 5174 based on recent dev server logs
-    console.log('Navigating to http://localhost:5174...');
-    await page.goto('http://localhost:5174', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // NOTE: using port 5173 based on recent dev server logs
+    console.log('Navigating to http://localhost:5173/challenges-app/...');
+    await page.goto('http://localhost:5173/challenges-app/', { waitUntil: 'domcontentloaded', timeout: 30000 });
     
     console.log('Waiting for initial load and 3D models...');
     await new Promise(r => setTimeout(r, 6000));

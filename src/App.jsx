@@ -2305,7 +2305,7 @@ export default function App() {
             d === 'קשה' ? 'arena-diff-hard' : 'arena-diff-vhard';
 
           return (
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
             <ChallengesTab
               currentUser={currentUser}
